@@ -8,7 +8,7 @@
 <style>
     body{background:#f8f9fa}
 .navbar-brand{color:#ff6600!important; font-weight:bold}
-.nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;} /* TYPO FIX KIYA */
+.nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;}
 .stat-card{border-radius:15px; color:white; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1)}
 .stat-card h3{font-size:28px; margin:0;}
 .new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
@@ -22,7 +22,7 @@
 <nav class="navbar bg-white shadow-sm px-3">
     <a href="/" class="navbar-brand">🍴 <span id="resName"></span> Dashboard</a>
     <div>
-        <!-- <a href="/restaurant-profile" class="btn btn-outline-secondary btn-sm me-2">⚙️ Profile</a> --> <!-- Filhal hata diya 404 aa raha tha -->
+        <a href="/restaurant-profile" class="btn btn-outline-secondary btn-sm me-2">⚙️ Profile</a>
         <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
     </div>
 </nav>
@@ -112,7 +112,6 @@
 <script>
 const API = 'https://quickbite-ymqk.onrender.com';
 
-// BUG FIX: restaurantOwner ko pehle save kiya
 const restaurantOwner = JSON.parse(localStorage.getItem('restaurantOwner') || '{}');
 const restaurantId = localStorage.getItem('restaurantId') || restaurantOwner.restaurantId;
 const restaurantName = localStorage.getItem('restaurantName') || restaurantOwner.restaurantName;
@@ -157,7 +156,7 @@ document.getElementById('itemForm').addEventListener('submit', async (e)=>{
         category: document.getElementById('category').value,
         desc: document.getElementById('desc').value,
         image: document.getElementById('imageBase64').value,
-        restaurantId: restaurantId // Ab ye pakka jayega
+        restaurantId: restaurantId
     };
     const res = await fetch(`${API}/api/menu`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
     const result = await res.json();
