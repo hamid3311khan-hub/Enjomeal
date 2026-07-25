@@ -17,7 +17,7 @@
 .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
 .stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
 .stat-card h2{margin:0; font-size:30px;}
-.order,.menu-item,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px;}
+.order,.menu-item,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center;}
 .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}
 .report-result p{margin:5px 0; font-size:16px;}
 .logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
@@ -25,6 +25,7 @@
 .rider-docs img{width:70px; height:70px; object-fit:cover; border:1px solid #ccc; border-radius:5px; margin:3px;}
 .menu-item img{width:80px; height:80px; object-fit:cover; border-radius:5px; float:left; margin-right:10px;}
 canvas{background:white; padding:10px; border-radius:8px;}
+.alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
 </style>
 </head>
 <body>
@@ -46,6 +47,34 @@ canvas{background:white; padding:10px; border-radius:8px;}
 <div class="card">
     <h2>📈 Last 7 Days Sales Graph</h2>
     <canvas id="salesChart" height="100"></canvas>
+</div>
+
+<!-- 1. NEW: ALL RESTAURANT SALES REPORT -->
+<div class="card">
+    <h2>📊 All Restaurants Sales Report</h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <select id="reportShop" style="width:200px;">
+            <option value="all">All Restaurants</option>
+        </select>
+        <input type="date" id="startDate">
+        <input type="date" id="endDate">
+    </div>
+    <button class="btn-blue" onclick="getReport()">Get Report</button>
+    <div id="reportResult" class="report-result" style="margin-top:15px;"></div>
+</div>
+
+<!-- 2. NEW: BROADCAST TO ALL RESTAURANTS -->
+<div class="card">
+    <h2>📢 Broadcast to All Restaurants</h2>
+    <p style="color:#666; font-size:13px;">Ye message sabhi restaurant owners ko WhatsApp pe chala jayega</p>
+    <textarea id="broadcastMsg" placeholder="Notice: Kal se Delivery charge ₹10 badh raha hai" rows="3"></textarea>
+    <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
+</div>
+
+<!-- 3. NEW: RIDER CASH MANAGEMENT -->
+<div class="card">
+    <h2>🏍️ Rider Cash Management</h2>
+    <div id="riderCashList">Loading...</div>
 </div>
 
 <div class="card">
@@ -99,33 +128,111 @@ async function loadGraph(){
 }
 
 async function loadOwners(){
-    const res = await fetch(`${API}/api/admin/pending-restaurants`); // ✅ FIXED
+    const res = await fetch(`${API}/api/admin/pending-restaurants`);
     const owners = await res.json();
     document.getElementById('pendingOwnersList').innerHTML = owners.length === 0? 'Koi pending restaurant nahi hai' :
     owners.map(o => `
         <div class="owner-item">
-            <b>${o.restaurantName}</b> - ${o.ownerName} <br>
-            <small>ID: ${o.restaurantId} | Mobile: ${o.mobile}</small> <br>
+            <div><b>${o.restaurantName}</b> - ${o.ownerName} <br><small>ID: ${o.restaurantId} | Mobile: ${o.mobile}</small></div>
             <button class="btn-green" onclick="approveOwner('${o._id}')">✅ Approve</button>
         </div>
     `).join('');
 }
 
 async function approveOwner(id){
-    await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'}); // ✅ FIXED
+    await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'});
     alert('Restaurant Approved!');
     loadData();
+}
+
+// NEW: Load shop dropdown for report
+async function loadShopDropdown(){
+    const res = await fetch(`${API}/api/restaurants`);
+    const shops = await res.json();
+    const select = document.getElementById('reportShop');
+    shops.forEach(s => {
+        select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`;
+    });
+}
+
+// NEW: Sales Report Function
+async function getReport(){
+    let shop = document.getElementById('reportShop').value;
+    let s = document.getElementById('startDate').value;
+    let e = document.getElementById('endDate').value;
+    if(!s ||!e) return alert('Start aur End date select karo');
+
+    const d = await fetch(`${API}/api/report?start=${s}&end=${e}&shop=${shop}`).then(r=>r.json());
+
+    let html = `<h4>Report: ${s} to ${e}</h4>`;
+    if(shop === 'all'){
+        html += `<table style="width:100%; margin-top:10px; border-collapse:collapse;"><tr style="background:#eee"><th style="padding:8px; border:1px solid #ddd;">Restaurant</th><th style="padding:8px; border:1px solid #ddd;">Orders</th><th style="padding:8px; border:1px solid #ddd;">Revenue</th></tr>`;
+        d.shops.forEach(shop => {
+            html += `<tr><td style="padding:8px; border:1px solid #ddd;">${shop.name}</td><td style="padding:8px; border:1px solid #ddd;">${shop.orders}</td><td style="padding:8px; border:1px solid #ddd;">₹${shop.revenue}</td></tr>`
+        });
+        html += `<tr style="font-weight:bold; background:#f8f9fa"><td style="padding:8px; border:1px solid #ddd;">TOTAL</td><td style="padding:8px; border:1px solid #ddd;">${d.totalOrders}</td><td style="padding:8px; border:1px solid #ddd;">₹${d.totalRevenue}</td></tr></table>`;
+    } else {
+        html += `<p><b>Total Revenue:</b> ₹${d.totalRevenue}</p><p><b>Total Orders:</b> ${d.totalOrders}</p>`;
+    }
+    document.getElementById('reportResult').innerHTML = html;
+}
+
+// NEW: Broadcast Function
+async function sendBroadcast(type){
+    const message = document.getElementById('broadcastMsg').value;
+    if(!message) return alert('Message likho');
+    const res = await fetch(`${API}/api/broadcast`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({message, type})
+    });
+    const data = await res.json();
+    alert(`${data.count} Restaurant owners ko message bhej diya`);
+}
+
+// NEW: Rider Cash Management
+async function loadRiderCash(){
+    const res = await fetch(`${API}/api/admin/rider-cash`);
+    const riders = await res.json();
+
+    document.getElementById('riderCashList').innerHTML = riders.length === 0? 'Koi rider nahi hai' :
+    riders.map(r => {
+        let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED - Limit Cross</div>` : '';
+        return `
+        <div class="rider-item">
+            <div>
+                <b>${r.name}</b> - ${r.mobile} <br>
+                <small>Cash in Hand: ₹${r.pending_cash} | Today Collected: ₹${r.today_collected}</small> <br>
+                ${alert}
+            </div>
+            <button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button>
+        </div>
+        `;
+    }).join('');
+}
+
+async function markDeposited(mobile){
+    if(!confirm(`Pakka deposit le liye?`)) return;
+    await fetch(`${API}/api/admin/rider-deposit`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mobile})
+    });
+    alert('Deposit Marked!');
+    loadRiderCash();
 }
 
 async function loadData(){
     await loadGraph();
     await loadOwners();
+    await loadShopDropdown(); // NEW
+    await loadRiderCash(); // NEW
 
-    const pendingRiders = await fetch(`${API}/api/admin/pending-riders`).then(r=>r.json()); // ✅ FIXED
+    const pendingRiders = await fetch(`${API}/api/admin/pending-riders`).then(r=>r.json());
     document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' :
     pendingRiders.map(r => `
         <div class="rider-item">
-            <b>${r.name}</b> - ${r.mobile} <br>
+            <div><b>${r.name}</b> - ${r.mobile}</div>
             <button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve Karo</button>
         </div>
     `).join('');
@@ -142,10 +249,11 @@ async function loadData(){
     for(let o of orders){
         orderHtml += `
             <div class="order">
-                <b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br>
-                <small>${o.phone} | ${o.address} | Status: ${o.status}</small> <br>
-                <a href="/invoice?id=${o.trackId}" target="_blank" class="btn-orange">📄 Invoice</a>
-                <a href="/track?id=${o.trackId}" target="_blank" class="btn-blue">Track</a>
+                <div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br><small>${o.phone} | ${o.address} | Status: ${o.status}</small></div>
+                <div>
+                    <a href="/invoice?id=${o.trackId}" target="_blank" class="btn-orange">📄 Invoice</a>
+                    <a href="/track?id=${o.trackId}" target="_blank" class="btn-blue">Track</a>
+                </div>
             </div>
         `;
     }
@@ -153,7 +261,7 @@ async function loadData(){
 }
 
 async function approveRider(id){
-    await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); // ✅ FIXED
+    await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'});
     alert('Rider Approved!');
     loadData();
 }
