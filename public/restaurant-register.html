@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +7,10 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-  .card{max-width:600px; margin:50px auto; border-radius:15px}
-  .logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
-  .qr-box{background:#FFF3CD; padding:15px; border-radius:10px; border:1px dashed #ff6600}
+ .card{max-width:600px; margin:50px auto; border-radius:15px}
+ .logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
+ .info-box{background:#D1E7DD; padding:15px; border-radius:10px; border:1px solid #0F5132}
+  #photoPreview{max-width:100%; border-radius:10px; margin-top:10px; display:none}
 </style>
 </head>
 <body>
@@ -18,11 +19,11 @@
     <div class="card shadow p-4">
         <div class="logo">🍴 Eat4Bite™ Partner</div>
         <h4 class="text-center mb-3">Restaurant Registration</h4>
-        <p class="text-center text-success fw-bold">Offer: 30 Din Free Trial + ₹200 Registration</p>
+        <p class="text-center text-success fw-bold">Offer: 30 Days Free Trial</p>
 
-        <form id="registerForm" enctype="multipart/form-data">
+        <form id="registerForm">
             <div class="mb-3">
-                <label class="form-label">Owner Ka Naam</label>
+                <label class="form-label">Owner Name</label>
                 <input type="text" id="name" class="form-control" required>
             </div>
             <div class="mb-3">
@@ -38,7 +39,7 @@
                 <input type="tel" id="mobile" class="form-control" pattern="[0-9]{10}" maxlength="10" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Restaurant Ka Naam</label>
+                <label class="form-label">Restaurant Name</label>
                 <input type="text" id="restaurantName" class="form-control" required>
             </div>
             <div class="mb-3">
@@ -46,28 +47,36 @@
                 <textarea id="address" class="form-control" rows="2" required></textarea>
             </div>
 
-            <!-- UPI + Upload Section -->
-            <div class="qr-box mb-3">
-                <h6 class="fw-bold">Step 1: ₹200 UPI karein</h6>
-                <div class="text-center">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=200"
-                    width="180" alt="UPI QR" style="border-radius:10px; border:1px solid #ccc;">
-                    <p class="mb-1 mt-2">UPI ID: <b>tanbalkhi2014-3@okhdfcbank</b></p>
-                    <p class="mb-0" style="font-size:12px">Note: UPI Name me "Eat4Bite" aayega</p>
-                </div>
-                <h6 class="fw-bold mt-3">Step 2: Payment Screenshot Upload Karein</h6>
-                <input type="file" id="payment_proof" name="payment_proof" class="form-control" accept="image/*" required>
+            <!-- NEW: Restaurant Photo Upload -->
+            <div class="info-box mb-3">
+                <h6 class="fw-bold">Upload Restaurant Photo</h6>
+                <input type="file" id="restaurant_photo" class="form-control" accept="image/*" required>
+                <img id="photoPreview" src=""/>
+                <p class="mb-0 mt-2" style="font-size:12px">This photo will show on App & Google Maps</p>
             </div>
 
             <button type="submit" class="btn btn-warning w-100 fw-bold">Register & Start Free Trial</button>
         </form>
 
         <div id="msg" class="mt-3"></div>
-        <p class="text-center mt-3">Pehle se account hai? <a href="/restaurant-login">Login karo</a></p>
+        <p class="text-center mt-3">Already have an account? <a href="/restaurant-login">Login</a></p>
     </div>
 </div>
 
 <script>
+let photoBase64 = "";
+
+document.getElementById('restaurant_photo').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function(event){
+        photoBase64 = event.target.result;
+        document.getElementById('photoPreview').src = photoBase64;
+        document.getElementById('photoPreview').style.display = 'block';
+    }
+    reader.readAsDataURL(file);
+});
+
 document.getElementById('registerForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const btn = e.target.querySelector('button');
@@ -75,28 +84,31 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
     btn.innerText = "Registering...";
     document.getElementById('msg').innerHTML = '';
 
-    const formData = new FormData();
-    formData.append('ownerName', document.getElementById('name').value);
-    formData.append('email', document.getElementById('email').value);
-    formData.append('password', document.getElementById('password').value);
-    formData.append('mobile', document.getElementById('mobile').value);
-    formData.append('restaurantName', document.getElementById('restaurantName').value);
-    formData.append('address', document.getElementById('address').value);
-    formData.append('payment_proof', document.getElementById('payment_proof').files[0]);
-    formData.append('restaurantId', document.getElementById('restaurantName').value.toLowerCase().replace(/ /g,'-'));
+    const payload = {
+        ownerName: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        mobile: document.getElementById('mobile').value,
+        restaurantName: document.getElementById('restaurantName').value,
+        address: document.getElementById('address').value,
+        restaurantId: document.getElementById('restaurantName').value.toLowerCase().replace(/ /g,'-'),
+        image_base64: photoBase64 // ✅ NEW
+    };
 
     try {
         const res = await fetch('/api/restaurant/register', {
             method: 'POST',
-            body: formData
+            headers: {'Content-Type': 'application/json'}, // JSON bhejenge ab
+            body: JSON.stringify(payload)
         });
         const result = await res.json();
 
         if(result.success){
-            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Register ho gaya!
-            30 Din Free Trial shuru. ₹200 baad me adjust hoga.
-            Admin ke Approval ka wait karo.</div>`;
+            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Registered Successfully!
+            30 Days Free Trial Started.
+            Waiting for Admin Approval.</div>`;
             document.getElementById('registerForm').reset();
+            document.getElementById('photoPreview').style.display = 'none';
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.msg}</div>`;
         }
