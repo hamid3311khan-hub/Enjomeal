@@ -348,7 +348,7 @@ app.post('/api/menu', upload.none(), async (req,res)=>{
   res.json({success:true});
 });
 
-// ✅ YE NAYA ROUTE ADD KIYA - UPDATE KE LIYE
+// ✅ UPDATE ROUTE - YEHI NAYA THA
 app.put('/api/menu/:id', async (req,res)=>{
     try{
         const { id } = req.params;
@@ -356,7 +356,6 @@ app.put('/api/menu/:id', async (req,res)=>{
         
         let updateData = { name, price: Number(price), category, desc };
         
-        // Agar nayi photo base64 me aayi hai to hi update karo
         if(image && image.startsWith('data:image')){
             updateData.image = image;
         }
@@ -413,4 +412,5 @@ app.get('/admin-owners', (req, res) => res.sendFile(path.join(__dirname, 'public
 app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
 app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
 
-server.listen(POR
+// ✅ FIX KI HUI LAST LINE
+server.listen(PORT, ()=> console.log(`🚀 Server on ${PORT}`));
