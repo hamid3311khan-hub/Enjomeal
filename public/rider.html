@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><title>Rider Dashboard - Eat4Bite™</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Rider Dashboard - Eat4Bite™</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
@@ -11,27 +11,43 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 .tabs{display:flex; gap:10px; margin:15px 0;}.tab-btn{flex:1; background:#eee; color:#333;}.tab-btn.active{background:#ff6600; color:white;}
 .alert{background:#ffcccc; color:#a00; padding:12px; border-radius:8px; font-weight:bold; margin-bottom:10px; text-align:center;}
 .hisab-box{background:#e8f5e9; padding:15px; border-radius:8px; margin:10px 0;}
+.progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden; margin:10px 0;}
+.progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
+.cash-input{border:2px solid #ff6600 !important}
 </style></head><body>
 <div class="login-box" id="loginBox"><h2>🏍️ Eat4Bite™ Rider Login</h2>
 <input id="riderMobile" placeholder="Registered Mobile Number" maxlength="10">
-<button onclick="riderLogin()">Login Karo</button></div>
+<button onclick="riderLogin()">Login</button></div>
 
 <div class="dashboard" id="dashboard" style="display:none;">
 <div class="top-bar"><h2 id="riderName">Rider Panel</h2><button class="logout-btn" onclick="riderLogout()">🚪 Logout</button></div>
-<div id="cashAlert" class="alert" style="display:none;">⚠️ ₹500 Cash Pending! Pehle Jama karein</div>
+<div id="cashAlert" class="alert" style="display:none;">⚠️ Cash Limit Reached! Please Deposit First</div>
+
 <p><b>Status:</b> <span id="riderStatus">Offline</span></p>
-<button onclick="goOnline()">🟢 Online Ho Jao</button><button onclick="goOffline()" style="background:#6c757d;">🔴 Offline</button>
-<div class="tabs"><button class="tab-btn active" onclick="showTab('orders', this)">📦 Orders</button><button class="tab-btn" onclick="showTab('hisab', this)">💰 Hisab</button><button class="tab-btn" onclick="showTab('cash', this)">🏦 Cash Jama</button></div>
-<div id="tab-orders"><h3>Mere Orders</h3><div id="myOrders">Loading...</div><h3>📍 Live Location</h3><div id="map"></div></div>
-<div id="tab-hisab" style="display:none;"><h3>💰 Mera Hisab</h3><div class="hisab-box">
-<p><b>Aaj ki Delivery:</b> <span id="todayOrders">0</span> Order</p><p><b>Aaj ki Kamai:</b> ₹<span id="todayEarning">0</span></p>
-<p><b>Cash Pending:</b> ₹<span id="cashPending">0</span></p></div></div>
-<div id="tab-cash" style="display:none;"><h3>🏦 Cash Jama Karein</h3><div class="hisab-box">
-<p><b>Jama Karne Wala Amount:</b> ₹<span id="depositAmount">0</span></p>
-<input type="file" id="cashProof" accept="image/*"><button onclick="depositCash()">📤 Jama Karein</button></div></div></div>
+<button onclick="goOnline()">🟢 Go Online</button><button onclick="goOffline()" style="background:#6c757d;">🔴 Go Offline</button>
+
+<!-- NEW: Cash Limit Bar -->
+<div class="hisab-box">
+  <b>Cash in Hand:</b> ₹<span id="cashInHand">0</span> / ₹1000
+  <div class="progress-bar"><div class="progress-fill" id="limitBar">0%</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('orders', this)">📦 Orders</button>
+  <button class="tab-btn" onclick="showTab('hisab', this)">💰 Ledger</button>
+</div>
+
+<div id="tab-orders"><h3>My Orders</h3><div id="myOrders">Loading...</div><h3>📍 Live Location</h3><div id="map"></div></div>
+
+<div id="tab-hisab" style="display:none;"><h3>💰 My Ledger</h3><div class="hisab-box">
+<p><b>Today's Deliveries:</b> <span id="todayOrders">0</span> Orders</p>
+<p><b>Today's Collection:</b> ₹<span id="todayCollection">0</span></p>
+<p><b>Cash Pending:</b> ₹<span id="cashPending">0</span></p>
+</div></div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
-const API = 'https://quickbite-ymqk.onrender.com'; // <- SAHI HAI
+const API = 'https://quickbite-ymqk.onrender.com';
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null;
 
 window.onload = () => {
@@ -47,17 +63,17 @@ window.onload = () => {
 }
 
 function initMap(){ map = L.map('map').setView([25.0968, 85.3131], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);}
-function showTab(tab, btn){ // FIX: event ki jagah btn parameter
+function showTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); 
   btn.classList.add('active'); 
-  ['orders','hisab','cash'].forEach(t=>document.getElementById('tab-'+t).style.display='none'); 
+  ['orders','hisab'].forEach(t=>document.getElementById('tab-'+t).style.display='none'); 
   document.getElementById('tab-'+tab).style.display='block';
 }
 
 async function riderLogin(){
   const mobile = document.getElementById('riderMobile').value;
-  if(mobile.length!=10) return alert('10 digit mobile daalo');
-  const res = await fetch(`${API}/api/rider/login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})}); // API FIX
+  if(mobile.length!=10) return alert('Enter 10 digit mobile');
+  const res = await fetch(`${API}/api/rider/login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
   const data = await res.json();
   if(data.success){
     riderData = data.rider;
@@ -69,7 +85,7 @@ async function riderLogin(){
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
 async function goOnline(){
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})}); // API FIX
+  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
   riderData.status = 'Online';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   document.getElementById('riderStatus').innerText = 'Online';
@@ -78,7 +94,7 @@ async function goOnline(){
 
 async function goOffline(){
   clearInterval(locationInterval);
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})}); // API FIX
+  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
   riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   document.getElementById('riderStatus').innerText = 'Offline';
@@ -95,41 +111,54 @@ function updateRiderLocation(pos){
   const lat = pos.coords.latitude; const lng = pos.coords.longitude;
   if(!riderMarker){ riderMarker = L.marker([lat, lng]).addTo(map); map.setView([lat, lng], 15); }
   else { riderMarker.setLatLng([lat, lng]); }
-  fetch(`${API}/api/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})}); // API FIX
+  fetch(`${API}/api/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})});
 }
 
 async function loadHisab(){
-  const res = await fetch(`${API}/api/rider/orders/${riderData.mobile}`); // API FIX
-  const orders = await res.json();
-  const today = new Date().toDateString();
-  const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === today && o.status === 'Delivered');
-  document.getElementById('todayOrders').innerText = todayOrders.length;
-  document.getElementById('todayEarning').innerText = todayOrders.length * 30;
-  document.getElementById('cashPending').innerText = riderData.cash_balance || 0;
-  document.getElementById('depositAmount').innerText = riderData.cash_balance || 0;
-  if((riderData.cash_balance || 0) >= 500){ document.getElementById('cashAlert').style.display = 'block'; }
+  const res = await fetch(`${API}/api/rider/ledger?riderId=${riderData.mobile}`);
+  const data = await res.json();
+  document.getElementById('cashInHand').innerText = data.pending_cash || 0;
+  document.getElementById('cashPending').innerText = data.pending_cash || 0;
+  document.getElementById('todayCollection').innerText = data.today_collected || 0;
+  document.getElementById('todayOrders').innerText = data.today_orders || 0;
+  
+  const percent = data.progress || 0;
+  document.getElementById('limitBar').style.width = percent + '%';
+  document.getElementById('limitBar').innerText = percent + '%';
+  
+  if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; }
 }
 
 async function loadMyOrders(){
-  const res = await fetch(`${API}/api/rider/orders/${riderData.mobile}`); // API FIX
+  const res = await fetch(`${API}/api/rider/orders/${riderData.mobile}`);
   const orders = await res.json();
-  document.getElementById('myOrders').innerHTML = orders.length === 0? 'Koi order nahi hai' : orders.map(o => `<div class="order"><b>${o.trackId}</b> - ₹${o.total} <br><small>${o.name}</small> <br><b>Status:</b> ${o.status} <br><button onclick="markDelivered('${o._id}')">Delivered</button><a href="${API}/api/invoice?id=${o.trackId}" target="_blank">📄 Bill</a></div>`).join(''); // INVOICE FIX
+  if(orders.length === 0){ document.getElementById('myOrders').innerHTML = 'No orders yet'; return; }
+  
+  document.getElementById('myOrders').innerHTML = orders.map(o => `
+    <div class="order">
+      <b>${o.trackId}</b> - ₹${o.total} <br>
+      <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
+      <b>Status:</b> ${o.status} <br>
+      ${o.status === 'Out for Delivery' ? `
+        <label><b>Cash Collected ₹:</b></label>
+        <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.total}">
+        <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
+      ` : ''}
+      <a href="${API}/invoice?id=${o.trackId}" target="_blank">📄 Bill</a>
+    </div>`).join('');
 }
 
 async function markDelivered(orderId){
-  await fetch(`${API}/api/order/delivered`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId})}); // API FIX
-  alert('Delivered!'); loadMyOrders(); loadHisab();
-}
-
-async function depositCash(){
-  const file = document.getElementById('cashProof').files[0];
-  if(!file) return alert('Photo upload karein');
-  const amount = riderData.cash_balance;
-  const formData = new FormData();
-  formData.append('proof', file);
-  formData.append('riderId', riderData.mobile);
-  formData.append('amount', amount);
-  const res = await fetch(`${API}/api/rider/cash-deposit`, {method:'POST', body:formData}); // API FIX
-  alert((await res.json()).msg); loadHisab();
+  const cashInput = document.getElementById(`cash_${orderId}`).value;
+  if(!cashInput) return alert('Please enter cash collected amount');
+  
+  await fetch(`${API}/api/order/delivered`, {
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body:JSON.stringify({orderId, cashCollected: Number(cashInput)})
+  });
+  alert('Order Delivered!'); 
+  loadMyOrders(); 
+  loadHisab();
 }
 </script></body></html>
