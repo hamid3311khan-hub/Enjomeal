@@ -43,6 +43,8 @@
 </div>
 
 <script>
+const API = 'https://quickbite-ymqk.onrender.com'; // RENDER KA URL
+
 document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const btn = e.target.querySelector('button');
@@ -55,7 +57,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     };
 
     try{
-        const res = await fetch('/api/restaurant/login', {
+        const res = await fetch(`${API}/api/restaurant/login`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify(data)
@@ -69,10 +71,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e)=>{
                 btn.innerText = "Login";
                 return;
             }
-            // FIX: ALAG ALAG KEY ME SAVE KIYA
+            // FIX: DATA 3 JAGAH SAVE KIYA
             localStorage.setItem('restaurantId', result.owner.restaurantId);
             localStorage.setItem('restaurantName', result.owner.restaurantName);
-            localStorage.setItem('restaurantOwner', JSON.stringify(result.owner)); // purana wala bhi rakha
+            localStorage.setItem('restaurantOwner', JSON.stringify(result.owner));
             window.location.href = '/restaurant-dashboard';
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">${result.msg}</div>`;
