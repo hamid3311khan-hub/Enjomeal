@@ -18,10 +18,17 @@ h1{color:#ff4d4d;font-size:40px;margin-bottom:5px}
 </head><body>
 <div class="box">
     <h1>🍴 Eat4Bite™</h1>
-    <p class="tagline">Khana 4 Minute Me</p>
+    <p class="tagline">Khana Minutes Me</p>
     
     <a href="/restaurants" class="btn cust">🍽️ Order Food - Customer</a>
     <a href="/track" class="btn btn-outline-warning">📍 Track Your Order</a>
+<div id="currentRestaurant" class="text-center p-2 bg-warning fw-bold" style="color:#000;">
+    📍 Loading Hotel...
+</div>
+<script>
+const restaurantName = localStorage.getItem('restaurantName') || 'Eat4Bite™ Shop';
+document.getElementById('currentRestaurant').innerText = `📍 ${restaurantName}`;
+</script>
 
     <hr style="margin:20px 0">
 
