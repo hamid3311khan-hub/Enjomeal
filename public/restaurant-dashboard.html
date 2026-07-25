@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,8 +13,10 @@
 .stat-card h3{font-size:28px; margin:0;}
 .new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
     @keyframes blink {50%{background:#fff3cd;}}
-.trial-banner{background:#FFF3CD; border-left:5px solid #ff6600}
+.trial-banner{background:#D1E7DD; border-left:5px solid #0F5132}
 .alert-info{background:#d1ecf1; border-left:5px solid #0dcaf0}
+.progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden;}
+.progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
 </style>
 </head>
 <body>
@@ -29,26 +31,39 @@
 
 <div class="container mt-4">
     <div id="trialBanner" class="alert trial-banner d-none">
-        <h5 class="mb-1">🎉 Aap 30 Din Free Trial par hain</h5>
-        <p class="mb-0">Trial khatam hone me <b id="trialDays">0</b> din bache hain. ₹2000/Year baad me lagega.</p>
+        <h5 class="mb-1">🎉 You are on 30 Days Free Trial</h5>
+        <p class="mb-0"><b id="trialDays">0</b> days left. ₹2000/Year will apply after trial.</p>
     </div>
 
+    <!-- NEW 4 CARDS -->
     <div class="row mb-4">
-        <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#28a745;"><h6>Aaj ke Orders</h6><h3 id="todayOrders">0</h3></div></div>
-        <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#007bff;"><h6>Aaj ki Kamai</h6><h3 id="todayRevenue">₹0</h3></div></div>
+        <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#28a745;"><h6>Today's Orders</h6><h3 id="todayOrders">0</h3></div></div>
+        <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#007bff;"><h6>Today's Revenue</h6><h3 id="todayRevenue">₹0</h3></div></div>
         <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#ffc107; color:#000;"><h6>Payout Due</h6><h3 id="payoutDue">₹0</h3></div></div>
         <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#dc3545;"><h6>Pending Orders</h6><h3 id="pendingOrders">0</h3></div></div>
+    </div>
+
+    <!-- NEW: LEDGER CARD -->
+    <div class="card shadow-sm p-3 mb-4">
+        <h5>📊 Today's Ledger</h5>
+        <div class="row">
+            <div class="col-6"><b>COD Sales:</b> ₹<span id="codSales">0</span></div>
+            <div class="col-6"><b>Online Sales:</b> ₹<span id="onlineSales">0</span></div>
+            <div class="col-6"><b>Your Earning 95%:</b> ₹<span id="yourEarning">0</span></div>
+            <div class="col-6"><b>Platform Cut:</b> ₹<span id="platformCut">0</span></div>
+        </div>
     </div>
 
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#menu">🍔 Menu</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#orders">📦 Orders <span class="badge bg-danger" id="orderCount">0</span></a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#cash">🏦 Cash</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#cash">🏦 Cash Confirm</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#payout">💰 Payout</a></li>
         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#offers">🎟️ Offers</a></li>
     </ul>
 
     <div class="tab-content">
+        <!-- MENU TAB SAME -->
         <div class="tab-pane fade show active" id="menu">
             <div class="card shadow-sm p-3">
                 <h5 id="formTitle">Add New Item</h5>
@@ -57,7 +72,7 @@
                     <input id="name" class="form-control mb-2" placeholder="Item Name" required>
                     <input id="price" type="number" class="form-control mb-2" placeholder="Price" required>
                     <input id="category" class="form-control mb-2" placeholder="Category e.g. Snacks, Main Course">
-                    <textarea id="desc" class="form-control mb-2" placeholder="Description: Taste, Ingredients, Best with..."></textarea>
+                    <textarea id="desc" class="form-control mb-2" placeholder="Description"></textarea>
                     <input type="file" id="imageFile" class="form-control mb-2">
                     <input type="hidden" id="imageBase64">
                     <img id="preview" style="display:none; width:100px; margin:10px 0; border-radius:8px;">
@@ -70,6 +85,8 @@
                 <table class="table"><tbody id="menuList"></tbody></table>
             </div>
         </div>
+
+        <!-- ORDERS TAB SAME -->
         <div class="tab-pane fade" id="orders">
             <div class="card shadow-sm p-3">
                 <h5>New Orders</h5>
@@ -77,27 +94,28 @@
                 <div id="ordersList">Loading...</div>
             </div>
         </div>
+
+        <!-- CASH TAB UPDATED -->
         <div class="tab-pane fade" id="cash">
             <div class="card shadow-sm p-3">
-                <h5>🏦 Rider Cash Confirm</h5>
-                <p class="text-muted">Rider cash dekar gaya hai? Photo check karke confirm karein</p>
+                <h5>🏦 Rider Cash Confirmation</h5>
+                <p class="text-muted">Rider has deposited cash. Match amount and confirm.</p>
                 <div id="cashPendingList">Loading...</div>
             </div>
         </div>
+
+        <!-- PAYOUT TAB SAME -->
         <div class="tab-pane fade" id="payout">
             <div class="card shadow-sm p-3">
                 <h5>💰 Restaurant Payout</h5>
                 <div class="alert alert-info">
-                    <b>3 Din ka Hisab</b><br>
-                    Total Collection: ₹<span id="totalCollection">0</span><br>
-                    - Commission 5% + ₹10: ₹<span id="totalCut">0</span><br>
-                    <hr>
-                    <b>Net Payout Due: ₹<span id="netPayout">0</span></b>
+                    <b>Net Payout Due:</b> ₹<span id="netPayout">0</span><br>
+                    <small>This is 95% of your COD sales. Pay to Eat4Bite™ every 3 days</small>
                 </div>
-                <button class="btn btn-success btn-lg w-100" style="background:#ff6600; border:none;" onclick="doPayout()">Pay Now UPI</button>
-                <p class="text-muted mt-2">* Ye amount Eat4Bite™ ko har 3 din me bhejna hai</p>
+                <button class="btn btn-success btn-lg w-100" style="background:#ff6600; border:none;" onclick="doPayout()">Pay Now</button>
             </div>
         </div>
+
         <div class="tab-pane fade" id="offers">
             <div class="card shadow-sm p-3">
                 <h5>Add Offer</h5>
@@ -120,7 +138,7 @@ const restaurantName = localStorage.getItem('restaurantName') || restaurantOwner
 const owner = restaurantOwner;
 
 if(!restaurantId){
-    alert("Login info missing. Dubara login karo");
+    alert("Login info missing. Please login again");
     window.location.href = '/restaurant-login.html';
 }
 
@@ -138,6 +156,7 @@ function checkTrial(){
     }
 }
 
+// MENU CODE SAME AS YOURS...
 document.getElementById('imageFile').addEventListener('change', function(e){
     const file = e.target.files[0];
     if(!file) return;
@@ -153,90 +172,19 @@ document.getElementById('imageFile').addEventListener('change', function(e){
 document.getElementById('itemForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const id = document.getElementById('editId').value;
-    const data = {
-        name: document.getElementById('name').value,
-        price: document.getElementById('price').value,
-        category: document.getElementById('category').value,
-        desc: document.getElementById('desc').value,
-        image: document.getElementById('imageBase64').value,
-        restaurantId: restaurantId
-    };
-
-    let url = `${API}/api/menu`;
-    let method = 'POST';
-    if(id){
-        url = `${API}/api/menu/${id}`;
-        method = 'PUT';
-    }
-
+    const data = {name: document.getElementById('name').value, price: document.getElementById('price').value, category: document.getElementById('category').value, desc: document.getElementById('desc').value, image: document.getElementById('imageBase64').value, restaurantId: restaurantId};
+    let url = `${API}/api/menu`; let method = 'POST';
+    if(id){ url = `${API}/api/menu/${id}`; method = 'PUT'; }
     const res = await fetch(url, {method:method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
     const result = await res.json();
-    if(result.success){
-        document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ ${id? 'Item Updated!' : 'Item Added!'}</div>`;
-        resetForm();
-        loadMenu(); loadStats();
-        setTimeout(()=>document.getElementById('msg').innerHTML='', 3000);
-    } else {
-        document.getElementById('msg').innerHTML = `<div class="alert alert-danger">${result.msg}</div>`;
-    }
+    if(result.success){ document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ ${id? 'Item Updated!' : 'Item Added!'}</div>`; resetForm(); loadMenu(); loadStats(); setTimeout(()=>document.getElementById('msg').innerHTML='', 3000);
+    } else { document.getElementById('msg').innerHTML = `<div class="alert alert-danger">${result.msg}</div>`; }
 });
-
-function resetForm(){
-    document.getElementById('itemForm').reset();
-    document.getElementById('preview').style.display='none';
-    document.getElementById('editId').value = '';
-    document.getElementById('formTitle').innerText = 'Add New Item';
-    document.getElementById('formBtn').innerText = 'Add Item';
-    document.getElementById('formBtn').classList.remove('btn-warning');
-    document.getElementById('formBtn').classList.add('btn-success');
-    document.getElementById('cancelBtn').classList.add('d-none');
-}
-
-function editItem(id, name, price, category, desc, image){
-    document.getElementById('editId').value = id;
-    document.getElementById('name').value = name;
-    document.getElementById('price').value = price;
-    document.getElementById('category').value = category;
-    document.getElementById('desc').value = desc;
-    if(image){
-        document.getElementById('preview').src = image;
-        document.getElementById('preview').style.display = 'block';
-        document.getElementById('imageBase64').value = image;
-    }
-
-    document.getElementById('formTitle').innerText = 'Update Item';
-    document.getElementById('formBtn').innerText = 'Update Item';
-    document.getElementById('formBtn').classList.remove('btn-success');
-    document.getElementById('formBtn').classList.add('btn-warning');
-    document.getElementById('cancelBtn').classList.remove('d-none');
-    window.scrollTo({top: 0, behavior: 'smooth'});
-}
-
-async function loadMenu(){
-    const res = await fetch(`${API}/api/menu?shop=${restaurantId}`);
-    const items = await res.json();
-    document.getElementById('totalItems').innerText = items.length;
-    let rows = '';
-    items.forEach(i=>{
-        rows += `<tr>
-            <td><img src="${i.image || 'https://via.placeholder.com/50'}" width="50" height="50" style="object-fit:cover; border-radius:5px;"></td>
-            <td>
-                <b>${i.name}</b><br>
-                <small class="text-muted">${i.desc || ''}</small>
-            </td>
-            <td>₹${i.price}</td>
-            <td><button class="btn btn-sm ${i.inStock?'btn-success':'btn-secondary'}" onclick="toggleStock('${i._id}')">${i.inStock?'ON':'OFF'}</button></td>
-            <td>
-                <button class="btn btn-sm btn-primary me-1" onclick="editItem('${i._id}', \`${i.name}\`, ${i.price}, \`${i.category}\`, \`${i.desc}\`, \`${i.image}\`)">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteItem('${i._id}')">Delete</button>
-            </td>
-        </tr>`;
-    });
-    document.getElementById('menuList').innerHTML = rows || '<tr><td colspan="5">No items yet</td></tr>';
-}
-
+function resetForm(){document.getElementById('itemForm').reset();document.getElementById('preview').style.display='none';document.getElementById('editId').value = '';document.getElementById('formTitle').innerText = 'Add New Item';document.getElementById('formBtn').innerText = 'Add Item';document.getElementById('formBtn').classList.remove('btn-warning');document.getElementById('formBtn').classList.add('btn-success');document.getElementById('cancelBtn').classList.add('d-none');}
+function editItem(id, name, price, category, desc, image){document.getElementById('editId').value = id;document.getElementById('name').value = name;document.getElementById('price').value = price;document.getElementById('category').value = category;document.getElementById('desc').value = desc;if(image){document.getElementById('preview').src = image;document.getElementById('preview').style.display = 'block';document.getElementById('imageBase64').value = image;}document.getElementById('formTitle').innerText = 'Update Item';document.getElementById('formBtn').innerText = 'Update Item';document.getElementById('formBtn').classList.remove('btn-success');document.getElementById('formBtn').classList.add('btn-warning');document.getElementById('cancelBtn').classList.remove('d-none');window.scrollTo({top: 0, behavior: 'smooth'});}
+async function loadMenu(){const res = await fetch(`${API}/api/menu?shop=${restaurantId}`);const items = await res.json();document.getElementById('totalItems').innerText = items.length;let rows = '';items.forEach(i=>{rows += `<tr><td><img src="${i.image || 'https://via.placeholder.com/50'}" width="50" height="50" style="object-fit:cover; border-radius:5px;"></td><td><b>${i.name}</b><br><small class="text-muted">${i.desc || ''}</small></td><td>₹${i.price}</td><td><button class="btn btn-sm ${i.inStock?'btn-success':'btn-secondary'}" onclick="toggleStock('${i._id}')">${i.inStock?'ON':'OFF'}</button></td><td><button class="btn btn-sm btn-primary me-1" onclick="editItem('${i._id}', \`${i.name}\`, ${i.price}, \`${i.category}\`, \`${i.desc}\`, \`${i.image}\`)">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteItem('${i._id}')">Delete</button></td></tr>`;});document.getElementById('menuList').innerHTML = rows || '<tr><td colspan="5">No items yet</td></tr>';}
 async function toggleStock(id){ await fetch(`${API}/api/menu/${id}/stock`, {method:'PUT'}); loadMenu(); }
-async function deleteItem(id){ if(confirm('Pakka Delete kare?')){ await fetch(`${API}/api/menu/${id}`, {method:'DELETE'}); loadMenu(); loadStats(); } }
+async function deleteItem(id){ if(confirm('Are you sure?')){ await fetch(`${API}/api/menu/${id}`, {method:'DELETE'}); loadMenu(); loadStats(); } }
 
 async function loadOrders(){
     try{
@@ -247,81 +195,64 @@ async function loadOrders(){
         document.getElementById('orderCount').innerText = orders.filter(o=>o.status=='Pending').length;
         document.getElementById('pendingOrders').innerText = orders.filter(o=>o.status!='Delivered').length;
         let html = '';
-        if(orders.length === 0) html = '<p class="text-center text-muted">Abhi koi order nahi hai</p>';
+        if(orders.length === 0) html = '<p class="text-center text-muted">No orders yet</p>';
         orders.forEach(o=>{
-            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}">
-                <div class="d-flex justify-content-between"><div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone}</small></div><h5 class="text-success">₹${o.total}</h5></div>
-                <p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p>
-                <p class="mb-1"><b>Hisab:</b> Item ₹${o.item_total} | Tumhara Cut: ₹${o.commission_5+o.platform_fee}</p>
-                <div class="d-flex gap-2 align-items-center mb-2"><b>Status:</b>
-                <select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;">
-                    <option ${o.status=='Pending'?'selected':''}>Pending</option>
-                    <option ${o.status=='Preparing'?'selected':''}>Preparing</option>
-                    <option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option>
-                    <option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option>
-                    <option ${o.status=='Delivered'?'selected':''}>Delivered</option>
-                </select></div>
-                <a href="/bill-template.html?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Bill Print</a>
-                </div>`;
+            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}"><div class="d-flex justify-content-between"><div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone} | ${o.paymentMode || 'COD'}</small></div><h5 class="text-success">₹${o.total}</h5></div><p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p><p class="mb-1"><b>Bill:</b> Item ₹${o.item_total} | Your Cut: ₹${o.commission_5+o.platform_fee}</p><div class="d-flex gap-2 align-items-center mb-2"><b>Status:</b><select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;"><option ${o.status=='Pending'?'selected':''}>Pending</option><option ${o.status=='Preparing'?'selected':''}>Preparing</option><option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option><option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option><option ${o.status=='Delivered'?'selected':''}>Delivered</option></select></div><a href="/bill-template.html?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Print Bill</a></div>`;
         });
         document.getElementById('ordersList').innerHTML = html;
-    }catch(err){
-        document.getElementById('ordersList').innerHTML = '<p class="text-danger">Orders load nahi hue. Refresh karo</p>';
-        console.log(err)
-    }
+    }catch(err){ document.getElementById('ordersList').innerHTML = '<p class="text-danger">Failed to load orders</p>'; }
 }
 
+// ✅ UPDATED CASH CONFIRM
 async function loadCashPending(){
-    const res = await fetch(`${API}/api/orders?shop=${restaurantId}`);
-    const orders = await res.json();
-    const pending = orders.filter(o=>o.cash_deposited === true && o.status=='Delivered');
-    const grouped = {};
-    pending.forEach(o=>{
-        if(!grouped[o.riderId]) grouped[o.riderId] = {amount: 0, proof: o.cash_deposit_proof, count: 0};
-        grouped[o.riderId].amount += o.cash_to_restaurant;
-        grouped[o.riderId].count += 1;
-    });
-    if(Object.keys(grouped).length === 0) {
-        document.getElementById('cashPendingList').innerHTML = '<p class="text-muted">Koi cash pending nahi</p>';
+    const res = await fetch(`${API}/api/rider/ledger?riderId=all&shop=${restaurantId}`); // we will filter
+    const riders = await fetch(`${API}/api/riders`).then(r=>r.json());
+    const shopRiders = riders.filter(r=>r.restaurantId === restaurantId && r.cash_balance > 0);
+
+    if(shopRiders.length === 0) {
+        document.getElementById('cashPendingList').innerHTML = '<p class="text-muted">No cash pending</p>';
         return;
     }
     let html = '';
-    for(let riderId in grouped){
-        let data = grouped[riderId];
+    shopRiders.forEach(rider=>{
         html += `<div class="border p-3 mb-2 rounded">
-            <b>${riderId}</b> ne ${data.count} order ka ₹${data.amount} jama kiya<br>
-            <img src="${API}/uploads/${data.proof}" width="100" class="my-2" onerror="this.src='https://via.placeholder.com/100x100/cccccc/ffffff?text=No+Proof'"><br>
-            <button class="btn btn-success btn-sm" onclick="confirmCash('${riderId}')">✅ Cash Mil Gaya Confirm</button>
+            <b>${rider.name}</b> - ${rider.mobile}<br>
+            <b>Amount to Deposit:</b> ₹${rider.cash_balance}<br>
+            <div class="progress-bar mt-2 mb-2"><div class="progress-fill" style="width:${(rider.cash_balance/1000)*100}%">${Math.round((rider.cash_balance/1000)*100)}%</div></div>
+            <input type="number" id="deposit_${rider.mobile}" class="form-control mb-2" placeholder="Enter amount received">
+            <button class="btn btn-success btn-sm w-100" onclick="confirmCash('${rider.mobile}')">✅ Confirm & Settle</button>
         </div>`;
-    }
+    });
     document.getElementById('cashPendingList').innerHTML = html;
 }
 
 async function confirmCash(riderId){
-    await fetch(`${API}/api/restaurant/cash-confirm`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({riderId})});
-    alert('Cash Confirm ho gaya');
+    const amount = document.getElementById(`deposit_${riderId}`).value;
+    if(!amount) return alert('Please enter amount received');
+    const res = await fetch(`${API}/api/restaurant/cash-confirm`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({riderId, depositedAmount: Number(amount)})});
+    const data = await res.json();
+    alert(data.msg);
     loadCashPending(); loadStats();
 }
 
+// ✅ UPDATED LEDGER STATS
 async function loadStats(){
-    const res = await fetch(`${API}/api/restaurant/stats?shop=${restaurantId}`);
+    const res = await fetch(`${API}/api/restaurant/ledger?shop=${restaurantId}`);
     const data = await res.json();
-    const payout = parseInt(data.payout_due) || 0;
-    const revenue = parseInt(data.revenue) || 0;
-    const orders = parseInt(data.orders) || 0;
-    document.getElementById('todayOrders').innerText = orders;
-    document.getElementById('todayRevenue').innerText = '₹' + revenue;
-    document.getElementById('payoutDue').innerText = '₹' + payout;
-    document.getElementById('netPayout').innerText = payout;
-    const cut = Math.round(revenue * 0.05) + (orders * 10);
-    document.getElementById('totalCollection').innerText = payout + cut;
-    document.getElementById('totalCut').innerText = cut;
+    document.getElementById('todayOrders').innerText = data.orders;
+    document.getElementById('todayRevenue').innerText = '₹' + data.revenue;
+    document.getElementById('payoutDue').innerText = '₹' + data.payout_due;
+    document.getElementById('netPayout').innerText = data.payout_due;
+    document.getElementById('codSales').innerText = data.cod;
+    document.getElementById('onlineSales').innerText = data.online;
+    document.getElementById('yourEarning').innerText = data.earning;
+    document.getElementById('platformCut').innerText = Math.round(data.revenue*0.05 + data.orders*10);
 }
 
 async function doPayout(){
-    if(confirm('Pakka ₹'+document.getElementById('netPayout').innerText+' payout karna hai?')){
+    if(confirm('Confirm payout of ₹'+document.getElementById('netPayout').innerText+'?')){
         await fetch(`${API}/api/restaurant/payout`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({restaurantId})});
-        alert('Payout Request Bhej diya');
+        alert('Payout Done');
         loadStats();
     }
 }
@@ -337,12 +268,7 @@ async function addOffer(){
     setTimeout(()=>document.getElementById('offerMsg').innerHTML='', 3000);
 }
 
-function logout(){
-    localStorage.removeItem('restaurantId');
-    localStorage.removeItem('restaurantName');
-    localStorage.removeItem('restaurantOwner');
-    window.location.href = '/restaurant-login.html';
-}
+function logout(){localStorage.clear(); window.location.href = '/restaurant-login.html';}
 
 checkTrial();
 loadMenu(); loadOrders(); loadStats(); loadCashPending();
