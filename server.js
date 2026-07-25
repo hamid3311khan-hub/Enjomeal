@@ -348,6 +348,32 @@ app.post('/api/menu', upload.none(), async (req,res)=>{
   res.json({success:true});
 });
 
+// YE NAYA ROUTE ADD KIYA HAI
+app.put('/api/menu/:id', async (req,res)=>{
+    try{
+        const { id } = req.params;
+        const { name, price, category, desc, image } = req.body;
+        
+        let updateData = { name, price, category, desc };
+        
+        // Agar nayi photo base64 me aayi hai to update karo, warna purani rehne do
+        if(image && image.startsWith('data:image')){
+            updateData.image = image;
+        }
+
+        const result = await MenuItem.findByIdAndUpdate(id, updateData, {new: true});
+        
+        if(result){
+            res.json({success:true, msg:"Item Updated Successfully"});
+        } else {
+            res.json({success:false, msg:"Item nahi mila"});
+        }
+    }catch(e){
+        console.log(e);
+        res.json({success:false, msg:"Server Error"});
+    }
+});
+
 app.delete('/api/menu/:id', async (req,res)=>{ await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true}); });
 app.put('/api/menu/:id/stock', async (req,res)=>{ const item = await MenuItem.findById(req.params.id); item.inStock =!item.inStock; await item.save(); res.json({success:true}); });
 app.get('/api/orders/track/:id', async (req,res)=>{ res.json(await Order.findOne({trackId:req.params.id})) });
@@ -387,4 +413,4 @@ app.get('/admin-owners', (req, res) => res.sendFile(path.join(__dirname, 'public
 app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
 app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server on ${PORT}`));
+server.listen(PORT, ()=> co
