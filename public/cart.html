@@ -1,4 +1,8 @@
-<!DOCTYPE html><html lang="hi"><head><title>Cart - Eat4Bite™</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<title>Cart - Eat4Bite™</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 *{margin:0;font-family:Arial;background:#f5f5f5}
 nav{background:#ff4d4d;color:white;padding:15px;font-weight:bold}
@@ -18,7 +22,9 @@ button:disabled{background:#ccc;cursor:not-allowed}
 .cart-item{display:flex;justify-content:space-between;align-items:center;margin:10px 0;padding:8px 0;border-bottom:1px solid #eee}
 .remove-btn{width:auto;padding:5px 10px;background:red;font-size:12px;border-radius:5px}
 .empty{text-align:center;color:#888;padding:20px}
-</style></head><body>
+</style>
+</head>
+<body>
 <nav><a href="/restaurants" style="color:white;text-decoration:none">🍴 Eat4Bite™ ← Back to Menu</a></nav>
 
 <div class="container">
@@ -50,7 +56,7 @@ button:disabled{background:#ccc;cursor:not-allowed}
         <div id="qrBox">
             <p><b>Scan karke ₹<span id="qrAmount">0</span> pay kare</b></p>
             <img id="qr" src="" style="width:220px;margin:10px 0">
-            <p style="font-size:12px;color:#666">UPI ID: tanbalkhi2014-3@okhdfcbank</p>
+            <p style="font-size:12px;color:#666">UPI ID: <span id="qrUpiID">tanbalkhi2014-3@okhdfcbank</span></p>
         </div>
 
         <h3>Delivery Details</h3>
@@ -69,10 +75,21 @@ let discount = 0;
 let paymentMode = 'COD';
 let finalTotal = 0;
 let shopId = localStorage.getItem('restaurantId') || localStorage.getItem('shopId');
+let upiID = "tanbalkhi2014-3@okhdfcbank";
 
-function loadCart(){
+async function loadCart(){
     const restaurantName = localStorage.getItem('restaurantName') || 'Eat4Bite™ Shop';
     document.getElementById('hotelName').innerText = `📍 Order From: ${restaurantName}`;
+
+    // Restaurant ka UPI ID fetch karo
+    if(shopId){
+        try{
+            const res = await fetch(`${API}/restaurants`);
+            const shops = await res.json();
+            const currentShop = shops.find(s => s.id == shopId);
+            if(currentShop && currentShop.upi_id) upiID = currentShop.upi_id;
+        }catch(e){ console.log("UPI fetch error") }
+    }
 
     if(cart.length==0){
         document.getElementById('cartItems').innerHTML="<p class='empty'>Cart is empty</p>";
@@ -125,10 +142,10 @@ function selectPay(mode, el){
 }
 
 function updateQR(){
-    let upiID = "tanbalkhi2014-3@okhdfcbank";
     if(paymentMode=='UPI' && finalTotal > 0){
         document.getElementById('qr').src = `https://upiqr.in/api/qr?name=Eat4Bite&vpa=${upiID}&amount=${finalTotal}`;
         document.getElementById('qrAmount').innerText = finalTotal;
+        document.getElementById('qrUpiID').innerText = upiID;
     } else {
         document.getElementById('qr').src = "";
         document.getElementById('qrAmount').innerText = 0;
@@ -166,7 +183,7 @@ async function placeOrder(){
             address:document.getElementById('address').value.trim(),
             items:cart,
             restaurantId: shopId,
-            payment:paymentMode,
+            paymentMode:paymentMode, // ✅ Yahi fix tha
             coupon:document.getElementById('coupon').value,
             discount:discount,
             custLat: pos.coords.latitude,
@@ -194,4 +211,6 @@ async function placeOrder(){
     });
 }
 loadCart();
-</script></body></html>
+</script>
+</body>
+</html>
