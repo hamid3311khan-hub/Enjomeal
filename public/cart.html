@@ -4,6 +4,7 @@
 nav{background:#ff4d4d;color:white;padding:15px;font-weight:bold}
 .container{max-width:600px;margin:20px auto;padding:20px}
 .card{background:white;padding:15px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.hotel-name{background:#fff3cd;color:#856404;padding:10px;border-radius:8px;text-align:center;font-weight:bold;margin-bottom:15px;border:1px solid #ffeeba}
 input{width:95%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:5px}
 button{background:#28a745;color:white;border:none;padding:15px;width:100%;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:10px}
 button:disabled{background:#ccc;cursor:not-allowed}
@@ -22,6 +23,8 @@ button:disabled{background:#ccc;cursor:not-allowed}
 
 <div class="container">
     <div class="card">
+        <div id="hotelName" class="hotel-name">📍 Loading Hotel...</div>
+
         <h2>🛒 Your Cart</h2>
         <div id="cartItems"></div>
         <hr>
@@ -60,14 +63,17 @@ button:disabled{background:#ccc;cursor:not-allowed}
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com/api'; // <- Yaha change karna hai
+const API = 'https://quickbite-ymqk.onrender.com/api';
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let discount = 0;
 let paymentMode = 'COD';
 let finalTotal = 0;
-let shopId = localStorage.getItem('shopId');
+let shopId = localStorage.getItem('restaurantId') || localStorage.getItem('shopId');
 
 function loadCart(){
+    const restaurantName = localStorage.getItem('restaurantName') || 'Eat4Bite™ Shop';
+    document.getElementById('hotelName').innerText = `📍 Order From: ${restaurantName}`;
+
     if(cart.length==0){
         document.getElementById('cartItems').innerHTML="<p class='empty'>Cart is empty</p>";
         document.getElementById('total').innerText=0;
@@ -95,9 +101,9 @@ function loadCart(){
     document.getElementById('billBreakup').innerHTML = `
         <p>Subtotal: ₹${item_total}</p>
         ${discount > 0 ? `<p style="color:green">Discount: -₹${discount}</p>` : ''}
+        <p>Commission 5%: ₹${commission_5}</p>
         <p>Platform Fee: ₹${platform_fee}</p>
         <p>Delivery Fee: ₹${delivery_fee}</p>
-        <p>Service 5%: ₹${commission_5}</p>
         <hr>
     `;
     document.getElementById('total').innerText = finalTotal;
@@ -121,7 +127,7 @@ function selectPay(mode, el){
 function updateQR(){
     let upiID = "tanbalkhi2014-3@okhdfcbank";
     if(paymentMode=='UPI' && finalTotal > 0){
-        document.getElementById('qr').src = `https://upiqr.in/api/qr?name=Eat4Bite&vpa=${upiID}&amount=${finalTotal}`; // <- Yaha change
+        document.getElementById('qr').src = `https://upiqr.in/api/qr?name=Eat4Bite&vpa=${upiID}&amount=${finalTotal}`;
         document.getElementById('qrAmount').innerText = finalTotal;
     } else {
         document.getElementById('qr').src = "";
