@@ -1,4 +1,8 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Rider Dashboard - Eat4Bite™</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rider Dashboard - Eat4Bite™</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
@@ -14,7 +18,9 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden; margin:10px 0;}
 .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
 .cash-input{border:2px solid #ff6600 !important}
-</style></head><body>
+</style>
+</head>
+<body>
 <div class="login-box" id="loginBox"><h2>🏍️ Eat4Bite™ Rider Login</h2>
 <input id="riderMobile" placeholder="Registered Mobile Number" maxlength="10">
 <button onclick="riderLogin()">Login</button></div>
@@ -26,7 +32,7 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 <p><b>Status:</b> <span id="riderStatus">Offline</span></p>
 <button onclick="goOnline()">🟢 Go Online</button><button onclick="goOffline()" style="background:#6c757d;">🔴 Go Offline</button>
 
-<!-- NEW: Cash Limit Bar -->
+<!-- Cash Limit Bar -->
 <div class="hisab-box">
   <b>Cash in Hand:</b> ₹<span id="cashInHand">0</span> / ₹1000
   <div class="progress-bar"><div class="progress-fill" id="limitBar">0%</div></div>
@@ -46,8 +52,11 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 </div></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script> <!-- ✅ NEW -->
+<script>
 const API = 'https://quickbite-ymqk.onrender.com';
+const socket = io(API); // ✅ SOCKET CONNECT
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null;
 
 window.onload = () => {
@@ -100,6 +109,7 @@ async function goOffline(){
   document.getElementById('riderStatus').innerText = 'Offline';
 }
 
+// ✅ SOCKET SE LOCATION BHEJO - REAL TIME
 function startLocationTracking(){
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(updateRiderLocation);
@@ -111,7 +121,12 @@ function updateRiderLocation(pos){
   const lat = pos.coords.latitude; const lng = pos.coords.longitude;
   if(!riderMarker){ riderMarker = L.marker([lat, lng]).addTo(map); map.setView([lat, lng], 15); }
   else { riderMarker.setLatLng([lat, lng]); }
+  
+  // 1. DB me save
   fetch(`${API}/api/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})});
+  
+  // 2. SOCKET se live bhejo
+  socket.emit('riderLocation', {mobile: riderData.mobile, lat: lat, lng: lng});
 }
 
 async function loadHisab(){
@@ -161,4 +176,6 @@ async function markDelivered(orderId){
   loadMyOrders(); 
   loadHisab();
 }
-</script></body></html>
+</script>
+</body>
+</html>
