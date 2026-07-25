@@ -23,11 +23,11 @@
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com'; // <- YE LINE ADD KI
+const API = 'https://quickbite-ymqk.onrender.com';
 
 async function loadRestaurants(){
     try{
-        const res = await fetch(`${API}/api/restaurants`); // API LAGAYA
+        const res = await fetch(`${API}/api/restaurants`);
         const shops = await res.json();
         const list = document.getElementById('restaurantList');
         list.innerHTML = '';
@@ -58,8 +58,12 @@ async function loadRestaurants(){
 }
 
 function selectShop(shopId, shopName){
+    // YE DONO NAAM SAVE KARNA ZAROORI HAI
     localStorage.setItem('shopId', shopId); 
     localStorage.setItem('shopName', shopName);
+    localStorage.setItem('restaurantId', shopId);
+    localStorage.setItem('restaurantName', shopName);
+
     window.location.href = `/?shop=${shopId}` // menu page pe bhej do
 }
 
