@@ -26,7 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.3.8'))
+.then(()=>console.log('✅ MongoDB Connected v3.3.9'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -94,6 +94,66 @@ app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.fin
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) });
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status:"Online"}); res.json({success:true, msg:"Rider Approved"}) });
 
+// ===== NEW: 1. ADMIN SALES REPORT =====
+app.get('/api/report', async (req,res)=>{
+  const {start, end, shop} = req.query;
+  let filter = {createdAt: {$gte: new Date(start), $lte: new Date(end+'T23:59:59')}};
+  if(shop !== 'all') filter.restaurantId = shop;
+
+  const orders = await Order.find(filter);
+  const totalRevenue = orders.reduce((a,b)=>a+Number(b.item_total),0);
+
+  if(shop === 'all'){
+    const shops = await RestaurantOwner.find({status:'Approved'});
+    const shopData = [];
+    for(let s of shops){
+      const shopOrders = orders.filter(o=>o.restaurantId === s.restaurantId);
+      shopData.push({name: s.restaurantName, orders: shopOrders.length, revenue: shopOrders.reduce((a,b)=>a+Number(b.item_total),0)});
+    }
+    return res.json({shops: shopData, totalOrders: orders.length, totalRevenue});
+  }
+  res.json({totalOrders: orders.length, totalRevenue});
+})
+
+// ===== NEW: 2. ADMIN BROADCAST =====
+app.post('/api/broadcast', async (req,res)=>{
+  const {message, type} = req.body;
+  let mobiles = [];
+  if(type === 'all_restaurants'){
+    const owners = await RestaurantOwner.find({status:'Approved'});
+    mobiles = owners.map(o=>o.mobile);
+  }
+  console.log("📢 BROADCAST TO:", mobiles, "MSG:", message);
+  res.json({count: mobiles.length, msg:"Broadcast Sent"});
+})
+
+// ===== NEW: 3. ADMIN RIDER CASH LIST =====
+app.get('/api/admin/rider-cash', async (req,res)=>{
+  const riders = await Rider.find({status: {$in: ["Online", "Approved"]}});
+  const data = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  for(let r of riders){
+    const todayOrders = await Order.find({riderId: r.mobile, createdAt: {$gte: today}, status:'Delivered'});
+    const today_collected = todayOrders.reduce((a,b)=>a+Number(b.cashCollected || 0),0);
+    data.push({name: r.name, mobile: r.mobile, pending_cash: r.cash_balance || 0, today_collected: today_collected});
+  }
+  res.json(data);
+})
+
+// ===== NEW: 4. ADMIN MARK DEPOSIT =====
+app.post('/api/admin/rider-deposit', async (req,res)=>{
+  const {mobile} = req.body;
+  await Rider.updateOne({mobile}, {$set: {cash_balance: 0}});
+  res.json({success: true, msg:"Deposit Marked"});
+})
+
+// ===== NEW: 5. RESTAURANT CONFIRM DEPOSIT =====
+app.post('/api/restaurant/cash-confirm', async (req,res)=>{
+  const {riderId, depositedAmount} = req.body;
+  await Rider.updateOne({mobile: riderId}, {$set: {cash_balance: 0}});
+  res.json({msg: `₹${depositedAmount} Deposit Confirm ho gaya`});
+})
+
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
 app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({id: s.restaurantId, name: s.restaurantName, address: s.address, image: s.image_base64, upi_id: s.upi_id}))) });
 app.get('/api/orders', async (req,res)=>{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) });
@@ -123,4 +183,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.3.8 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.3.9 on ${PORT}`));
