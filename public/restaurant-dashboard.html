@@ -30,7 +30,7 @@
 <div class="container mt-4">
     <div id="trialBanner" class="alert trial-banner d-none">
         <h5 class="mb-1">🎉 Aap 30 Din Free Trial par hain</h5>
-        <p class="mb-0">Trial khatam hone me <b id="trialDays">0</b> din bache hain. ₹200 already adjust ho chuka hai.</p>
+        <p class="mb-0">Trial khatam hone me <b id="trialDays">0</b> din bache hain. ₹2000/Year baad me lagega.</p>
     </div>
 
     <div class="row mb-4">
@@ -51,16 +51,18 @@
     <div class="tab-content">
         <div class="tab-pane fade show active" id="menu">
             <div class="card shadow-sm p-3">
-                <h5>Add New Item</h5>
+                <h5 id="formTitle">Add New Item</h5>
                 <form id="itemForm">
+                    <input type="hidden" id="editId">
                     <input id="name" class="form-control mb-2" placeholder="Item Name" required>
                     <input id="price" type="number" class="form-control mb-2" placeholder="Price" required>
-                    <input id="category" class="form-control mb-2" placeholder="Category">
-                    <textarea id="desc" class="form-control mb-2" placeholder="Description"></textarea>
+                    <input id="category" class="form-control mb-2" placeholder="Category e.g. Snacks, Main Course">
+                    <textarea id="desc" class="form-control mb-2" placeholder="Description: Taste, Ingredients, Best with..."></textarea>
                     <input type="file" id="imageFile" class="form-control mb-2">
                     <input type="hidden" id="imageBase64">
-                    <img id="preview" style="display:none; width:100px; margin:10px 0;">
-                    <button class="btn btn-success w-100" style="background:#ff6600; border:none;">Add Item</button>
+                    <img id="preview" style="display:none; width:100px; margin:10px 0; border-radius:8px;">
+                    <button id="formBtn" class="btn btn-success w-100" style="background:#ff6600; border:none;">Add Item</button>
+                    <button type="button" id="cancelBtn" class="btn btn-secondary w-100 mt-2 d-none" onclick="resetForm()">Cancel</button>
                 </form>
                 <div id="msg" class="mt-2"></div>
                 <hr>
@@ -150,6 +152,7 @@ document.getElementById('imageFile').addEventListener('change', function(e){
 
 document.getElementById('itemForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
+    const id = document.getElementById('editId').value;
     const data = {
         name: document.getElementById('name').value,
         price: document.getElementById('price').value,
@@ -158,18 +161,56 @@ document.getElementById('itemForm').addEventListener('submit', async (e)=>{
         image: document.getElementById('imageBase64').value,
         restaurantId: restaurantId
     };
-    const res = await fetch(`${API}/api/menu`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+
+    let url = `${API}/api/menu`;
+    let method = 'POST';
+    if(id){
+        url = `${API}/api/menu/${id}`;
+        method = 'PUT';
+    }
+
+    const res = await fetch(url, {method:method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
     const result = await res.json();
     if(result.success){
-        document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Item Added!</div>`;
-        document.getElementById('itemForm').reset();
-        document.getElementById('preview').style.display='none';
+        document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ ${id? 'Item Updated!' : 'Item Added!'}</div>`;
+        resetForm();
         loadMenu(); loadStats();
         setTimeout(()=>document.getElementById('msg').innerHTML='', 3000);
     } else {
         document.getElementById('msg').innerHTML = `<div class="alert alert-danger">${result.msg}</div>`;
     }
 });
+
+function resetForm(){
+    document.getElementById('itemForm').reset();
+    document.getElementById('preview').style.display='none';
+    document.getElementById('editId').value = '';
+    document.getElementById('formTitle').innerText = 'Add New Item';
+    document.getElementById('formBtn').innerText = 'Add Item';
+    document.getElementById('formBtn').classList.remove('btn-warning');
+    document.getElementById('formBtn').classList.add('btn-success');
+    document.getElementById('cancelBtn').classList.add('d-none');
+}
+
+function editItem(id, name, price, category, desc, image){
+    document.getElementById('editId').value = id;
+    document.getElementById('name').value = name;
+    document.getElementById('price').value = price;
+    document.getElementById('category').value = category;
+    document.getElementById('desc').value = desc;
+    if(image){
+        document.getElementById('preview').src = image;
+        document.getElementById('preview').style.display = 'block';
+        document.getElementById('imageBase64').value = image;
+    }
+
+    document.getElementById('formTitle').innerText = 'Update Item';
+    document.getElementById('formBtn').innerText = 'Update Item';
+    document.getElementById('formBtn').classList.remove('btn-success');
+    document.getElementById('formBtn').classList.add('btn-warning');
+    document.getElementById('cancelBtn').classList.remove('d-none');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
 
 async function loadMenu(){
     const res = await fetch(`${API}/api/menu?shop=${restaurantId}`);
@@ -179,10 +220,16 @@ async function loadMenu(){
     items.forEach(i=>{
         rows += `<tr>
             <td><img src="${i.image || 'https://via.placeholder.com/50'}" width="50" height="50" style="object-fit:cover; border-radius:5px;"></td>
-            <td>${i.name}</td>
+            <td>
+                <b>${i.name}</b><br>
+                <small class="text-muted">${i.desc || ''}</small>
+            </td>
             <td>₹${i.price}</td>
             <td><button class="btn btn-sm ${i.inStock?'btn-success':'btn-secondary'}" onclick="toggleStock('${i._id}')">${i.inStock?'ON':'OFF'}</button></td>
-            <td><button class="btn btn-sm btn-danger" onclick="deleteItem('${i._id}')">Delete</button></td>
+            <td>
+                <button class="btn btn-sm btn-primary me-1" onclick="editItem('${i._id}', \`${i.name}\`, ${i.price}, \`${i.category}\`, \`${i.desc}\`, \`${i.image}\`)">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteItem('${i._id}')">Delete</button>
+            </td>
         </tr>`;
     });
     document.getElementById('menuList').innerHTML = rows || '<tr><td colspan="5">No items yet</td></tr>';
