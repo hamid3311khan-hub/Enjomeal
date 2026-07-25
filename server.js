@@ -26,10 +26,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.3.1'))
+.then(()=>console.log('✅ MongoDB Connected v3.3.3'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
-// ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
 const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"},registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},image_base64: {type: String, default: null},upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},trial_end_date: {type: Date}, payout_due: {type: Number, default: 0},paymentStatus: {type: String, default: "Paid"}, lastPaymentDate: {type: Date, default: Date.now},nextDueDate: {type: Date}, createdAt: {type: Date, default: Date.now}});
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000},weekly_orders: {type: Number, default: 0}, weekly_bonus: {type: Number, default: 0}});
@@ -37,22 +36,18 @@ const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:Str
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
 
-// ===== WHATSAPP HELPER =====
 async function sendWhatsApp(to, message) {console.log(`📲 WHATSAPP TO ${to}: ${message}`);}
 
-// ===== SOCKET.IO =====
 io.on('connection', (socket) => {
     socket.on('riderLocation', async (data) => {
         await Rider.findOneAndUpdate({mobile: data.mobile}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
         await Order.updateMany({riderId: data.mobile, status: "Out for Delivery"}, {riderLat: data.lat, riderLng: data.lng});
         io.emit('locationUpdate', {riderId: data.mobile, lat: data.lat, lng: data.lng});
     });
-}); // ✅ Yahi band tha
+});
 
-// ===== HELPER =====
 function calculateBill(item_total) {const commission_5 = Math.round(item_total * 0.05);const platform_fee = 10; const delivery_fee = 30;const grand_total = item_total + commission_5 + platform_fee + delivery_fee;const hour = new Date().getHours();const is_peak = (hour >= 12 && hour <= 15) || (hour >= 19 && hour <= 22);return {item_total, commission_5, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total, is_peak};}
 
-// ===== API ROUTES =====
 app.put('/api/order/assign', async (req,res)=>{const rider = await Rider.findOne({mobile: req.body.riderId});if(!rider) return res.json({success:false, msg:"Rider not found"})if(rider.cash_balance >= rider.cashLimit){return res.json({success:false, msg:`⚠️ Cash Limit Reached: ₹${rider.cash_balance}. Please deposit to restaurant first.`})}const busyOrder = await Order.findOne({ riderId: req.body.riderId, status: {$ne: 'Delivered'} });if(busyOrder){ return res.json({success:false, msg:"This rider is currently busy."}) }await Order.findByIdAndUpdate(req.body.orderId, { riderId: req.body.riderId, status: 'Out for Delivery' });res.json({success:true})});
 app.post('/api/order/delivered', async (req,res)=>{const {orderId, cashCollected} = req.body;const order = await Order.findById(orderId);if(!order) return res.json({success:false});await Order.findByIdAndUpdate(orderId, {status: 'Delivered', cashCollected: Number(cashCollected) || 0});if(order.paymentMode === 'COD'){await Rider.findOneAndUpdate({mobile: order.riderId}, {$inc: {cash_balance: Number(cashCollected), weekly_orders: 1}});} else {await Rider.findOneAndUpdate({mobile: order.riderId}, {$inc: {weekly_orders: 1}});}io.emit('newCash', {riderId: order.riderId});res.json({success:true, msg:"Order Marked Delivered"})});
 app.post('/api/coupon/validate', async (req,res)=>{const {code} = req.body;const offer = await Offer.findOne({code: code.toUpperCase()});if(!offer) return res.json({success:false, msg:"Invalid Coupon"});res.json({success:true, discount: offer.discount, type: offer.type});});
@@ -71,7 +66,6 @@ app.put('/api/rider/:id/status', async (req,res)=>{ await Rider.findByIdAndUpdat
 app.get('/api/orders/track/:id', async (req,res)=>{ res.json(await Order.findOne({trackId:req.params.id})) });
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId} | Date: ${new Date(order.createdAt).toLocaleDateString()}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`GST 5%: ₹${order.commission_5}`); doc.text(`Delivery Fee: ₹${order.delivery_fee}`); doc.text(`Platform Fee: ₹${order.platform_fee}`); doc.text('-------------------------------------------'); doc.fontSize(14).text(`Grand Total: ₹${order.total}`); doc.end(); });
 
-// ===== PAGE ROUTES =====
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
 app.get('/rider', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider.html')));
 app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
@@ -80,4 +74,4 @@ app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'adm
 app.get('/admin-owners', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-owners.html')));
 app.get('/restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurants.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.3.1 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.3.3 on ${PORT}`));
