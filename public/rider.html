@@ -32,7 +32,6 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 <p><b>Status:</b> <span id="riderStatus">Offline</span></p>
 <button onclick="goOnline()">🟢 Go Online</button><button onclick="goOffline()" style="background:#6c757d;">🔴 Go Offline</button>
 
-<!-- Cash Limit Bar -->
 <div class="hisab-box">
   <b>Cash in Hand:</b> ₹<span id="cashInHand">0</span> / ₹1000
   <div class="progress-bar"><div class="progress-fill" id="limitBar">0%</div></div>
@@ -53,10 +52,10 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script> <!-- ✅ NEW -->
+<script src="/socket.io/socket.io.js"></script> <!-- ✅ Render pe ye wala -->
 <script>
-const API = 'https://quickbite-ymqk.onrender.com';
-const socket = io(API); // ✅ SOCKET CONNECT
+const API = ''; // ✅ SAME DOMAIN
+const socket = io(); // ✅ SAME DOMAIN
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null;
 
 window.onload = () => {
@@ -71,7 +70,7 @@ window.onload = () => {
   }
 }
 
-function initMap(){ map = L.map('map').setView([25.0968, 85.3131], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);}
+function initMap(){ document.getElementById('map').innerText=''; map = L.map('map').setView([25.5941, 85.1376], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);}
 function showTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); 
   btn.classList.add('active'); 
@@ -94,7 +93,7 @@ async function riderLogin(){
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
 async function goOnline(){
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
+  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})}); // ✅ Ye server me hai
   riderData.status = 'Online';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   document.getElementById('riderStatus').innerText = 'Online';
@@ -103,13 +102,12 @@ async function goOnline(){
 
 async function goOffline(){
   clearInterval(locationInterval);
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
+  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})}); // ✅ Offline = Approved
   riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   document.getElementById('riderStatus').innerText = 'Offline';
 }
 
-// ✅ SOCKET SE LOCATION BHEJO - REAL TIME
 function startLocationTracking(){
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(updateRiderLocation);
@@ -122,11 +120,8 @@ function updateRiderLocation(pos){
   if(!riderMarker){ riderMarker = L.marker([lat, lng]).addTo(map); map.setView([lat, lng], 15); }
   else { riderMarker.setLatLng([lat, lng]); }
   
-  // 1. DB me save
   fetch(`${API}/api/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})});
-  
-  // 2. SOCKET se live bhejo
-  socket.emit('riderLocation', {mobile: riderData.mobile, lat: lat, lng: lng});
+  socket.emit('riderLocation', {mobile: riderData.mobile, lat: lat, lng: lng}); // ✅ Live update
 }
 
 async function loadHisab(){
@@ -141,7 +136,7 @@ async function loadHisab(){
   document.getElementById('limitBar').style.width = percent + '%';
   document.getElementById('limitBar').innerText = percent + '%';
   
-  if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; }
+  if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; } else { document.getElementById('cashAlert').style.display = 'none'; }
 }
 
 async function loadMyOrders(){
@@ -159,7 +154,7 @@ async function loadMyOrders(){
         <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.total}">
         <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
       ` : ''}
-      <a href="${API}/invoice?id=${o.trackId}" target="_blank">📄 Bill</a>
+      <a href="/invoice?id=${o.trackId}" target="_blank">📄 Bill</a>
     </div>`).join('');
 }
 
