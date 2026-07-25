@@ -20,7 +20,7 @@
 <body>
 
 <nav class="navbar bg-white shadow-sm px-3">
-    <a href="/" class="navbar-brand">🍴 <span id="resName"></span> Dashboard</a>
+    <a href="/restaurant-dashboard.html" class="navbar-brand">🍴 <span id="resName"></span> Dashboard</a>
     <div>
         <a href="/restaurant-profile.html" class="btn btn-outline-secondary btn-sm me-2">⚙️ Profile</a>
         <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
@@ -119,7 +119,7 @@ const owner = restaurantOwner;
 
 if(!restaurantId){
     alert("Login info missing. Dubara login karo");
-    window.location.href = '/restaurant-login';
+    window.location.href = '/restaurant-login.html';
 }
 
 document.getElementById('resName').innerText = restaurantName || 'Eat4Bite™ Shop';
@@ -294,7 +294,7 @@ function logout(){
     localStorage.removeItem('restaurantId');
     localStorage.removeItem('restaurantName');
     localStorage.removeItem('restaurantOwner');
-    window.location.href = '/restaurant-login';
+    window.location.href = '/restaurant-login.html';
 }
 
 checkTrial();
