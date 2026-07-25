@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Track Order - Eat4Bite™</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- LEAFLET MAP CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
 *{margin:0;font-family:Arial}
@@ -45,12 +44,11 @@ nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:20px
 <a id="waBtn" href="#" target="_blank" class="btn" style="background:#25D366;">📞 Contact Us on WhatsApp</a>
 </div>
 
-<!-- LEAFLET MAP JS + SOCKET.IO -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script> <!-- ✅ NEW -->
+<script src="/socket.io/socket.io.js"></script> <!-- ✅ Render pe /socket.io use karo -->
 <script>
-const API = 'https://quickbite-ymqk.onrender.com'; // <- TUMHARA URL
-const socket = io(API); // ✅ SOCKET CONNECT
+const API = ''; // ✅ SAME DOMAIN
+const socket = io(); // ✅ SAME DOMAIN SOCKET
 const urlParams = new URLSearchParams(window.location.search);
 const trackId = urlParams.get('id');
 
@@ -61,10 +59,9 @@ let custMarker = null;
 let currentOrder = null;
 
 function initMap(){
-    map = L.map('map').setView([25.0968, 85.3131], 12); // Barh, Bihar default
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
+    document.getElementById('map').innerText = ''; // "Map Loading..." hatao
+    map = L.map('map').setView([25.5941, 85.1376], 12); // Patna default
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 }
 
 async function loadOrder(){
@@ -74,19 +71,17 @@ async function loadOrder(){
         const o = await res.json();
         if(!o) return document.getElementById('orderBox').innerHTML="<div class='error'><h3>Order not found</h3></div>";
         
-        currentOrder = o; // save karo
+        currentOrder = o;
 
-        document.getElementById('orderBox').innerHTML = `<h2>Order: ${o.trackId}</h2><p><b>Name:</b> ${o.name}</p><p><b>Phone:</b> ${o.phone}</p><p><b>Address:</b> ${o.address}</p><p><b>Total Paid:</b> ₹${o.total}</p><hr style="margin:10px 0"><p><b>Items:</b><br> ${o.items ? o.items.map(i=>`• ${i.name} x${i.qty} - ₹${i.price}`).join('<br>') : 'N/A'}</p>`;
+        document.getElementById('orderBox').innerHTML = `<h2>Order: ${o.trackId}</h2><p><b>Name:</b> ${o.name}</p><p><b>Phone:</b> ${o.phone}</p><p><b>Address:</b> ${o.address}</p><p><b>Total Paid:</b> ₹${o.total}</p><hr style="margin:10px 0"><p><b>Items:</b><br> ${o.items ? o.items.map(i=>`• ${i.name} x${i.qty} - ₹${i.price*i.qty}`).join('<br>') : 'N/A'}</p>`;
 
         document.getElementById('currentStatus').innerText = o.status;
         const steps = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered'];
         const index = steps.indexOf(o.status);
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-        for(let i=1; i<=index+1; i++) {
-            document.getElementById('s'+i).classList.add('active');
-        }
+        for(let i=1; i<=index+1; i++) { document.getElementById('s'+i).classList.add('active'); }
 
-        document.getElementById('invoiceBtn').href = `${API}/invoice?id=${o.trackId}`; // ✅ FIX
+        document.getElementById('invoiceBtn').href = `${API}/invoice?id=${o.trackId}`;
         document.getElementById('waBtn').href = `https://wa.me/91${o.phone}?text=Hi Eat4Bite™, mera Order ID: ${o.trackId} - Status: ${o.status}`;
 
         updateMap(o);
@@ -97,17 +92,19 @@ async function loadOrder(){
     }
 }
 
-// ✅ SOCKET SE LIVE LOCATION UPDATE
 socket.on('locationUpdate', (data) => {
     if(currentOrder && currentOrder.riderId === data.riderId && currentOrder.status === 'Out for Delivery'){
-        updateMap({...currentOrder, riderLat: data.lat, riderLng: data.lng});
+        currentOrder.riderLat = data.lat; // order update karo
+        currentOrder.riderLng = data.lng;
+        updateMap(currentOrder);
     }
 });
 
 function updateMap(order){
+    if(!map) return;
     // 1. Shop ka pin
     if(order.shopLat && order.shopLng && !shopMarker){
-        shopMarker = L.marker([order.shopLat, order.shopLng]).addTo(map).bindPopup("🏪 Shop");
+        shopMarker = L.marker([order.shopLat, order.shopLng]).addTo(map).bindPopup("🏪 Restaurant");
     }
 
     // 2. Customer ka pin
@@ -115,7 +112,7 @@ function updateMap(order){
         custMarker = L.marker([order.custLat, order.custLng]).addTo(map).bindPopup("📍 Delivery Address");
     }
 
-    // 3. Rider ka pin - sirf Out for Delivery me
+    // 3. Rider ka pin
     if(order.status === 'Out for Delivery' && order.riderLat && order.riderLng){
         if(!riderMarker){
             riderMarker = L.marker([order.riderLat, order.riderLng]).addTo(map).bindPopup("🏍️ Rider");
@@ -123,16 +120,15 @@ function updateMap(order){
             map.fitBounds(group.getBounds().pad(0.3));
         } else {
             riderMarker.setLatLng([order.riderLat, order.riderLng]);
+            map.panTo([order.riderLat, order.riderLng]); // map rider ke saath hilega
         }
-    } else {
-        if(riderMarker){ riderMarker.remove(); riderMarker = null; }
     }
 }
 
 window.onload = () => {
     initMap();
     loadOrder();
-    setInterval(loadOrder, 5000); // 5 sec me backup update
+    // setInterval hata diya kyunki socket hi kaafi hai
 }
 </script>
 </body>
