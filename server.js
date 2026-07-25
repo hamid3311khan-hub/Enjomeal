@@ -10,7 +10,7 @@ const multer = require('multer');
 const fs = require('fs');
 const upload = multer();
 const bcrypt = require('bcryptjs');
-const axios = require('axios');
+const axios = require('axios'); // ✅ WhatsApp ke liye
 
 const app = express();
 const server = http.createServer(app);
@@ -76,6 +76,7 @@ const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:
 // ===== WHATSAPP HELPER =====
 async function sendWhatsApp(to, message) {
     console.log(`📲 WHATSAPP TO ${to}: ${message}`);
+    // Yaha MSG91 ka API dalna hai baad me
 }
 
 // ===== SOCKET.IO =====
@@ -162,7 +163,7 @@ app.post('/api/orders', async (req,res)=>{
         paymentMode: req.body.payment || req.body.paymentMode
     }).save();
 
-    if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}\nPayment: ${req.body.payment}\nAddress: ${req.body.address}`);
+    if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}\nPayment: ${req.body.paymentMode}\nAddress: ${req.body.address}`);
 
     io.emit('newOrder', newOrder);
     res.json({success:true, trackId, bill, upi_link, upi_id})
@@ -207,6 +208,7 @@ app.get('/rider', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rid
 app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
 app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/admin-owners', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-owners.html'))); // ✅ FIX
 app.get('/restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurants.html')));
 
 server.listen(PORT, ()=> console.log(`🚀 Server v3.3 on ${PORT}`));
