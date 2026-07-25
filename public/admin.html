@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Eat4Bite™ Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- ✅ GRAPH KE LIYE -->
 <style>
     body{font-family:Arial; background:#f4f4f4; padding:20px;}
 .top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
@@ -11,10 +12,10 @@
 .btn-admin{background:#333;}.btn-owner{background:orange;}
 .card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
     input, select, button, textarea{padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc; width:calc(100% - 22px);}
-    button{background:#ff6600; color:white; border:none; cursor:pointer;} /* COLOR CHANGE */
+    button{background:#ff6600; color:white; border:none; cursor:pointer;}
     button:hover{opacity:0.9;}
 .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
-.stat-card{background:#ff6600; color:white; text-align:center; padding:20px;} /* COLOR CHANGE */
+.stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
 .stat-card h2{margin:0; font-size:30px;}
 .order,.menu-item,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px;}
 .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}
@@ -23,6 +24,7 @@
     small{color:#666; font-size:12px;}
 .rider-docs img{width:70px; height:70px; object-fit:cover; border:1px solid #ccc; border-radius:5px; margin:3px;}
 .menu-item img{width:80px; height:80px; object-fit:cover; border-radius:5px; float:left; margin-right:10px;}
+canvas{background:white; padding:10px; border-radius:8px;}
 </style>
 </head>
 <body>
@@ -38,6 +40,13 @@
 <div class="grid">
     <div class="card stat-card"><h3>Total Orders</h3><h2 id="totalOrders">0</h2></div>
     <div class="card stat-card" style="background:#007bff;"><h3>Total Customers</h3><h2 id="totalCustomers">0</h2></div>
+    <div class="card stat-card" style="background:#28a745;"><h3>Today Revenue</h3><h2 id="todayRevenue">₹0</h2></div>
+</div>
+
+<!-- ✅ 3. GRAPH CARD NEW -->
+<div class="card">
+    <h2>📈 Last 7 Days Sales Graph</h2>
+    <canvas id="salesChart" height="100"></canvas>
 </div>
 
 <div class="card">
@@ -103,8 +112,9 @@
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com'; // <- FIX: API LAGAYA
+const API = 'https://quickbite-ymqk.onrender.com';
 let allRiders = [];
+let salesChart = null;
 
 const ADMIN_PASSWORD = 'admin123';
 
@@ -130,12 +140,43 @@ document.getElementById('itemImg').addEventListener('change', function(e){
     reader.readAsDataURL(file);
 });
 
+// ✅ 3. GRAPH LOAD KARNE KA FUNCTION
+async function loadGraph(){
+    const res = await fetch(`${API}/api/admin/graph`);
+    const data = await res.json();
+
+    const labels = data.map(d => d.date);
+    const revenue = data.map(d => d.revenue);
+    const orders = data.map(d => d.orders);
+
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    if(salesChart) salesChart.destroy(); // purana chart delete
+
+    salesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
+                {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {beginAtZero: true, title: {display: true, text: 'Revenue ₹'}},
+                y1: {beginAtZero: true, position: 'right', title: {display: true, text: 'Orders'}}
+            }
+        }
+    });
+}
+
 async function loadRidersForShop(shopId){
-    const res = await fetch(`${API}/api/riders/approved?shop=${shopId}`); // API LAGA
+    const res = await fetch(`${API}/api/riders/approved?shop=${shopId}`);
     const ridersData = await res.json();
     const freeRiders = [];
     for(let r of ridersData){
-        const check = await fetch(`${API}/api/rider/check-busy/${r.mobile}`); // API LAGA
+        const check = await fetch(`${API}/api/rider/check-busy/${r.mobile}`);
         const data = await check.json();
         if(data.free) freeRiders.push(r);
     }
@@ -143,7 +184,7 @@ async function loadRidersForShop(shopId){
 }
 
 async function loadOwners(){
-    const res = await fetch(`${API}/api/restaurant/owners`); // API LAGA
+    const res = await fetch(`${API}/api/restaurant/owners`);
     const owners = await res.json();
     const pending = owners.filter(o => o.status === 'Pending');
     document.getElementById('pendingOwnersList').innerHTML = pending.length === 0? 'Koi pending restaurant nahi hai' :
@@ -161,9 +202,10 @@ async function approveOwner(id){ await fetch(`${API}/api/restaurant/owner/${id}/
 async function rejectOwner(id){ if(confirm('Pakka Reject karna hai?')){ await fetch(`${API}/api/restaurant/owner/${id}`, {method:'DELETE'}); alert('Reject kiya'); loadData(); } }
 
 async function loadData(){
+    await loadGraph(); // ✅ Graph load karo
     await loadOwners();
 
-    const allRiderRes = await fetch(`${API}/api/riders`); allRiders = await allRiderRes.json(); // API LAGA
+    const allRiderRes = await fetch(`${API}/api/riders`); allRiders = await allRiderRes.json();
 
     const pending = allRiders.filter(r => r.status && r.status.toLowerCase() === 'pending');
     document.getElementById('pendingRidersList').innerHTML = pending.length === 0? 'Koi pending rider nahi hai' :
@@ -176,11 +218,11 @@ async function loadData(){
         </div>
     `).join('');
 
-    const stats = await fetch(`${API}/api/stats`).then(r=>r.json()); // API LAGA
+    const stats = await fetch(`${API}/api/stats`).then(r=>r.json());
     document.getElementById('totalOrders').innerText = stats.orders;
     document.getElementById('totalCustomers').innerText = stats.customers;
 
-    const menu = await fetch(`${API}/api/menu`).then(r=>r.json()); // API LAGA
+    const menu = await fetch(`${API}/api/menu`).then(r=>r.json());
     document.getElementById('menuList').innerHTML = menu.map(i=>`
         <div class="menu-item">
             <img src="${i.image || 'https://via.placeholder.com/80'}" onerror="this.src='https://via.placeholder.com/80?text=No+Img'">
@@ -190,7 +232,13 @@ async function loadData(){
         </div>
     `).join('');
 
-    const orders = await fetch(`${API}/api/orders`).then(r=>r.json()); // API LAGA
+    const orders = await fetch(`${API}/api/orders`).then(r=>r.json());
+
+    // Today Revenue
+    const today = new Date().toISOString().split('T')[0];
+    const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
+    const todayRev = todayOrders.reduce((a,b) => a + Number(b.item_total), 0);
+    document.getElementById('todayRevenue').innerText = '₹' + todayRev;
 
     let orderHtml = '';
     for(let o of orders){
@@ -200,7 +248,7 @@ async function loadData(){
             <div class="order">
                 <b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br>
                 <small>Restaurant: ${o.restaurantId} | ${o.phone} | ${o.address}</small> <br>
-                <b>Payment:</b> ${o.payment} | <b>Status:</b> ${o.status} | <b>Points:</b> ${o.pointsEarned || 0} <br>
+                <b>Payment:</b> ${o.paymentMode} | <b>Status:</b> ${o.status} | <b>Points:</b> ${o.pointsEarned || 0} <br>
 
                 <select id="rider-${o._id}" style="margin-top:8px;">
                     <option value="">-- Rider Select Karo --</option>
@@ -208,7 +256,7 @@ async function loadData(){
                 </select>
                 <button class="btn-green" onclick="assignRider('${o._id}')">Rider Assign</button>
 
-                <a href="${API}/api/invoice?id=${o.trackId}" target="_blank" style="display:inline-block; background:#ff6600; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:13px; margin:5px 0;">📄 Invoice</a> <!-- FIX -->
+                <a href="${API}/invoice?id=${o.trackId}" target="_blank" style="display:inline-block; background:#ff6600; color:white; padding:8px 12px; border-radius:5px; text-decoration:none; font-size:13px; margin:5px 0;">📄 Invoice</a>
                 <div style="display:flex; gap:5px; margin-top:5px;">
                     <input type="text" id="lat-${o._id}" placeholder="Rider Lat" value="${o.riderLat || ''}" style="width:45%">
                     <input type="text" id="lng-${o._id}" placeholder="Rider Lng" value="${o.riderLng || ''}" style="width:45%">
@@ -238,11 +286,11 @@ async function sendBroadcast(type){
     if(!message) return alert('Message likho');
     let body = {message, type};
     if(type === 'manual'){ const numbers = document.getElementById('manualNumbers').value; if(!numbers) return alert('Number bhi daalo'); body.numbers = numbers; }
-    const res = await fetch(`${API}/api/broadcast`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); // API LAGA
+    const res = await fetch(`${API}/api/broadcast`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     const data = await res.json(); alert(`${data.count} logo ko link ban gaye`); if(data.links) data.links.forEach(link => window.open(link, '_blank'));
 }
 
-async function addCoupon(){ const body = {code:couponCode.value, discount:+couponDiscount.value, type:couponType.value}; await fetch(`${API}/api/coupon`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); alert('Coupon Added'); couponCode.value=''; } // API LAGA
+async function addCoupon(){ const body = {code:couponCode.value, discount:+couponDiscount.value, type:couponType.value}; await fetch(`${API}/api/coupon`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); alert('Coupon Added'); couponCode.value=''; }
 
 async function addItem(){
     const body = {
@@ -252,21 +300,21 @@ async function addItem(){
         restaurantId: 'default-shop'
     };
     if(!body.image) return alert('Photo select karo');
-    await fetch(`${API}/api/menu`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}); // API LAGA
+    await fetch(`${API}/api/menu`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     alert('Item Added'); loadData();
     itemName.value=''; itemPrice.value=''; itemDesc.value=''; itemCategory.value=''; itemOffer.value=''; itemImg.value='';
     document.getElementById('itemImageBase64').value=''; document.getElementById('previewImg').style.display='none';
 }
 
-async function toggleStock(id){ await fetch(`${API}/api/menu/${id}/stock`, {method:'PUT'}); loadData(); } // API LAGA
-async function delItem(id){ if(confirm('Delete?')){ await fetch(`${API}/api/menu/${id}`, {method:'DELETE'}); loadData(); }} // API LAGA
-async function updateLocation(id){ const riderLat = document.getElementById(`lat-${id}`).value; const riderLng = document.getElementById(`lng-${id}`).value; await fetch(`${API}/api/orders/${id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: 'Out for Delivery', riderLat, riderLng})}); alert('📍 Location Save ho gayi'); loadData(); } // API LAGA
-async function updateStatus(id, status){ const riderLat = document.getElementById(`lat-${id}`).value; const riderLng = document.getElementById(`lng-${id}`).value; const res = await fetch(`${API}/api/orders/${id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status, riderLat, riderLng})}); const data = await res.json(); if(data.customerWaLink) window.open(data.customerWaLink, '_blank'); alert("Status Updated: " + status); loadData(); } // API LAGA
-async function delOrder(id){ if(confirm('Pakka Delete karna hai?')){ await fetch(`${API}/api/orders/${id}`, {method:'DELETE'}); alert("Order Delete ho gaya"); loadData(); } } // API LAGA
+async function toggleStock(id){ await fetch(`${API}/api/menu/${id}/stock`, {method:'PUT'}); loadData(); }
+async function delItem(id){ if(confirm('Delete?')){ await fetch(`${API}/api/menu/${id}`, {method:'DELETE'}); loadData(); }}
+async function updateLocation(id){ const riderLat = document.getElementById(`lat-${id}`).value; const riderLng = document.getElementById(`lng-${id}`).value; await fetch(`${API}/api/orders/${id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: 'Out for Delivery', riderLat, riderLng})}); alert('📍 Location Save ho gayi'); loadData(); }
+async function updateStatus(id, status){ const riderLat = document.getElementById(`lat-${id}`).value; const riderLng = document.getElementById(`lng-${id}`).value; const res = await fetch(`${API}/api/orders/${id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status, riderLat, riderLng})}); const data = await res.json(); if(data.customerWaLink) window.open(data.customerWaLink, '_blank'); alert("Status Updated: " + status); loadData(); }
+async function delOrder(id){ if(confirm('Pakka Delete karna hai?')){ await fetch(`${API}/api/orders/${id}`, {method:'DELETE'}); alert("Order Delete ho gaya"); loadData(); } }
 async function assignRider(orderId){
     const riderMobile = document.getElementById(`rider-${orderId}`).value;
     if(!riderMobile) return alert('Pehle Rider select karo');
-    const res = await fetch(`${API}/api/order/assign`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId: riderMobile})}); // API LAGA
+    const res = await fetch(`${API}/api/order/assign`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId: riderMobile})});
     const data = await res.json();
     if(data.success){ alert('Rider Assign ho gaya!'); } else { alert('❌ ' + data.msg); }
     loadData();
