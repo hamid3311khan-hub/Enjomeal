@@ -7,8 +7,8 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-    .navbar-brand{color:#ff6600!important; font-weight:bold}
-    .card{border-radius:15px}
+   .navbar-brand{color:#ff6600!important; font-weight:bold}
+   .card{border-radius:15px}
 </style>
 </head>
 <body>
@@ -58,10 +58,13 @@ let html = `
 `;
 document.getElementById('profileData').innerHTML = html;
 
-document.getElementById('lastPayment').innerText = new Date(owner.lastPaymentDate).toLocaleDateString('hi-IN');
-document.getElementById('nextDue').innerText = new Date(owner.nextDueDate).toLocaleDateString('hi-IN');
+// Date safe check
+document.getElementById('lastPayment').innerText = owner.lastPaymentDate? new Date(owner.lastPaymentDate).toLocaleDateString('hi-IN') : '-';
+document.getElementById('nextDue').innerText = owner.nextDueDate? new Date(owner.nextDueDate).toLocaleDateString('hi-IN') : '-';
 
 function logout(){
+    localStorage.removeItem('restaurantId');
+    localStorage.removeItem('restaurantName');
     localStorage.removeItem('restaurantOwner');
     window.location.href = '/restaurant-login';
 }
