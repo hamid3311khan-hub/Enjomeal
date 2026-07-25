@@ -10,6 +10,7 @@ const multer = require('multer');
 const fs = require('fs');
 const upload = multer();
 const bcrypt = require('bcryptjs');
+const axios = require('axios'); // ✅ 2. WHATSAPP KE LIYE
 
 const app = express();
 const server = http.createServer(app);
@@ -26,7 +27,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.1'))
+.then(()=>console.log('✅ MongoDB Connected v3.2'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -73,12 +74,18 @@ const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
 const Restaurant = mongoose.model('Restaurant', {id:String, name:String, address:String, image:String, status:{type:String, default:"Active"}});
 
-// ===== SOCKET.IO =====
+// ===== 2. WHATSAPP HELPER =====
+async function sendWhatsApp(to, message) {
+    console.log(`📲 WHATSAPP TO ${to}: ${message}`);
+    // TODO: Yaha MSG91 / Wati ka API dalna hai
+}
+
+// ===== SOCKET.IO ===== // ✅ 1. LIVE MAP
 io.on('connection', (socket) => {
     socket.on('riderLocation', async (data) => {
-        await Rider.findOneAndUpdate({mobile: data.mobile}, {lat: data.lat, lng: data.lng});
+        await Rider.findOneAndUpdate({mobile: data.mobile}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
         await Order.updateMany({riderId: data.mobile, status: "Out for Delivery"}, {riderLat: data.lat, riderLng: data.lng});
-        io.emit('locationUpdate');
+        io.emit('locationUpdate', {riderId: data.mobile, lat: data.lat, lng: data.lng}); // Live location bhejo
     });
 });
 
@@ -164,10 +171,37 @@ app.post('/api/restaurant/register', async (req,res)=>{
     }catch(e){ res.json({success:false, msg:e.message}) }
 });
 
-// ALL OLD APIs
+// 1. NEW ORDER - WHATSAPP NOTIFICATION ADD KIYA
+app.post('/api/orders', async (req,res)=>{
+    const trackId = 'EB' + Date.now();
+    const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);
+    const bill = calculateBill(item_total);
+    const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null}).save();
+
+    // Restaurant ko WhatsApp
+    const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});
+    if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}\nAddress: ${req.body.address}`);
+
+    io.emit('newOrder', newOrder);
+    res.json({success:true, trackId, bill})
+});
+
+// 3. ADMIN GRAPH API - LAST 7 DAYS DATA
+app.get('/api/admin/graph', async (req,res)=>{
+    const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();
+    let data = [];
+    for(let d of last7Days){
+        const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);
+        const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});
+        const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);
+        data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})
+    }
+    res.json(data)
+});
+
+// ALL OLD APIs - SAME
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
 app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({id: s.restaurantId, name: s.restaurantName, address: s.address, image: s.image_base64}))) });
-app.post('/api/orders', async (req,res)=>{ const trackId = 'EB' + Date.now(); const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0); const bill = calculateBill(item_total); const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null}).save(); res.json({success:true, trackId, bill}) });
 app.get('/api/orders', async (req,res)=>{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) });
 app.post('/api/rider/register', upload.fields([{name: 'aadharImg', maxCount: 1},{name: 'panImg', maxCount: 1},{name: 'photoImg', maxCount: 1}]), async (req,res)=>{ try{ const {name, fatherName, aadhar, pan, mobile, restaurantId} = req.body; if(!name ||!mobile) return res.json({success:false, msg: "Fill all fields"}); const exists = await Rider.findOne({mobile}); if(exists) return res.json({success:false, msg: "Mobile already registered"}); await new Rider({ name, fatherName, aadhar, pan, mobile, restaurantId, aadharImg: req.files.aadharImg[0].filename, panImg: req.files.panImg[0].filename, photoImg: req.files.photoImg[0].filename, status: "Pending" }).save(); res.json({success:true, msg: "Registered. Approval pending."}) }catch(e){ res.json({success:false, msg:e.message}) } });
 app.post('/api/restaurant/payout', async (req,res)=>{ await RestaurantOwner.findOneAndUpdate({restaurantId: req.body.restaurantId}, {$set: {payout_due: 0}}); res.json({success:true, msg:"Payout Done"}) });
@@ -211,9 +245,4 @@ app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'publ
 app.get('/restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurants.html')));
 app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/admin-owners', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-owners.html')));
-app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
-app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
-
-// ✅ FINAL FIXED LINE
-server.listen(PORT, ()=> console.log(`🚀 Server v3.1 on ${PORT}`));
+app.get('/admin-owners', (req, res) => res.sendFile(path.
