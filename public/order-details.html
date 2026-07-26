@@ -16,6 +16,7 @@ nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:18px
 .step .circle{width:30px;height:30px;border-radius:50%;background:#ddd;margin:0 auto 5px;line-height:30px;color:white}
 .step.active .circle{background:#ff6600}
 .error{border:2px solid red;padding:15px;border-radius:10px;background:#ffe6e6;font-weight:bold}
+.small{font-size:12px; color:#666;}
 </style>
 </head>
 <body>
@@ -27,12 +28,12 @@ nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:18px
 <button id="waBtn" class="wabtn" style="display:none">📞 Contact Us on WhatsApp</button>
 
 <div id="map"></div>
-<p style="font-size:12px;color:#666;margin-top:5px">* Rider location admin update karega</p>
+<p class="small">* Rider location live update hoti hai</p>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const API = 'https://quickbite-ymqk.onrender.com'; // <- Yaha change
+const API = 'https://quickbite-ymqk.onrender.com';
 const urlParams = new URLSearchParams(window.location.search);
 const trackId = urlParams.get('id'); 
 let orderData;
@@ -47,10 +48,11 @@ async function loadOrder(){
     
     try{
         const res = await fetch(`${API}/api/orders/track/${trackId}`);
+        if(!res.ok) throw new Error("Order not found");
         orderData = await res.json();
         
-        if(!orderData) {
-            document.getElementById('orderBox').innerHTML = `<div class="error">Invalid Order ID</div>`;
+        if(!orderData || orderData.error) {
+            document.getElementById('orderBox').innerHTML = `<div class="error">Order nahi mila</div>`;
             return;
         }
         
@@ -61,7 +63,7 @@ async function loadOrder(){
         lastStatus = orderData.status;
         
         // STEPS
-        const steps = ['Pending','Preparing','Out for Delivery','Delivered'];
+        const steps = ['Pending','Accepted','Preparing','Out for Delivery','Delivered'];
         const currentStep = steps.indexOf(orderData.status);
         
         document.getElementById('orderBox').innerHTML = `
@@ -69,23 +71,24 @@ async function loadOrder(){
                 <h2>Order: ${orderData.trackId}</h2>
                 <p><b>Name:</b> ${orderData.name}</p>
                 <p><b>Address:</b> ${orderData.address}</p>
-                <p><b>Total:</b> ₹${orderData.total} | <b>Payment:</b> ${orderData.payment}</p>
+                <p><b>Total:</b> ₹${orderData.total} | <b>Payment:</b> ${orderData.paymentMode || orderData.payment}</p>
+                <p><b>Rider:</b> ${orderData.riderName || 'Assign hone par dikhega'}</p>
                 <p><b>Current Status:</b> <span style="color:green;font-size:18px">${orderData.status}</span></p>
                 
                 <div class="steps">
                     ${steps.map((s,i)=>`
                         <div class="step ${i<=currentStep?'active':''}">
                             <div class="circle">${i+1}</div>
-                            <div>${s}</div>
+                            <div class="small">${s}</div>
                         </div>
                     `).join('')}
                 </div>
             </div>
         `;
         
-        // MAP
-        const lat = orderData.riderLat || 25.5941; // Patna default
-        const lng = orderData.riderLng || 85.1376;
+        // MAP - Rider location priority, nahi to customer
+        let lat = orderData.riderLat || orderData.custLat || 25.5941; // Patna default
+        let lng = orderData.riderLng || orderData.custLng || 85.1376;
         
         if(!map){
             map = L.map('map').setView([lat, lng], 13);
@@ -93,19 +96,22 @@ async function loadOrder(){
         }
         
         if(riderMarker) map.removeLayer(riderMarker);
-        riderMarker = L.marker([lat, lng]).addTo(map).bindPopup("Rider: " + orderData.status).openPopup();
-        map.setView([lat, lng], 13);
+        let popupText = orderData.riderLat ? `Rider Live` : `Order Location`;
+        riderMarker = L.marker([lat, lng]).addTo(map).bindPopup(popupText).openPopup();
+        map.setView([lat, lng], 14);
         
-        // WHATSAPP BUTTON
-        const waLink = `https://wa.me/91${orderData.phone}?text=Order ${orderData.trackId} Status: ${orderData.status}`;
+        // WHATSAPP BUTTON - Restaurant ko
+        const waNumber = orderData.restaurantPhone || '91XXXXXXXXXX';
+        const waLink = `https://wa.me/${waNumber}?text=Order ${orderData.trackId} ke baare me baat karni hai. Status: ${orderData.status}`;
         document.getElementById('waBtn').style.display = 'block';
         document.getElementById('waBtn').onclick = ()=> window.open(waLink, '_blank');
         
     } catch(e){
         document.getElementById('orderBox').innerHTML = `<div class="error">Server Error. Refresh karo</div>`;
+        console.log(e)
     }
 }
 
 loadOrder();
-setInterval(loadOrder, 3000); // 3 sec me auto refresh
+setInterval(loadOrder, 5000); // 5 sec me auto refresh. 3 sec se server load kam hoga
 </script></body></html>
