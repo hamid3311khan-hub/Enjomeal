@@ -54,7 +54,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <div id="reportResult" style="margin-top:15px;"></div>
 </div>
 
-<!-- NAYA: BROADCAST -->
+<!-- BROADCAST -->
 <div class="card">
     <h2>📢 Broadcast to All Restaurants</h2>
     <p style="color:#666; font-size:13px;">Ye message sabhi restaurant owners ko WhatsApp pe chala jayega</p>
@@ -62,13 +62,13 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
 </div>
 
-<!-- NAYA: PROMO BANNER -->
+<!-- PROMO BANNER WITH IMAGE UPLOAD -->
 <div class="card">
     <h2>📢 Promotion Banner - Home Page</h2>
     <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF - CODE: FIRST50">
     <label><b>Ya Image Upload Karo:</b></label>
     <input type="file" id="promoFile" accept="image/*">
-    <input type="text" id="promoColor" placeholder="Background Color" value="#ff6600">
+    <input type="text" id="promoColor" placeholder="Background Color / Border Color" value="#ff6600">
     <button class="btn-orange" onclick="updatePromo()">Update Banner</button>
     <button class="btn-red" onclick="removePromo()">Remove Banner</button>
     <div id="promoPreview" style="margin-top:10px;"></div>
@@ -128,7 +128,7 @@ async function loadGraph(){
         salesChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
             {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
             {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
-        ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } } });
+        ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } });
     }catch(e){}
 }
 
@@ -156,7 +156,6 @@ async function getReport(){
     document.getElementById('reportResult').innerHTML = `<p><b>Total Orders:</b> ${d.totalOrders}</p><p><b>Total Revenue:</b> ₹${d.totalRevenue}</p>`;
 }
 
-// NAYA: BROADCAST FUNCTION
 async function sendBroadcast(type){
     const message = document.getElementById('broadcastMsg').value;
     if(!message) return alert('Message likho');
@@ -165,17 +164,51 @@ async function sendBroadcast(type){
     alert(`${data.count} Restaurant owners ko bhej diya`);
 }
 
-// NAYA: PROMO FUNCTIONS
-async function loadPromo(){ try{ const res = await fetch(`${API}/api/promo`); const promo = await res.json(); if(promo) showPromoPreview(promo); }catch(e){} }
-async function updatePromo(){
-    const fileInput = document.getElementById('promoFile'); let imageBase64 = '';
-    if(fileInput.files[0]){ imageBase64 = await new Promise((resolve) => { const reader = new FileReader(); reader.onload = e => resolve(e.target.result); reader.readAsDataURL(fileInput.files[0]); }); }
-    const promo = {text: document.getElementById('promoText').value, image: imageBase64, color: document.getElementById('promoColor').value}
-    await fetch(`${API}/api/admin/promo`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(promo)});
-    alert('Banner Updated!'); showPromoPreview(promo); fileInput.value = '';
+// ===== FIXED PROMO FUNCTIONS WITH IMAGE UPLOAD =====
+async function loadPromo(){
+    try{
+        const res = await fetch(`${API}/api/promo`);
+        const promo = await res.json();
+        if(promo) showPromoPreview(promo);
+    }catch(e){}
 }
-async function removePromo(){ await fetch(`${API}/api/admin/promo`, {method:'DELETE'}); alert('Removed'); document.getElementById('promoPreview').innerHTML = ''; }
-function showPromoPreview(promo){ let html = `<div style="background:${promo.color}; color:white; padding:10px; text-align:center; border-radius:8px;">`; if(promo.image) html += `<img src="${promo.image}" style="width:100%; max-height:150px; object-fit:cover;">`; if(promo.text) html += `<p>${promo.text}</p>`; html += `</div>`; document.getElementById('promoPreview').innerHTML = html; }
+
+async function updatePromo(){
+    const formData = new FormData();
+    const fileInput = document.getElementById('promoFile');
+
+    formData.append('text', document.getElementById('promoText').value);
+    formData.append('color', document.getElementById('promoColor').value);
+
+    if(fileInput.files[0]){
+        formData.append('bannerImage', fileInput.files[0]); // server me bhi yahi naam hai
+    }
+
+    const res = await fetch(`${API}/api/admin/promo`, {method:'POST', body: formData});
+    const data = await res.json();
+
+    if(data.success){
+        alert('Banner Updated!');
+        loadPromo();
+        fileInput.value = '';
+    } else {
+        alert('Error: ' + data.msg)
+    }
+}
+
+async function removePromo(){
+    await fetch(`${API}/api/admin/promo`, {method:'DELETE'});
+    alert('Removed');
+    document.getElementById('promoPreview').innerHTML = '';
+}
+
+function showPromoPreview(promo){
+    let html = ``;
+    if(promo.image) html += `<img src="${promo.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; border:3px solid ${promo.color};">`;
+    if(promo.text &&!promo.image) html += `<div style="background:${promo.color}; color:white; padding:10px; text-align:center; border-radius:8px;"><p>${promo.text}</p></div>`;
+    document.getElementById('promoPreview').innerHTML = html;
+}
+// ===== END PROMO FIX =====
 
 async function loadRiderCash(){
     try{
