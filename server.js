@@ -9,22 +9,22 @@ const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
-const cloudinary = require('cloudinary').v2; // NEW
+const cloudinary = require('cloudinary').v2; 
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: {origin: "*"} });
 const PORT = process.env.PORT || 10000;
 
-// NEW: CLOUDINARY CONFIG
+// CLOUDINARY CONFIG
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const upload = multer({ storage: multer.memoryStorage() }); // CHANGED for Cloudinary
-const uploadRider = multer({ storage: multer.memoryStorage() }); // NEW
+const upload = multer({ storage: multer.memoryStorage() });
+const uploadRider = multer({ storage: multer.memoryStorage() });
 if (!fs.existsSync('./uploads')){ fs.mkdirSync('./uploads'); }
 
 app.use(cors({origin: "*"}));
@@ -34,7 +34,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.6.2'))
+.then(()=>console.log('✅ MongoDB Connected v3.6.3'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -93,7 +93,7 @@ app.post('/api/restaurant/login', async (req,res)=>{
   res.json({success:true, shop})
 });
 
-// NEW: RESTAURANT SE MENU ADD KARNE KE LIYE
+// RESTAURANT SE MENU ADD KARNE KE LIYE
 app.post('/api/menu/add', async (req,res)=>{
   try{
     await new MenuItem(req.body).save();
@@ -114,12 +114,23 @@ app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();cons
 
 app.get('/api/admin/graph', async (req,res)=>{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)});
 
+// ===== ADMIN APIs =====
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await RestaurantOwner.find({status: "Pending"})) });
 app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: "Pending"})) });
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) });
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) });
 
-// ===== NEW: 1. ADMIN SALES REPORT =====
+// NEW: ALL RESTAURANTS LIST - Admin button ke liye
+app.get('/api/admin/restaurants-all', async (req,res)=>{ 
+  res.json(await RestaurantOwner.find({}).sort({createdAt: -1})) 
+});
+
+// NEW: PENDING RESTAURANTS - Admin loading ke liye
+app.get('/api/admin/restaurants', async (req,res)=>{ 
+  res.json(await RestaurantOwner.find({status: "Pending"})) 
+});
+
+// ADMIN SALES REPORT
 app.get('/api/report', async (req,res)=>{
   const {start, end, shop} = req.query;
   let filter = {createdAt: {$gte: new Date(start), $lte: new Date(end+'T23:59:59')}};
@@ -140,7 +151,7 @@ app.get('/api/report', async (req,res)=>{
   res.json({totalOrders: orders.length, totalRevenue});
 })
 
-// ===== NEW: 2. ADMIN BROADCAST =====
+// ADMIN BROADCAST
 app.post('/api/broadcast', async (req,res)=>{
   const {message, type} = req.body;
   let mobiles = [];
@@ -152,7 +163,7 @@ app.post('/api/broadcast', async (req,res)=>{
   res.json({count: mobiles.length, msg:"Broadcast Sent"});
 })
 
-// ===== NEW: 3. ADMIN RIDER CASH LIST =====
+// ADMIN RIDER CASH LIST
 app.get('/api/admin/rider-cash', async (req,res)=>{
   const riders = await Rider.find({status: {$in: ["Online", "Approved"]}});
   const data = [];
@@ -165,21 +176,21 @@ app.get('/api/admin/rider-cash', async (req,res)=>{
   res.json(data);
 })
 
-// ===== NEW: 4. ADMIN MARK DEPOSIT =====
+// ADMIN MARK DEPOSIT
 app.post('/api/admin/rider-deposit', async (req,res)=>{
   const {mobile} = req.body;
   await Rider.updateOne({mobile}, {$set: {cash_balance: 0}});
   res.json({success: true, msg:"Deposit Marked"});
 })
 
-// ===== NEW: 5. RESTAURANT CONFIRM DEPOSIT =====
+// RESTAURANT CONFIRM DEPOSIT
 app.post('/api/restaurant/cash-confirm', async (req,res)=>{
   const {riderId, depositedAmount} = req.body;
   await Rider.updateOne({mobile: riderId}, {$set: {cash_balance: 0}});
   res.json({msg: `₹${depositedAmount} Deposit Confirm ho gaya`});
 })
 
-// FIX: inStock filter hataya
+// MENU
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
 
 app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({id: s.restaurantId, name: s.restaurantName, address: s.address, image: s.image_base64, upi_id: s.upi_id}))) });
@@ -190,7 +201,7 @@ app.get('/api/rider/ledger', async (req,res)=>{const rider = await Rider.findOne
 app.get('/api/rider/orders/:mobile', async (req,res)=>{ res.json(await Order.find({riderId: req.params.mobile, status: {$ne: 'Delivered'}}).sort({createdAt:-1})); });
 app.post('/api/rider/login', async (req,res)=>{ let rider = await Rider.findOne({mobile: req.body.mobile}); if(!rider) return res.json({success:false, msg:"Mobile not registered"}); if(rider.status === "Pending") return res.json({success:false, msg:"Approval pending"}); rider = await Rider.findOneAndUpdate({mobile: req.body.mobile}, {status: "Online"}, {new:true}); res.json({success:true, rider}); });
 
-// FIX: RIDER REGISTER WITH PHOTO UPLOAD
+// RIDER REGISTER WITH PHOTO UPLOAD
 app.post('/api/rider/register', uploadRider.fields([
   { name: 'aadharImg', maxCount: 1 }, { name: 'panImg', maxCount: 1 }, { name: 'photoImg', maxCount: 1 }
 ]), async (req,res)=>{ 
@@ -233,4 +244,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.6.2 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.6.3 on ${PORT}`));
