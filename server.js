@@ -34,7 +34,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.6.3'))
+.then(()=>console.log('✅ MongoDB Connected v3.6.4'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -93,10 +93,15 @@ app.post('/api/restaurant/login', async (req,res)=>{
   res.json({success:true, shop})
 });
 
-// RESTAURANT SE MENU ADD KARNE KE LIYE
-app.post('/api/menu/add', async (req,res)=>{
+// FIX: MENU ADD WITH IMAGE UPLOAD TO CLOUDINARY
+app.post('/api/menu/add', upload.single('image'), async (req,res)=>{
   try{
-    await new MenuItem(req.body).save();
+    let imageUrl = '';
+    if(req.file){
+      const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`);
+      imageUrl = result.secure_url;
+    }
+    await new MenuItem({...req.body, image: imageUrl}).save();
     res.json({success:true, msg:"Item Added"})
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
@@ -119,26 +124,16 @@ app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await Rest
 app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: "Pending"})) });
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) });
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) });
-
-// NEW: ALL RESTAURANTS LIST - Admin button ke liye
-app.get('/api/admin/restaurants-all', async (req,res)=>{ 
-  res.json(await RestaurantOwner.find({}).sort({createdAt: -1})) 
-});
-
-// NEW: PENDING RESTAURANTS - Admin loading ke liye
-app.get('/api/admin/restaurants', async (req,res)=>{ 
-  res.json(await RestaurantOwner.find({status: "Pending"})) 
-});
+app.get('/api/admin/restaurants-all', async (req,res)=>{ res.json(await RestaurantOwner.find({}).sort({createdAt: -1})) });
+app.get('/api/admin/restaurants', async (req,res)=>{ res.json(await RestaurantOwner.find({status: "Pending"})) });
 
 // ADMIN SALES REPORT
 app.get('/api/report', async (req,res)=>{
   const {start, end, shop} = req.query;
   let filter = {createdAt: {$gte: new Date(start), $lte: new Date(end+'T23:59:59')}};
   if(shop !== 'all') filter.restaurantId = shop;
-
   const orders = await Order.find(filter);
   const totalRevenue = orders.reduce((a,b)=>a+Number(b.item_total),0);
-
   if(shop === 'all'){
     const shops = await RestaurantOwner.find({status:'Approved'});
     const shopData = [];
@@ -209,12 +204,10 @@ app.post('/api/rider/register', uploadRider.fields([
     const {restaurantId, name, fatherName, aadhar, pan, mobile} = req.body;
     const exists = await Rider.findOne({mobile});
     if(exists) return res.json({success:false, msg: "Mobile already registered"});
-
     const uploadPromises = Object.values(req.files).map(file => 
       cloudinary.uploader.upload(`data:${file[0].mimetype};base64,${file[0].buffer.toString('base64')}`)
     );
     const [aadharUrl, panUrl, photoUrl] = await Promise.all(uploadPromises);
-
     await new Rider({
       name, fatherName, aadhar, pan, mobile, restaurantId,
       aadharImg: aadharUrl.secure_url, panImg: panUrl.secure_url, photoImg: photoUrl.secure_url,
@@ -244,4 +237,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.6.3 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.6.4 on ${PORT}`));
