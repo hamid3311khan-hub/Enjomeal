@@ -34,7 +34,6 @@ canvas{background:white; padding:10px; border-radius:8px;}
 <div class="top-bar">
     <h1>🍴 Eat4Bite™ Admin Panel</h1>
     <div class="top-buttons">
-        <!-- YE BUTTON WAPAS ADD KIYA -->
         <button class="btn-warning" onclick="location.href='/admin-owners'">🏪 Approve Restaurants</button>
         <button class="logout-btn" onclick="logout()">🚪 Logout</button>
     </div>
@@ -73,7 +72,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
 </div>
 
-<!-- 3. RIDER CASH MANAGEMENT -->
+<!-- 3. RIDER CASH MANAGEMENT - FIXED -->
 <div class="card">
     <h2>🏍️ Rider Cash Management</h2>
     <div id="riderCashList">Loading...</div>
@@ -90,6 +89,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <div id="pendingRidersList">Loading...</div>
 </div>
 
+<!-- 5. ORDERS WITH ASSIGN RIDER - FIXED -->
 <div class="card">
     <h2>📦 Orders</h2>
     <div id="ordersList">Loading...</div>
@@ -98,6 +98,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
 <script>
 const API = '';
 let salesChart = null;
+let allRiders = []; // riders ko global save karenge
 
 const ADMIN_PASSWORD = 'admin123';
 function checkLogin(){
@@ -130,21 +131,17 @@ async function loadGraph(){
     }catch(e){ console.log("Graph error", e) }
 }
 
-// FIX: API URL /api/admin/restaurants kar di
 async function loadOwners(){
-    const res = await fetch(`${API}/api/admin/restaurants`); // PENDING WALE
+    const res = await fetch(`${API}/api/admin/restaurants`);
     const owners = await res.json();
-
     if(owners.length === 0){
         document.getElementById('pendingOwnersList').innerHTML = 'Koi pending restaurant nahi hai';
         return;
     }
-
     document.getElementById('pendingOwnersList').innerHTML = owners.map(o => {
         let statusBadge = `<span class="badge" style="background:orange;">Pending</span>`;
         let paymentInfo = `₹${o.registration_fee_paid || 200} ${o.plan_status || 'Trial'} Plan`;
         let trialDate = o.trial_end_date? new Date(o.trial_end_date).toLocaleDateString('en-IN') : '-';
-
         return `
         <div class="owner-item">
             <div style="flex:1;">
@@ -161,14 +158,12 @@ async function loadOwners(){
     }).join('');
 }
 
-// FIX: API URL /api/admin/approve-restaurant/ kar di
 async function approveOwner(id){
     await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'});
     alert('Restaurant Approved! 30 din trial start');
     loadData();
 }
 
-// Load shop dropdown for report
 async function loadShopDropdown(){
     const res = await fetch(`${API}/api/restaurants`);
     const shops = await res.json();
@@ -179,7 +174,6 @@ async function loadShopDropdown(){
     });
 }
 
-// Sales Report Function
 async function getReport(){
     let shop = document.getElementById('reportShop').value;
     let s = document.getElementById('startDate').value;
@@ -199,7 +193,6 @@ async function getReport(){
     document.getElementById('reportResult').innerHTML = html;
 }
 
-// Broadcast Function
 async function sendBroadcast(type){
     const message = document.getElementById('broadcastMsg').value;
     if(!message) return alert('Message likho');
@@ -212,24 +205,31 @@ async function sendBroadcast(type){
     alert(`${data.count} Restaurant owners ko message bhej diya`);
 }
 
-// Rider Cash Management
+// FIX 1: Rider Cash Management - Empty check add kiya
 async function loadRiderCash(){
-    const res = await fetch(`${API}/api/admin/rider-cash`);
-    const riders = await res.json();
-    document.getElementById('riderCashList').innerHTML = riders.length === 0? 'Koi rider nahi hai' :
-    riders.map(r => {
-        let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED - Limit Cross</div>` : '';
-        return `
-        <div class="rider-item">
-            <div>
-                <b>${r.name}</b> - ${r.mobile} <br>
-                <small>Cash in Hand: ₹${r.pending_cash} | Today Collected: ₹${r.today_collected}</small> <br>
-                ${alert}
+    try{
+        const res = await fetch(`${API}/api/admin/rider-cash`);
+        const riders = await res.json();
+        if(riders.length === 0){
+            document.getElementById('riderCashList').innerHTML = 'Abhi koi rider registered nahi hai';
+            return;
+        }
+        document.getElementById('riderCashList').innerHTML = riders.map(r => {
+            let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED - Limit Cross</div>` : '';
+            return `
+            <div class="rider-item">
+                <div>
+                    <b>${r.name}</b> - ${r.mobile} <br>
+                    <small>Cash in Hand: ₹${r.pending_cash} | Today Collected: ₹${r.today_collected}</small> <br>
+                    ${alert}
+                </div>
+                <button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button>
             </div>
-            <button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button>
-        </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+    }catch(err){
+        document.getElementById('riderCashList').innerHTML = 'Error loading riders';
+    }
 }
 
 async function markDeposited(mobile){
@@ -243,11 +243,28 @@ async function markDeposited(mobile){
     loadRiderCash();
 }
 
+// FIX 2: Assign Rider Function Naya add kiya
+async function assignRider(orderId, riderId){
+    if(!riderId) return;
+    await fetch(`${API}/api/admin/assign-rider`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({orderId, riderId})
+    });
+    alert('Rider Assigned!');
+    loadData();
+}
+
 async function loadData(){
     await loadGraph();
-    await loadOwners(); // YE AB KAAM KAREGA
+    await loadOwners();
     await loadShopDropdown();
     await loadRiderCash();
+
+    // Pehle saare approved riders load kar lo
+    const ridersRes = await fetch(`${API}/api/admin/approved-riders`);
+    allRiders = await ridersRes.json();
+
     const pendingRiders = await fetch(`${API}/api/admin/pending-riders`).then(r=>r.json());
     document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' :
     pendingRiders.map(r => `
@@ -256,6 +273,7 @@ async function loadData(){
             <button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve Karo</button>
         </div>
     `).join('');
+
     const orders = await fetch(`${API}/api/orders`).then(r=>r.json());
     const today = new Date().toISOString().split('T')[0];
     const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
@@ -263,11 +281,25 @@ async function loadData(){
     document.getElementById('totalOrders').innerText = orders.length;
     document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
     document.getElementById('todayRevenue').innerText = '₹' + todayRev;
+
     let orderHtml = '';
     for(let o of orders){
+        let assignDropdown = '';
+        if(o.status === 'Pending' &&!o.riderId){
+            assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)" style="width:150px; margin-top:5px;">
+                <option value="">Assign Rider</option>
+                ${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}
+            </select>`;
+        } else if(o.riderId){
+            assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`;
+        }
+
         orderHtml += `
             <div class="order">
-                <div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br><small>${o.phone} | ${o.address} | Status: ${o.status}</small></div>
+                <div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br>
+                <small>${o.phone} | ${o.address} | Status: ${o.status}</small><br>
+                ${assignDropdown}
+                </div>
                 <div>
                     <a href="/invoice?id=${o.trackId}" target="_blank" class="btn-orange">📄 Invoice</a>
                     <a href="/track?id=${o.trackId}" target="_blank" class="btn-blue">Track</a>
