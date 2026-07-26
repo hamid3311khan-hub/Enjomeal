@@ -10,6 +10,7 @@ body{font-family:Arial; background:#f4f4f4; margin:0; padding:20px;}
 .login-box,.dashboard{background:white; padding:20px; border-radius:12px; max-width:500px; margin:auto; box-shadow:0 2px 10px #ccc;}
 h2{text-align:center; color:#ff6600;} input{width:100%; padding:12px; margin:8px 0; border-radius:6px; border:1px solid #ccc;}
 button{width:100%; padding:14px; background:#ff6600; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; margin:5px 0;}
+button:disabled{background:#ccc; cursor:not-allowed;}
 .order{border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:8px;}.top-bar{display:flex; justify-content:space-between;}
 .logout-btn{background:#dc3545; width:auto; padding:8px 15px;} #map{height:250px; background:#eee; border-radius:8px; margin:10px 0;}
 .tabs{display:flex; gap:10px; margin:15px 0;}.tab-btn{flex:1; background:#eee; color:#333;}.tab-btn.active{background:#ff6600; color:white;}
@@ -31,7 +32,8 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 <div id="cashAlert" class="alert" style="display:none;">⚠️ Cash Limit Reached! Please Deposit First</div>
 
 <p><b>Status:</b> <span id="riderStatus">Offline</span></p>
-<button onclick="goOnline()">🟢 Go Online</button><button onclick="goOffline()" style="background:#6c757d;">🔴 Go Offline</button>
+<button id="btnOnline" onclick="goOnline()">🟢 Go Online</button>
+<button id="btnOffline" onclick="goOffline()" style="background:#6c757d;">🔴 Go Offline</button>
 
 <div class="hisab-box">
   <b>Cash in Hand:</b> ₹<span id="cashInHand">0</span> / ₹1000
@@ -66,7 +68,7 @@ window.onload = () => {
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('riderName').innerText = `Hello, ${riderData.name}`;
     initMap(); loadMyOrders(); loadHisab();
-    document.getElementById('riderStatus').innerText = riderData.status;
+    updateStatusUI(riderData.status);
     if(riderData.status === 'Online') startLocationTracking();
   }
 }
@@ -77,6 +79,18 @@ function showTab(tab, btn){
   btn.classList.add('active'); 
   ['orders','hisab'].forEach(t=>document.getElementById('tab-'+t).style.display='none'); 
   document.getElementById('tab-'+tab).style.display='block';
+}
+
+// FIX 1: Button enable/disable wala function
+function updateStatusUI(status){
+  document.getElementById('riderStatus').innerText = status;
+  if(status === 'Online'){
+    document.getElementById('btnOnline').disabled = true;
+    document.getElementById('btnOffline').disabled = false;
+  } else {
+    document.getElementById('btnOnline').disabled = false;
+    document.getElementById('btnOffline').disabled = true;
+  }
 }
 
 async function riderLogin(){
@@ -97,7 +111,7 @@ async function goOnline(){
   await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
   riderData.status = 'Online';
   localStorage.setItem('riderData', JSON.stringify(riderData));
-  document.getElementById('riderStatus').innerText = 'Online';
+  updateStatusUI('Online');
   startLocationTracking();
 }
 
@@ -106,7 +120,7 @@ async function goOffline(){
   await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
   riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
-  document.getElementById('riderStatus').innerText = 'Offline';
+  updateStatusUI('Approved');
 }
 
 function startLocationTracking(){
@@ -131,7 +145,7 @@ async function loadHisab(){
   document.getElementById('cashInHand').innerText = data.pending_cash || 0;
   document.getElementById('cashPending').innerText = data.pending_cash || 0;
   document.getElementById('todayCollection').innerText = data.today_collected || 0;
-  document.getElementById('todayOrders').innerText = data.today_orders || 0;
+  document.getElementById 'todayOrders').innerText = data.today_orders || 0;
   
   const percent = data.progress || 0;
   document.getElementById('limitBar').style.width = percent + '%';
@@ -140,7 +154,14 @@ async function loadHisab(){
   if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; } else { document.getElementById('cashAlert').style.display = 'none'; }
 }
 
-// UPDATED WITH DIRECTIONS + MAP MARKER
+// FIX 2: Socket se auto order update
+socket.on('new_order', (order) => {
+  if(order.riderId === riderData.mobile){
+    alert(`Naya Order Aaya! ${order.trackId}`);
+    loadMyOrders(); // turant list refresh
+  }
+});
+
 async function loadMyOrders(){
   const res = await fetch(`${API}/api/rider/orders/${riderData.mobile}`);
   const orders = await res.json();
@@ -150,7 +171,6 @@ async function loadMyOrders(){
     const hasLocation = o.custLat && o.custLng;
     const directionsLink = hasLocation ? `https://www.google.com/maps/search/?api=1&query=${o.custLat},${o.custLng}` : '#';
     
-    // Add customer marker on map
     if(hasLocation && !customerMarkers[o._id]){
       customerMarkers[o._id] = L.marker([o.custLat, o.custLng]).addTo(map).bindPopup(`${o.name}<br>${o.address}`);
     }
