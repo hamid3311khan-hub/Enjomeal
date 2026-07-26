@@ -54,7 +54,6 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <div id="reportResult" style="margin-top:15px;"></div>
 </div>
 
-<!-- BROADCAST -->
 <div class="card">
     <h2>📢 Broadcast to All Restaurants</h2>
     <p style="color:#666; font-size:13px;">Ye message sabhi restaurant owners ko WhatsApp pe chala jayega</p>
@@ -62,7 +61,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
 </div>
 
-<!-- PROMO BANNER WITH IMAGE UPLOAD -->
+<!-- UPDATED: PROMO BANNER -->
 <div class="card">
     <h2>📢 Promotion Banner - Home Page</h2>
     <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF - CODE: FIRST50">
@@ -128,7 +127,7 @@ async function loadGraph(){
         salesChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
             {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
             {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
-        ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } });
+        ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } } });
     }catch(e){}
 }
 
@@ -164,7 +163,7 @@ async function sendBroadcast(type){
     alert(`${data.count} Restaurant owners ko bhej diya`);
 }
 
-// ===== FIXED PROMO FUNCTIONS WITH IMAGE UPLOAD =====
+// ===== SIRF YE 4 FUNCTION UPDATE KIYE HAIN =====
 async function loadPromo(){
     try{
         const res = await fetch(`${API}/api/promo`);
@@ -181,7 +180,7 @@ async function updatePromo(){
     formData.append('color', document.getElementById('promoColor').value);
 
     if(fileInput.files[0]){
-        formData.append('bannerImage', fileInput.files[0]); // server me bhi yahi naam hai
+        formData.append('bannerImage', fileInput.files[0]);
     }
 
     const res = await fetch(`${API}/api/admin/promo`, {method:'POST', body: formData});
@@ -208,7 +207,7 @@ function showPromoPreview(promo){
     if(promo.text &&!promo.image) html += `<div style="background:${promo.color}; color:white; padding:10px; text-align:center; border-radius:8px;"><p>${promo.text}</p></div>`;
     document.getElementById('promoPreview').innerHTML = html;
 }
-// ===== END PROMO FIX =====
+// ===== END UPDATE =====
 
 async function loadRiderCash(){
     try{
