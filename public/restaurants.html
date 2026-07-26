@@ -41,30 +41,24 @@ async function loadRestaurants(){
             const imgText = encodeURIComponent(shop.name);
             list.innerHTML += `
             <div class="col-md-4 col-12">
-                <div class="card shadow-sm p-3" onclick="selectShop('${shop.id}', '${shop.name}')" style="cursor:pointer">
-                    <img src="https://via.placeholder.com/400x180/ff6600/ffffff?text=${imgText}" 
-                         class="card-img-top mb-2" 
-                         style="height:180px; object-fit:cover; border-radius:8px"
-                         onerror="this.src='https://via.placeholder.com/400x180/ff6600/ffffff?text=Eat4Bite'">
-                    <h5 class="fw-bold">${shop.name}</h5>
-                    <p class="text-muted small">📍 ${shop.address || 'Address not added'}</p>
-                </div>
+                <!-- FIX 1: shop.id ko shop._id kiya -->
+                <a href="/?shop=${shop._id}" class="text-decoration-none">
+                    <div class="card shadow-sm p-3" style="cursor:pointer">
+                        <!-- FIX 2: shop.image add kiya -->
+                        <img src="${shop.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${imgText}`}" 
+                             class="card-img-top mb-2" 
+                             style="height:180px; object-fit:cover; border-radius:8px"
+                             onerror="this.src='https://via.placeholder.com/400x180/ff6600/ffffff?text=Eat4Bite'">
+                        <h5 class="fw-bold text-dark">${shop.name}</h5>
+                        <p class="text-muted small">📍 ${shop.address || 'Address not added'}</p>
+                    </div>
+                </a>
             </div>`;
         });
     }catch(err){
         document.getElementById('restaurantList').innerHTML = '<p class="text-center text-danger">Restaurants load nahi ho paaye. Server check karo</p>';
         console.log(err)
     }
-}
-
-function selectShop(shopId, shopName){
-    // YE DONO NAAM SAVE KARNA ZAROORI HAI
-    localStorage.setItem('shopId', shopId); 
-    localStorage.setItem('shopName', shopName);
-    localStorage.setItem('restaurantId', shopId);
-    localStorage.setItem('restaurantName', shopName);
-
-    window.location.href = `/?shop=${shopId}` // menu page pe bhej do
 }
 
 loadRestaurants();
