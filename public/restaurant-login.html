@@ -10,6 +10,7 @@
    .card{max-width:450px; margin:auto; border-radius:15px; border:none;}
    .logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
    .back-home{position:absolute; top:20px; left:20px; color:white; text-decoration:none; font-weight:bold;}
+   #captchaQ{font-weight:bold; font-size:20px; background:#ff6600; color:white; padding:8px 15px; border-radius:8px; letter-spacing:2px}
 </style>
 </head>
 <body>
@@ -23,15 +24,26 @@
 
         <form id="loginForm">
             <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input type="email" id="email" class="form-control" required>
+                <label class="form-label">Mobile Number</label> <!-- 1. EMAIL -> MOBILE -->
+                <input type="tel" id="mobile" class="form-control" placeholder="98xxxxxx98" required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Password</label>
                 <input type="password" id="password" class="form-control" required>
-                <div class="text-end mt-1">
-                    <a href="#" onclick="alert('Admin se contact karo password reset ke liye')" style="font-size:13px;">Forgot Password?</a>
+            </div>
+
+            <!-- 2. CAPTCHA ADD KIYA -->
+            <div class="mb-3">
+                <label class="form-label">Captcha Verify</label>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="captchaQ"></span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="genCaptcha()">🔄</button>
                 </div>
+                <input type="number" id="captchaAns" class="form-control mt-2" placeholder="Answer" required>
+            </div>
+
+            <div class="text-end mb-2">
+                <a href="#" onclick="alert('Admin se contact karo password reset ke liye')" style="font-size:13px;">Forgot Password?</a>
             </div>
             <button type="submit" class="btn btn-warning w-100 fw-bold">Login</button>
         </form>
@@ -44,6 +56,15 @@
 
 <script>
 const API = 'https://quickbite-ymqk.onrender.com'; // RENDER KA URL
+let captchaResult = 0;
+
+// CAPTCHA FUNCTION
+function genCaptcha(){
+  let a = Math.floor(Math.random() * 9) + 1;
+  let b = Math.floor(Math.random() * 9) + 1;
+  captchaResult = a + b;
+  document.getElementById('captchaQ').innerText = `${a} + ${b} = ?`;
+}
 
 document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -51,10 +72,21 @@ document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     btn.disabled = true;
     btn.innerText = "Checking...";
 
-    const data = {
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value
-    };
+    const mobile = document.getElementById('mobile').value;
+    const password = document.getElementById('password').value;
+    const ans = Number(document.getElementById('captchaAns').value);
+
+    // CAPTCHA CHECK
+    if(ans !== captchaResult){
+        document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ Captcha galat hai</div>`;
+        genCaptcha();
+        document.getElementById('captchaAns').value = '';
+        btn.disabled = false;
+        btn.innerText = "Login";
+        return;
+    }
+
+    const data = { mobile, password }; // email ki jagah mobile bheja
 
     try{
         const res = await fetch(`${API}/api/restaurant/login`, {
@@ -65,21 +97,22 @@ document.getElementById('loginForm').addEventListener('submit', async (e)=>{
         const result = await res.json();
 
         if(result.success){
-            if(result.owner.status!== 'Approved'){
+            if(result.shop.status !== 'Approved'){ // result.owner ki jagah result.shop
                 document.getElementById('msg').innerHTML = `<div class="alert alert-warning">⚠️ Tumhara restaurant abhi Admin se approve nahi hua. Thoda wait karo.</div>`;
                 btn.disabled = false;
                 btn.innerText = "Login";
                 return;
             }
             // FIX: DATA 3 JAGAH SAVE KIYA
-            localStorage.setItem('restaurantId', result.owner.restaurantId);
-            localStorage.setItem('restaurantName', result.owner.restaurantName);
-            localStorage.setItem('restaurantOwner', JSON.stringify(result.owner));
+            localStorage.setItem('restaurantId', result.shop.restaurantId);
+            localStorage.setItem('restaurantName', result.shop.restaurantName);
+            localStorage.setItem('restaurantOwner', JSON.stringify(result.shop));
             window.location.href = '/restaurant-dashboard';
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">${result.msg}</div>`;
             btn.disabled = false;
             btn.innerText = "Login";
+            genCaptcha(); // galat hone pe captcha refresh
         }
     }catch(err){
         document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error: ${err.message}</div>`;
@@ -87,6 +120,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e)=>{
         btn.innerText = "Login";
     }
 });
+
+genCaptcha(); // page load pe captcha
 </script>
 </body>
 </html>
