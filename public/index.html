@@ -9,7 +9,7 @@ nav a{color:white;text-decoration:none;margin:0 10px;font-weight:bold}
 nav button{background:none; border:none; color:white; cursor:pointer; font-size:16px;}
 .banner{color:white;text-align:center;padding:0;font-size:18px;font-weight:bold;border-radius:10px;margin:10px;display:none} 
 .banner img{width:100%; border-radius:10px; display:block;}
-.search-bar{padding:15px;background:white;position:sticky;top:60px;z-index:99;position:relative;} /* relative add */
+.search-bar{padding:15px;background:white;position:sticky;top:60px;z-index:99;position:relative;}
 body.dark .search-bar{background:#1e1e1e;}
 .search-bar input{width:95%;padding:12px;border-radius:20px;border:1px solid #ddd;font-size:16px;}
 
@@ -31,6 +31,30 @@ button{background:#ff6600;color:white;border:none;padding:10px 15px;border-radiu
 body.dark #sysMenu{background:#2a2a2a;}
 body.dark #sysMenu a{color:#eee; border-color:#444;}
 body.dark #sysMenu a:hover{background:#333;}
+
+/* ===== NAYA CARD CSS - PHOTO CUT FIX ===== */
+.grid{display:grid; grid-template-columns:1fr; gap:15px; padding:10px;}
+.card{
+    background:white;
+    border-radius:12px;
+    padding:0;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    overflow:hidden;
+    position:relative;
+}
+.card img{
+    width:100%;
+    height:200px;
+    object-fit:cover;
+    display:block;
+}
+.card h3{padding:12px 15px 5px 15px; font-size:18px; margin:0;}
+.card p{padding:0 15px 10px 15px; color:#666; font-size:14px; margin:0;}
+.card .price{font-weight:bold; font-size:18px; color:#ff6600;}
+.card button{margin:0 15px 15px 0;}
+body.dark .card{background:#1e1e1e;}
+.out-stock{position:absolute; top:10px; left:10px; background:red; color:white; padding:5px 10px; border-radius:5px; z-index:2; font-size:12px; font-weight:bold;}
+.reorder-btn{width:100%; margin-top:10px; background:#28a745;}
 </style></head><body>
 
 <nav>
@@ -63,8 +87,6 @@ body.dark #sysMenu a:hover{background:#333;}
     <input id="search" placeholder="🔍 Search Restaurant Name..." onkeyup="searchRestaurant()" autocomplete="off">
     <!-- YAHI DROPDOWN LIST AYEGI -->
     <div id="restaurantList"></div>
-    <!-- ALL BUTTON COMMENT -->
-    <!-- <div class="categories" id="categories"></div> -->
 </div>
 
 <div class="grid" id="menu"><p style="text-align:center">Loading...</p></div>
@@ -91,7 +113,6 @@ document.addEventListener('click', function(e){
     if(!e.target.closest('#sysMenu') && !e.target.closest('button[onclick="toggleSysMenu()"]')){
         document.getElementById('sysMenu').style.display = 'none';
     }
-    // dropdown bahar click karne pe band
     if(!e.target.closest('.search-bar')){
         document.getElementById('restaurantList').style.display = 'none';
     }
@@ -116,7 +137,6 @@ async function loadBanner(){
   }catch(e){console.log("Banner Error", e)}
 }
 loadBanner();
-// ===== END BANNER =====
 
 // NAYA RESTAURANT SEARCH + DROPDOWN
 let searchTimeout;
@@ -130,7 +150,6 @@ async function searchRestaurant(){
         return;
     }
     
-    // 300ms wait karega typing rukne ke baad
     searchTimeout = setTimeout(async () => {
         try{
             const res = await fetch(`${API}/restaurants?search=${query}`);
@@ -168,11 +187,11 @@ function displayItems(items){
         <div class="card">
             ${item.inStock===false ? '<div class="out-stock">Out of Stock</div>' : ''}
             <img src="${item.image || item.img}" onerror="this.src='https://via.placeholder.com/300x200/ff6600/ffffff?text=Eat4Bite'">
-            <h3>${item.name} ${item.offer?`<span style="color:red;background:#ffe0e0;padding:2px 6px;border-radius:4px">-${item.offer}%</span>`:''}</h3>
+            <h3>${item.name} ${item.offer?`<span style="color:red;background:#ffe0e0;padding:2px 6px;border-radius:4px; font-size:12px;">-${item.offer}%</span>`:''}</h3>
             <p style="color:#666">${item.desc}</p>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px; padding:0 15px 15px 15px;">
                 <span class="price">₹${price}</span>
-                <button onclick='addToCart(${JSON.stringify(item)})' ${item.inStock===false?'disabled':''}>${item.inStock===false?'Sold Out':'Add +'}</button>
+                <button onclick='addToCart(${JSON.stringify(item)})' ${item.inStock===false?'disabled style="background:#ccc"':''}>${item.inStock===false?'Sold Out':'Add +'}</button>
             </div>
         </div>`
     }).join('')
