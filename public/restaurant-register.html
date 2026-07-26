@@ -15,7 +15,8 @@
 .plan-card{border:2px solid #ddd; border-radius:10px; padding:15px; cursor:pointer; transition:0.3s; margin-bottom:10px}
 .plan-card.active{border-color:#ff6600; background:#fff5f0;}
 .plan-card:hover{border-color:#ff6600;}
-.explain-card{background:#fff8e1; border:1px solid #ffc107; border-radius:10px}
+.plan-info-btn{background:#ff6600; color:#fff; border:none; width:100%; padding:12px; border-radius:10px; font-weight:600; margin:15px 0}
+.plan-details{display:none; background:#fff8e1; border:1px solid #ffc107; border-radius:10px; padding:15px; margin-top:10px}
 </style>
 </head>
 <body>
@@ -41,7 +42,31 @@
                 </div>
             </div>
 
-            <div class="mb-3"><label class="form-label">Owner Name</label><input type="text" id="name" class="form-control" required></div>
+            <!-- YAHI BUTTON + TOGGLE SECTION NAYA HAI -->
+            <button type="button" class="plan-info-btn" onclick="togglePlanInfo()">
+                ℹ️ View Annual Support Plan - ₹2000/Year
+            </button>
+
+            <div id="planDetails" class="plan-details">
+              <h5 class="fw-bold" style="color:#ff6600">Eat4Bite™ Annual Support Plan</h5>
+              <p class="fw-semibold mb-2">Grow Your Restaurant. We Handle The Tech.</p>
+              <p class="small">The Eat4Bite™ Annual Support Plan is designed for local restaurants to go digital without any hassle. For a small annual fee, you get a complete technology and marketing solution for 12 months.</p>
+
+              <h6 class="fw-bold mt-3">What's Included:</h6>
+              <ul class="small mb-2">
+                <li><b>Website & Brand Listing:</b> Get a professional restaurant page with photos, menu, and location. Be visible to thousands of customers on Google and the Eat4Bite™ App.</li>
+                <li><b>24x7 Technical Support:</b> Facing any issue with App, Website, or Payments? Our dedicated support team is available 24x7. Call or WhatsApp us and get it resolved within 15 minutes.</li>
+                <li><b>Free Menu & Offer Management:</b> Want to update prices or add new items? Just send us a message. We will update it for you in real-time. Absolutely Free.</li>
+                <li><b>Secure Payments & Billing:</b> Accept Online Payments, UPI, and get automated billing. Your earnings are transferred to your bank account every 3 days. 100% Safe & Transparent.</li>
+              </ul>
+
+              <div class="alert alert-warning p-2 small mb-0">
+                <b>One-time ₹2000. One Full Year of Tension-Free Business.</b><br>
+                <b>Compare:</b> Zomato/Swiggy take 25-30% per order. On ₹500 order they take ₹125. We take only ₹65.
+              </div>
+            </div>
+
+            <div class="mb-3 mt-3"><label class="form-label">Owner Name</label><input type="text" id="name" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Email</label><input type="email" id="email" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Password</label><input type="password" id="password" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Mobile Number</label><input type="tel" id="mobile" class="form-control" pattern="[0-9]{10}" maxlength="10" required></div>
@@ -55,26 +80,6 @@
             </div>
             <button type="submit" id="registerBtn" class="btn btn-warning w-100 fw-bold">Register & Pay ₹200</button>
         </form>
-
-        <!-- PLAN EXPLANATION - TERA SCREENSHOT WALA -->
-        <div class="card shadow-sm p-3 mt-3 explain-card">
-          <h5 class="fw-bold" style="color:#ff6600">Eat4Bite™ Annual Support Plan - ₹2000 / Year</h5>
-          <p class="fw-semibold mb-2">Grow Your Restaurant. We Handle The Tech.</p>
-          <p class="small">The Eat4Bite™ Annual Support Plan is designed for local restaurants to go digital without any hassle. For a small annual fee, you get a complete technology and marketing solution for 12 months.</p>
-
-          <h6 class="fw-bold mt-3">What's Included:</h6>
-          <ul class="small mb-2">
-            <li><b>Website & Brand Listing:</b> Get a professional restaurant page with photos, menu, and location. Be visible to thousands of customers on Google and the Eat4Bite™ App.</li>
-            <li><b>24x7 Technical Support:</b> Facing any issue with App, Website, or Payments? Our dedicated support team is available 24x7. Call or WhatsApp us and get it resolved within 15 minutes.</li>
-            <li><b>Free Menu & Offer Management:</b> Want to update prices or add new items? Just send us a message. We will update it for you in real-time. Absolutely Free.</li>
-            <li><b>Secure Payments & Billing:</b> Accept Online Payments, UPI, and get automated billing. Your earnings are transferred to your bank account every 3 days. 100% Safe & Transparent.</li>
-          </ul>
-
-          <div class="alert alert-warning p-2 small mb-0">
-            <b>One-time ₹2000. One Full Year of Tension-Free Business.</b><br>
-            <b>Compare:</b> Zomato/Swiggy take 25-30% per order. On ₹500 order they take ₹125. We take only ₹65.
-          </div>
-        </div>
 
         <div id="qrBox" class="mt-3 p-3 text-center d-none">
             <h5 class="text-danger">Step 2: Pay <span id="payAmount">₹200</span> to Activate</h5>
@@ -93,6 +98,11 @@ const API = "";
 let photoBase64 = "";
 let selectedAmount = 200;
 let selectedPlan = 'Trial';
+
+function togglePlanInfo(){
+  const details = document.getElementById('planDetails');
+  details.style.display = details.style.display === 'block'? 'none' : 'block';
+}
 
 function selectPlan(plan, amount){
     selectedPlan = plan;
