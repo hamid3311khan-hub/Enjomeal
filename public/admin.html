@@ -1,244 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-<meta charset="UTF-8">
+<title>Admin Panel - Eat4Bite™</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eat4Bite™ Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-    body{font-family:Arial; background:#f4f4f4; padding:20px;}
-.top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
-.card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
-    input, select, button, textarea{padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc; width:calc(100% - 22px);}
-    button{background:#ff6600; color:white; border:none; cursor:pointer;} button:hover{opacity:0.9;}
-.grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
-.stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
-.stat-card h2{margin:0; font-size:30px;}
-.order,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
-.btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}.btn-warning{background:#ffc107; color:#000;}
-.logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
-    small{color:#666; font-size:12px;}
-canvas{background:white; padding:10px; border-radius:8px;}
-.alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
-.badge{padding:3px 8px; border-radius:4px; color:white; font-size:12px;}
+body{background:#f8f9fa}
+.card{border:none;border-radius:15px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.stat-card{background:#ff6600;color:white;text-align:center;padding:20px}
 </style>
 </head>
 <body>
+<div class="container-fluid py-4">
+<h2>👑 Admin Panel</h2>
 
-<div class="top-bar">
-    <h1>🍴 Eat4Bite™ Admin Panel</h1>
-    <div class="top-buttons">
-        <button class="btn-warning" onclick="location.href='/admin-owners'">🏪 Approve Restaurants</button>
-        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
-    </div>
+<div class="row mt-4">
+  <div class="col-md-3"><div class="card stat-card"><h5>Total Orders</h5><h2 id="totalOrders">0</h2></div></div>
+  <div class="col-md-3"><div class="card stat-card"><h5>Total Revenue</h5><h2 id="totalRevenue">₹0</h2></div></div>
 </div>
 
-<div class="grid">
-    <div class="card stat-card"><h3>Total Orders</h3><h2 id="totalOrders">0</h2></div>
-    <div class="card stat-card" style="background:#007bff;"><h3>Total Customers</h3><h2 id="totalCustomers">0</h2></div>
-    <div class="card stat-card" style="background:#28a745;"><h3>Today Revenue</h3><h2 id="todayRevenue">₹0</h2></div>
+<div class="card mt-4 p-4">
+<h4>📊 Report</h4>
+<div class="row">
+  <div class="col-md-3"><input type="date" id="startDate" class="form-control"></div>
+  <div class="col-md-3"><input type="date" id="endDate" class="form-control"></div>
+  <div class="col-md-3">
+    <select id="shopSelect" class="form-control">
+      <option value="all">All Shops</option>
+    </select>
+  </div>
+  <div class="col-md-3"><button class="btn btn-warning w-100" onclick="loadReport()">Generate</button></div>
+</div>
+<div id="reportResult" class="mt-3"></div>
 </div>
 
-<div class="card">
-    <h2>📈 Last 7 Days Sales Graph</h2>
-    <canvas id="salesChart" height="100"></canvas>
 </div>
-
-<div class="card">
-    <h2>📊 All Restaurants Sales Report</h2>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <select id="reportShop" style="width:200px;"><option value="all">All Restaurants</option></select>
-        <input type="date" id="startDate"><input type="date" id="endDate">
-    </div>
-    <button class="btn-blue" onclick="getReport()">Get Report</button>
-    <div id="reportResult" style="margin-top:15px;"></div>
-</div>
-
-<div class="card">
-    <h2>📢 Broadcast to All Restaurants</h2>
-    <textarea id="broadcastMsg" placeholder="Notice: Kal se Delivery charge ₹10 badh raha hai" rows="3"></textarea>
-    <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
-</div>
-
-<div class="card">
-    <h2>📢 Promotion Banner - Home Page</h2>
-    <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF - CODE: FIRST50">
-    <label><b>Ya Image Upload Karo:</b></label>
-    <input type="file" id="promoFile" accept="image/*">
-    <input type="text" id="promoColor" placeholder="Background Color" value="#ff6600">
-    <button class="btn-orange" onclick="updatePromo()">Update Banner</button>
-    <button class="btn-red" onclick="removePromo()">Remove Banner</button>
-    <div id="promoPreview" style="margin-top:10px;"></div>
-</div>
-
-<div class="card">
-    <h2>🏍️ Rider Cash Management</h2>
-    <div id="riderCashList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>🏪 Restaurant Approvals</h2>
-    <div id="pendingOwnersList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>🏍️ Pending Rider Approvals</h2>
-    <div id="pendingRidersList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>📦 Orders - Manual Assign</h2>
-    <div id="ordersList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>🏍️ Approved Riders List</h2>
-    <div id="riderList">Loading...</div>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
 <script>
-const API = '';
-const socket = io();
-let salesChart = null;
-let allRiders = [];
-
-const ADMIN_PASSWORD = 'admin123';
-function checkLogin(){
-    if(sessionStorage.getItem('adminLoggedIn')!== 'true'){
-        let pass = prompt("🔒 Admin Login\nPassword daalo:");
-        if(pass === ADMIN_PASSWORD){ sessionStorage.setItem('adminLoggedIn', 'true'); loadData(); }
-        else { alert("Galat Password!"); window.location = '/'; }
-    } else { loadData(); }
-}
-function logout(){ sessionStorage.clear(); alert("Logout ho gaye"); window.location = '/'; }
-
-async function loadGraph(){
-    try{
-        const res = await fetch(`${API}/api/admin/graph`);
-        const data = await res.json();
-        const labels = data.map(d => d.date);
-        const revenue = data.map(d => d.revenue);
-        const orders = data.map(d => d.orders);
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        if(salesChart) salesChart.destroy();
-        salesChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
-            {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
-            {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
-        ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } });
-    }catch(e){}
-}
-
-async function loadOwners(){
-    const res = await fetch(`${API}/api/admin/restaurants`);
-    const owners = await res.json();
-    document.getElementById('pendingOwnersList').innerHTML = owners.length === 0? 'Koi pending restaurant nahi hai' : owners.map(o => `<div class="owner-item"><div><b>${o.restaurantName}</b> - ${o.ownerName}<br><small>${o.mobile}</small></div><button class="btn-green" onclick="approveOwner('${o._id}')">✅ Approve</button></div>`).join('');
-}
-async function approveOwner(id){ await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'}); alert('Restaurant Approved!'); loadData(); }
+const API = 'https://quickbite-ymqk.onrender.com/api';
 
 async function loadShopDropdown(){
-    const res = await fetch(`${API}/api/restaurants`);
-    const shops = await res.json();
-    const select = document.getElementById('reportShop');
-    select.innerHTML = `<option value="all">All Restaurants</option>`;
-    shops.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name}</option>`; });
+  const res = await fetch(`${API}/admin/restaurants-all`);
+  const shops = await res.json();
+  const sel = document.getElementById('shopSelect');
+  shops.forEach(s=>{
+    // FIX: s._id aur s.name use kiya
+    sel.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`
+  });
 }
 
-async function getReport(){
-    let shop = document.getElementById('reportShop').value;
-    let s = document.getElementById('startDate').value;
-    let e = document.getElementById('endDate').value;
-    if(!s ||!e) return alert('Date select karo');
-    const d = await fetch(`${API}/api/report?start=${s}&end=${e}&shop=${shop}`).then(r=>r.json());
-    document.getElementById('reportResult').innerHTML = `<p><b>Total Orders:</b> ${d.totalOrders}</p><p><b>Total Revenue:</b> ₹${d.totalRevenue}</p>`;
+async function loadReport(){
+  const start = document.getElementById('startDate').value;
+  const end = document.getElementById('endDate').value;
+  const shop = document.getElementById('shopSelect').value;
+  const res = await fetch(`${API}/report?start=${start}&end=${end}&shop=${shop}`);
+  const data = await res.json();
+  document.getElementById('totalOrders').innerText = data.totalOrders || 0;
+  document.getElementById('totalRevenue').innerText = '₹' + (data.totalRevenue || 0);
+  document.getElementById('reportResult').innerHTML = `<p>Total Orders: ${data.totalOrders}</p><p>Total Revenue: ₹${data.totalRevenue}</p>`;
 }
 
-async function sendBroadcast(type){
-    const message = document.getElementById('broadcastMsg').value;
-    if(!message) return alert('Message likho');
-    const res = await fetch(`${API}/api/broadcast`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message, type}) });
-    const data = await res.json();
-    alert(`${data.count} Restaurant owners ko bhej diya`);
-}
-
-async function loadPromo(){
-    try{
-        const res = await fetch(`${API}/api/promo`);
-        const promo = await res.json();
-        if(promo) showPromoPreview(promo);
-    }catch(e){}
-}
-async function updatePromo(){
-    const formData = new FormData();
-    const fileInput = document.getElementById('promoFile');
-    formData.append('text', document.getElementById('promoText').value);
-    formData.append('color', document.getElementById('promoColor').value);
-    if(fileInput.files[0]){ formData.append('bannerImage', fileInput.files[0]); }
-    const res = await fetch(`${API}/api/admin/promo`, {method:'POST', body: formData});
-    const data = await res.json();
-    if(data.success){ alert('Banner Updated!'); loadPromo(); fileInput.value = ''; } else { alert('Error: ' + data.msg) }
-}
-async function removePromo(){ await fetch(`${API}/api/admin/promo`, {method:'DELETE'}); alert('Removed'); document.getElementById('promoPreview').innerHTML = ''; }
-function showPromoPreview(promo){
-    let html = ``;
-    if(promo.image) html += `<img src="${promo.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; border:3px solid ${promo.color};">`;
-    if(promo.text &&!promo.image) html += `<div style="background:${promo.color}; color:white; padding:10px; text-align:center; border-radius:8px;"><p>${promo.text}</p></div>`;
-    document.getElementById('promoPreview').innerHTML = html;
-}
-
-async function loadRiderCash(){
-    try{
-        const res = await fetch(`${API}/api/admin/rider-cash`);
-        const riders = await res.json();
-        if(riders.length === 0){ document.getElementById('riderCashList').innerHTML = 'Abhi koi rider nahi hai'; return; }
-        document.getElementById('riderCashList').innerHTML = riders.map(r => {
-            let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED</div>` : '';
-            return `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile} <br><small>Cash: ₹${r.pending_cash}</small>${alert}</div><button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button></div>`}).join('');
-    }catch(err){ document.getElementById('riderCashList').innerHTML = 'Error'; }
-}
-async function markDeposited(mobile){ await fetch(`${API}/api/admin/rider-deposit`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile}) }); alert('Deposit Marked!'); loadRiderCash(); }
-
-async function assignRider(orderId, riderId){
-    if(!riderId) return;
-    const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) });
-    const data = await res.json();
-    alert(data.msg || 'Rider Assigned!'); loadData();
-}
-
-async function loadData(){
-    try{
-        await loadGraph(); await loadOwners(); await loadShopDropdown(); await loadRiderCash(); await loadPromo();
-
-        const ridersRes = await fetch(`${API}/api/admin/approved-riders`);
-        allRiders = await ridersRes.json();
-        document.getElementById('riderList').innerHTML = allRiders.length === 0? 'Koi approved rider nahi' : allRiders.map(r => `<div class="rider-item"><b>${r.name}</b> - ${r.mobile}</div>`).join('');
-
-        const pendingRiders = await fetch(`${API}/api/admin/pending-riders`).then(r=>r.json());
-        document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' : pendingRiders.map(r => `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile}</div><button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve</button></div>`).join('');
-
-        const orders = await fetch(`${API}/api/orders`).then(r=>r.json());
-        const today = new Date().toISOString().split('T')[0];
-        const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
-        const todayRev = todayOrders.reduce((a,b) => a + Number(b.item_total || 0), 0);
-        document.getElementById('totalOrders').innerText = orders.length;
-        document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
-        document.getElementById('todayRevenue').innerText = '₹' + todayRev;
-
-        let orderHtml = '';
-        for(let o of orders){
-            let assignDropdown = '';
-            if(o.status === 'Pending' &&!o.riderId){
-                assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`;
-            } else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
-            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div><div><a href="/invoice?id=${o.trackId}" target="_blank" class="btn-orange">📄 Invoice</a></div></div>`;
-        }
-        document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
-    }catch(err){ console.log(err); alert("Error: Server se data nahi aa raha") }
-}
-
-async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
-
-checkLogin();
+loadShopDropdown();
 </script>
 </body>
 </html>
