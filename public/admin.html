@@ -17,7 +17,7 @@
 .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
 .stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
 .stat-card h2{margin:0; font-size:30px;}
-.order,.menu-item,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center;}
+.order,.menu-item,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
 .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}
 .report-result p{margin:5px 0; font-size:16px;}
 .logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
@@ -26,6 +26,7 @@
 .menu-item img{width:80px; height:80px; object-fit:cover; border-radius:5px; float:left; margin-right:10px;}
 canvas{background:white; padding:10px; border-radius:8px;}
 .alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
+.badge{padding:3px 8px; border-radius:4px; color:white; font-size:12px;}
 </style>
 </head>
 <body>
@@ -33,7 +34,6 @@ canvas{background:white; padding:10px; border-radius:8px;}
 <div class="top-bar">
     <h1>🍴 Eat4Bite™ Admin Panel</h1>
     <div class="top-buttons">
-        <a href="/admin-owners" class="btn-owner">🏪 Approve Restaurants</a>
         <button class="logout-btn" onclick="logout()">🚪 Logout</button>
     </div>
 </div>
@@ -49,7 +49,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <canvas id="salesChart" height="100"></canvas>
 </div>
 
-<!-- 1. NEW: ALL RESTAURANT SALES REPORT -->
+<!-- 1. ALL RESTAURANT SALES REPORT -->
 <div class="card">
     <h2>📊 All Restaurants Sales Report</h2>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -63,7 +63,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <div id="reportResult" class="report-result" style="margin-top:15px;"></div>
 </div>
 
-<!-- 2. NEW: BROADCAST TO ALL RESTAURANTS -->
+<!-- 2. BROADCAST TO ALL RESTAURANTS -->
 <div class="card">
     <h2>📢 Broadcast to All Restaurants</h2>
     <p style="color:#666; font-size:13px;">Ye message sabhi restaurant owners ko WhatsApp pe chala jayega</p>
@@ -71,14 +71,15 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
 </div>
 
-<!-- 3. NEW: RIDER CASH MANAGEMENT -->
+<!-- 3. RIDER CASH MANAGEMENT -->
 <div class="card">
     <h2>🏍️ Rider Cash Management</h2>
     <div id="riderCashList">Loading...</div>
 </div>
 
+<!-- 4. UPDATED: RESTAURANT APPROVALS -->
 <div class="card">
-    <h2>🏪 Pending Restaurant Approvals</h2>
+    <h2>🏪 Restaurant Approvals - ₹200 Trial / ₹2000 Annual</h2>
     <div id="pendingOwnersList">Loading...</div>
 </div>
 
@@ -127,35 +128,73 @@ async function loadGraph(){
     }catch(e){ console.log("Graph error", e) }
 }
 
+// UPDATED: Load All Restaurants with Status + Payment
 async function loadOwners(){
-    const res = await fetch(`${API}/api/admin/pending-restaurants`);
+    const res = await fetch(`${API}/api/restaurant/requests`);
     const owners = await res.json();
-    document.getElementById('pendingOwnersList').innerHTML = owners.length === 0? 'Koi pending restaurant nahi hai' :
-    owners.map(o => `
+
+    if(owners.length === 0){
+        document.getElementById('pendingOwnersList').innerHTML = 'Koi restaurant nahi hai';
+        return;
+    }
+
+    document.getElementById('pendingOwnersList').innerHTML = owners.map(o => {
+        let statusBadge = o.status === 'Approved'
+           ? `<span class="badge" style="background:#28a745;">Approved</span>`
+            : `<span class="badge" style="background:orange;">Pending</span>`;
+
+        let paymentInfo = `₹${o.registration_fee_paid || 200} ${o.plan || 'Trial'} Plan`;
+        let trialDate = o.trial_end_date? new Date(o.trial_end_date).toLocaleDateString('en-IN') : '-';
+        let planExpiry = o.plan_expiry? new Date(o.plan_expiry).toLocaleDateString('en-IN') : '-';
+
+        let actionBtn = '';
+        if(o.status === 'Pending'){
+            actionBtn = `<button class="btn-green" onclick="approveOwner('${o._id}')">✅ Approve ₹200</button>`;
+        } else {
+            actionBtn = `<button class="btn-blue" onclick="upgradeAnnual('${o._id}')">💰 Upgrade ₹2000</button>`;
+        }
+
+        return `
         <div class="owner-item">
-            <div><b>${o.restaurantName}</b> - ${o.ownerName} <br><small>ID: ${o.restaurantId} | Mobile: ${o.mobile}</small></div>
-            <button class="btn-green" onclick="approveOwner('${o._id}')">✅ Approve</button>
+            <div style="flex:1;">
+                <b>${o.restaurantName}</b> - ${o.ownerName} ${statusBadge} <br>
+                <small>ID: ${o.restaurantId} | Mobile: ${o.mobile} | Email: ${o.email}</small><br>
+                <small>Payment: ${paymentInfo} | Trial End: ${trialDate} | Annual Expiry: ${planExpiry}</small>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                ${actionBtn}
+                ${o.image_base64? `<img src="${o.image_base64}" style="width:80px; height:80px; object-fit:cover; border-radius:5px;">` : ''}
+            </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 async function approveOwner(id){
-    await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'});
-    alert('Restaurant Approved!');
+    await fetch(`${API}/api/restaurant/approve/${id}`, {method:'PUT'});
+    alert('Restaurant Approved! 30 din trial start');
     loadData();
 }
 
-// NEW: Load shop dropdown for report
+// NEW: Annual Upgrade QR
+async function upgradeAnnual(id){
+    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=2000&cu=INR`;
+    let w = window.open('', 'QR', 'width=300,height=350');
+    w.document.write(`<h3 style="text-align:center;">Pay ₹2000 Annual</h3><img src="${qr}" style="width:200px;"><p style="text-align:center;">UPI: tanbalkhi2014-3@okhdfcbank</p><p style="text-align:center; font-size:12px;">Payment ke baad status manual update karein</p>`);
+}
+
+// Load shop dropdown for report
 async function loadShopDropdown(){
     const res = await fetch(`${API}/api/restaurants`);
     const shops = await res.json();
     const select = document.getElementById('reportShop');
+    select.innerHTML = `<option value="all">All Restaurants</option>`;
     shops.forEach(s => {
         select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`;
     });
 }
 
-// NEW: Sales Report Function
+// Sales Report Function
 async function getReport(){
     let shop = document.getElementById('reportShop').value;
     let s = document.getElementById('startDate').value;
@@ -177,7 +216,7 @@ async function getReport(){
     document.getElementById('reportResult').innerHTML = html;
 }
 
-// NEW: Broadcast Function
+// Broadcast Function
 async function sendBroadcast(type){
     const message = document.getElementById('broadcastMsg').value;
     if(!message) return alert('Message likho');
@@ -190,7 +229,7 @@ async function sendBroadcast(type){
     alert(`${data.count} Restaurant owners ko message bhej diya`);
 }
 
-// NEW: Rider Cash Management
+// Rider Cash Management
 async function loadRiderCash(){
     const res = await fetch(`${API}/api/admin/rider-cash`);
     const riders = await res.json();
@@ -225,8 +264,8 @@ async function markDeposited(mobile){
 async function loadData(){
     await loadGraph();
     await loadOwners();
-    await loadShopDropdown(); // NEW
-    await loadRiderCash(); // NEW
+    await loadShopDropdown();
+    await loadRiderCash();
 
     const pendingRiders = await fetch(`${API}/api/admin/pending-riders`).then(r=>r.json());
     document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' :
