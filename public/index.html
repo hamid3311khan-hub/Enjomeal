@@ -26,13 +26,16 @@ body.dark #restaurantList a{color:#eee; border-color:#333;}
 #sysMenu a:hover{background:#f5f5f5;}
 body.dark #sysMenu{background:#2a2a2a;}
 body.dark #sysMenu a{color:#eee; border-color:#444;}
-.grid{display:grid; grid-template-columns:1fr; gap:15px; padding:10px;}
-.card {background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;margin-bottom:15px;display:flex;gap:12px;padding:12px;align-items:center;}
-.card img{width:100px;height:100px;object-fit:cover;border-radius:10px;flex-shrink:0;}
-.card-content{flex:1;}
+
+/* FINAL GRID - 3 CARD PER ROW */
+.grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:15px; padding:10px;}
+.card {background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;display:block;}
+.card img{width:100%;height:180px;object-fit:cover;display:block;}
+.card-body{padding:12px 15px;}
 .card h3{font-size:16px; margin:0 0 4px 0;font-weight:600;}
 .card .price{font-weight:bold; font-size:15px; color:#ff6600;}
-.add-btn{background:#fff;color:#ff6600;border:1px solid #ff6600;padding:6px 14px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;white-space: nowrap;}
+.card-footer{display:flex; justify-content:space-between; align-items:center; margin-top:8px;}
+.add-btn{background:#fff;color:#ff6600;border:1px solid #ff6600;padding:6px 14px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;}
 .add-btn:hover{background:#fff3e0;}
 body.dark .card{background:#1e1e1e;}
 body.dark .add-btn{background:#2a2a2a; color:#ff6600;}
@@ -87,24 +90,18 @@ if(localStorage.getItem('dark')=='true') document.body.classList.add('dark');
 function toggleSysMenu(){const menu = document.getElementById('sysMenu');menu.style.display = menu.style.display === 'block' ? 'none' : 'block';}
 document.addEventListener('click', function(e){if(!e.target.closest('#sysMenu') && !e.target.closest('button[onclick="toggleSysMenu()"]')){document.getElementById('sysMenu').style.display = 'none';}if(!e.target.closest('.search-bar')){document.getElementById('restaurantList').style.display = 'none';}})
 
-// BANNER LOAD
 async function loadBanner(){
     try{
         const res = await fetch(`${API}/promo`);
         const banner = await res.json();
         const div = document.getElementById('promoBanner');
-        if(banner.image){ 
-            div.innerHTML = `<img src="${banner.image}">`; 
-            div.style.display = 'block'; 
-        }
+        if(banner.image){ div.innerHTML = `<img src="${banner.image}">`; div.style.display = 'block'; }
     }catch(e){}
 }
 loadBanner();
 
-// RESTAURANT LIST LOAD
 fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{allRestaurants = data;})
 
-// SEARCH FUNCTION
 function searchRestaurant(){
     const query = document.getElementById('search').value.toLowerCase();
     const listDiv = document.getElementById('restaurantList');
@@ -119,12 +116,10 @@ function searchRestaurant(){
     }
 }
 
-// MENU LOAD FUNCTION
 async function loadMenuByShop(id){
     document.getElementById('restaurantList').style.display = 'none';
     const selected = allRestaurants.find(r=>r._id==id);
     if(selected) document.getElementById('search').value = selected.name;
-    
     document.getElementById('menu').innerHTML = '<p style="text-align:center">Loading...</p>';
     let url = `${API}/menu?shop=${id}`;
     const res = await fetch(url);
@@ -132,7 +127,6 @@ async function loadMenuByShop(id){
     displayItems(items);
 }
 
-// PAGE LOAD PE CHECK
 if(shopId){
     fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{
         allRestaurants = data;
@@ -147,15 +141,16 @@ function displayItems(items){
             const price = item.offer? Math.round(item.price*(1-item.offer/100)) : item.price;
             return `
             <div class="card">
-                <img src="${item.image}" onerror="this.src='https://via.placeholder.com/100x100/ff6600/ffffff?text=Food'">
-                <div class="card-content">
+                <img src="${item.image}" onerror="this.src='https://via.placeholder.com/300x180/ff6600/ffffff?text=Food'">
+                <div class="card-body">
                     <h3>${item.name} ${item.offer?`<span style="color:red;font-size:11px;">-${item.offer}%</span>`:''}</h3>
-                    <span class="price">₹${price}</span>
+                    <div class="card-footer">
+                        <span class="price">₹${price}</span>
+                        <button class="add-btn" onclick='addToCart(${JSON.stringify(item)})'>ADD +</button>
+                    </div>
                 </div>
-                <button class="add-btn" onclick='addToCart(${JSON.stringify(item)})'>ADD +</button>
             </div>`
         }).join('');
-        document.getElementById('menu').scrollIntoView({behavior: 'smooth'});
     }
 }
 
