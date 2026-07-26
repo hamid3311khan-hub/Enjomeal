@@ -10,8 +10,11 @@
 .card{max-width:600px; margin:50px auto; border-radius:15px}
 .logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
 .info-box{background:#D1E7DD; padding:15px; border-radius:10px; border:1px solid #0F5132}
- #photoPreview{max-width:100%; border-radius:10px; margin-top:10px; display:none}
- #qrBox{background:#fff3cd; border:2px dashed #ffc107; border-radius:10px}
+#photoPreview{max-width:100%; border-radius:10px; margin-top:10px; display:none}
+#qrBox{background:#fff3cd; border:2px dashed #ffc107; border-radius:10px}
+.plan-card{border:2px solid #ddd; border-radius:10px; padding:15px; cursor:pointer; transition:0.3s; margin-bottom:10px}
+.plan-card.active{border-color:#ff6600; background:#fff5f0;}
+.plan-card:hover{border-color:#ff6600;}
 </style>
 </head>
 <body>
@@ -19,9 +22,23 @@
     <div class="card shadow p-4">
         <div class="logo">🍴 Eat4Bite™ Partner</div>
         <h4 class="text-center mb-3">Restaurant Registration</h4>
-        <p class="text-center text-success fw-bold">30 Days Trial - ₹200 Registration Fee</p>
+        <p class="text-center text-success fw-bold" id="planText">30 Days Trial - ₹200 Registration Fee</p>
 
         <form id="registerForm">
+            <!-- PLAN SELECTION NEW -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Choose Your Plan</label>
+                <div class="plan-card active" onclick="selectPlan('Trial', 200)">
+                    <input type="radio" name="plan" value="Trial" checked>
+                    <b>30 Days Trial</b> - ₹200 One Time
+                </div>
+                <div class="plan-card" onclick="selectPlan('Annual', 2000)">
+                    <input type="radio" name="plan" value="Annual">
+                    <b>Annual Support Plan</b> - ₹2000 / Year
+                    <small class="text-muted d-block">Website + Menu + 24x7 Support</small>
+                </div>
+            </div>
+
             <div class="mb-3"><label class="form-label">Owner Name</label><input type="text" id="name" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Email</label><input type="email" id="email" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Password</label><input type="password" id="password" class="form-control" required></div>
@@ -34,11 +51,11 @@
                 <input type="file" id="restaurant_photo" class="form-control" accept="image/*" required>
                 <img id="photoPreview" src=""/>
             </div>
-            <button type="submit" class="btn btn-warning w-100 fw-bold">Register & Pay ₹200</button>
+            <button type="submit" id="registerBtn" class="btn btn-warning w-100 fw-bold">Register & Pay ₹200</button>
         </form>
 
         <div id="qrBox" class="mt-3 p-3 text-center d-none">
-            <h5 class="text-danger">Step 2: Pay ₹200 to Activate</h5>
+            <h5 class="text-danger">Step 2: Pay <span id="payAmount">₹200</span> to Activate</h5>
             <img id="qrImg" width="200" class="my-2">
             <p><b>UPI ID:</b> <span id="upiText" class="text-primary"></span></p>
             <p class="small">Payment karke Admin se approval lein</p>
@@ -50,8 +67,20 @@
 </div>
 
 <script>
-const API = ""; // agar alag domain hai to yaha URL daal dena
+const API = "";
 let photoBase64 = "";
+let selectedAmount = 200;
+let selectedPlan = 'Trial';
+
+function selectPlan(plan, amount){
+    selectedPlan = plan;
+    selectedAmount = amount;
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.querySelector(`input[value=${plan}]`).checked = true;
+    document.getElementById('registerBtn').innerText = `Register & Pay ₹${amount}`;
+    document.getElementById('planText').innerText = plan === 'Trial'? '30 Days Trial - ₹200 Registration Fee' : 'Annual Plan - ₹2000 / Year';
+}
 
 document.getElementById('restaurant_photo').addEventListener('change', function(e){
     const file = e.target.files[0];
@@ -77,7 +106,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
         restaurantName: document.getElementById('restaurantName').value,
         address: document.getElementById('address').value,
         restaurantId: document.getElementById('restaurantName').value.toLowerCase().replace(/ /g,'-') + Date.now(),
-        image_base64: photoBase64
+        image_base64: photoBase64,
+        plan: selectedPlan // ✅ NEW
     };
 
     try {
@@ -88,13 +118,14 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
             document.getElementById('registerForm').style.display = 'none';
             document.getElementById('qrBox').classList.remove('d-none');
             document.getElementById('upiText').innerText = result.upi_id;
-            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${result.upi_id}&pn=Eat4Bite&am=200&cu=INR`;
-            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Registered! Now pay ₹200</div>`;
+            document.getElementById('payAmount').innerText = '₹' + selectedAmount; // ✅ DYNAMIC
+            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${result.upi_id}&pn=Eat4Bite&am=${selectedAmount}&cu=INR&tn=Reg${payload.restaurantName}`; // ✅ AMOUNT DYNAMIC
+            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Registered! Now pay ₹${selectedAmount}</div>`;
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.msg}</div>`;
         }
     } catch(err) { document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error</div>`; }
-    btn.disabled = false; btn.innerText = "Register & Pay ₹200";
+    btn.disabled = false; btn.innerText = `Register & Pay ₹${selectedAmount}`;
 });
 </script>
 </body>
