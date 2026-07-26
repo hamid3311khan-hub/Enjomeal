@@ -72,13 +72,25 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
 </div>
 
-<!-- 3. RIDER CASH MANAGEMENT - FIXED -->
+<!-- 3. PROMOTION BANNER - NAYA ADD KIYA -->
+<div class="card">
+    <h2>📢 Promotion Banner</h2>
+    <p style="color:#666; font-size:13px;">Ye banner customer wali site ke upar dikhega</p>
+    <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF on First Order - CODE: FIRST50">
+    <input type="text" id="promoImage" placeholder="Image URL - agar image lagani hai to">
+    <input type="text" id="promoColor" placeholder="Background Color - Ex: #ff6600" value="#ff6600">
+    <button class="btn-orange" onclick="updatePromo()">Update Banner</button>
+    <button class="btn-red" onclick="removePromo()">Remove Banner</button>
+    <div id="promoPreview" style="margin-top:10px;"></div>
+</div>
+
+<!-- 4. RIDER CASH MANAGEMENT -->
 <div class="card">
     <h2>🏍️ Rider Cash Management</h2>
     <div id="riderCashList">Loading...</div>
 </div>
 
-<!-- 4. UPDATED: RESTAURANT APPROVALS -->
+<!-- 5. RESTAURANT APPROVALS -->
 <div class="card">
     <h2>🏪 Restaurant Approvals - ₹200 Trial / ₹2000 Annual</h2>
     <div id="pendingOwnersList">Loading...</div>
@@ -89,7 +101,6 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <div id="pendingRidersList">Loading...</div>
 </div>
 
-<!-- 5. ORDERS WITH ASSIGN RIDER - FIXED -->
 <div class="card">
     <h2>📦 Orders</h2>
     <div id="ordersList">Loading...</div>
@@ -98,7 +109,7 @@ canvas{background:white; padding:10px; border-radius:8px;}
 <script>
 const API = '';
 let salesChart = null;
-let allRiders = []; // riders ko global save karenge
+let allRiders = [];
 
 const ADMIN_PASSWORD = 'admin123';
 function checkLogin(){
@@ -205,7 +216,47 @@ async function sendBroadcast(type){
     alert(`${data.count} Restaurant owners ko message bhej diya`);
 }
 
-// FIX 1: Rider Cash Management - Empty check add kiya
+// PROMO FUNCTIONS - NAYE
+async function loadPromo(){
+    try{
+        const res = await fetch(`${API}/api/promo`);
+        const promo = await res.json();
+        if(promo){
+            document.getElementById('promoText').value = promo.text || '';
+            document.getElementById('promoImage').value = promo.image || '';
+            document.getElementById('promoColor').value = promo.color || '#ff6600';
+            showPromoPreview(promo);
+        }
+    }catch(e){}
+}
+
+async function updatePromo(){
+    const promo = {
+        text: document.getElementById('promoText').value,
+        image: document.getElementById('promoImage').value,
+        color: document.getElementById('promoColor').value
+    }
+    await fetch(`${API}/api/admin/promo`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(promo)});
+    alert('Banner Updated!');
+    showPromoPreview(promo);
+}
+
+async function removePromo(){
+    await fetch(`${API}/api/admin/promo`, {method:'DELETE'});
+    alert('Banner Removed!');
+    document.getElementById('promoPreview').innerHTML = '';
+    document.getElementById('promoText').value = '';
+    document.getElementById('promoImage').value = '';
+}
+
+function showPromoPreview(promo){
+    let html = `<div style="background:${promo.color}; color:white; padding:10px; text-align:center; border-radius:8px;">`;
+    if(promo.image) html += `<img src="${promo.image}" style="width:100%; max-height:150px; object-fit:cover; border-radius:5px;">`;
+    if(promo.text) html += `<p style="margin:5px 0; font-weight:bold;">${promo.text}</p>`;
+    html += `</div>`;
+    document.getElementById('promoPreview').innerHTML = html;
+}
+
 async function loadRiderCash(){
     try{
         const res = await fetch(`${API}/api/admin/rider-cash`);
@@ -243,7 +294,6 @@ async function markDeposited(mobile){
     loadRiderCash();
 }
 
-// FIX 2: Assign Rider Function Naya add kiya
 async function assignRider(orderId, riderId){
     if(!riderId) return;
     await fetch(`${API}/api/admin/assign-rider`, {
@@ -260,8 +310,8 @@ async function loadData(){
     await loadOwners();
     await loadShopDropdown();
     await loadRiderCash();
+    await loadPromo(); // PROMO LOAD
 
-    // Pehle saare approved riders load kar lo
     const ridersRes = await fetch(`${API}/api/admin/approved-riders`);
     allRiders = await ridersRes.json();
 
@@ -281,7 +331,6 @@ async function loadData(){
     document.getElementById('totalOrders').innerText = orders.length;
     document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
     document.getElementById('todayRevenue').innerText = '₹' + todayRev;
-
     let orderHtml = '';
     for(let o of orders){
         let assignDropdown = '';
