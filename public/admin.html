@@ -221,14 +221,13 @@ async function sendBroadcast(type){
     alert(`${data.count} Restaurant owners ko message bhej diya`);
 }
 
-// PROMO FUNCTIONS - NAYE
+// PROMO FUNCTIONS - FIXED WITH FILE UPLOAD
 async function loadPromo(){
     try{
         const res = await fetch(`${API}/api/promo`);
         const promo = await res.json();
         if(promo){
             document.getElementById('promoText').value = promo.text || '';
-            document.getElementById('promoImage').value = promo.image || '';
             document.getElementById('promoColor').value = promo.color || '#ff6600';
             showPromoPreview(promo);
         }
@@ -236,14 +235,27 @@ async function loadPromo(){
 }
 
 async function updatePromo(){
+    const fileInput = document.getElementById('promoFile');
+    let imageBase64 = '';
+
+    // Agar file select ki hai to usko base64 me convert karo
+    if(fileInput.files[0]){
+        imageBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(fileInput.files[0]);
+        });
+    }
+
     const promo = {
         text: document.getElementById('promoText').value,
-        image: document.getElementById('promoImage').value,
+        image: imageBase64, // yaha base64 chala jayega
         color: document.getElementById('promoColor').value
     }
     await fetch(`${API}/api/admin/promo`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(promo)});
     alert('Banner Updated!');
     showPromoPreview(promo);
+    fileInput.value = ''; // file clear kar do
 }
 
 async function removePromo(){
@@ -251,7 +263,8 @@ async function removePromo(){
     alert('Banner Removed!');
     document.getElementById('promoPreview').innerHTML = '';
     document.getElementById('promoText').value = '';
-    document.getElementById('promoImage').value = '';
+    document.getElementById('promoColor').value = '#ff6600';
+    document.getElementById('promoFile').value = '';
 }
 
 function showPromoPreview(promo){
@@ -330,47 +343,4 @@ async function loadData(){
     `).join('');
 
     const orders = await fetch(`${API}/api/orders`).then(r=>r.json());
-    const today = new Date().toISOString().split('T')[0];
-    const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
-    const todayRev = todayOrders.reduce((a,b) => a + Number(b.item_total), 0);
-    document.getElementById('totalOrders').innerText = orders.length;
-    document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
-    document.getElementById('todayRevenue').innerText = '₹' + todayRev;
-    let orderHtml = '';
-    for(let o of orders){
-        let assignDropdown = '';
-        if(o.status === 'Pending' &&!o.riderId){
-            assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)" style="width:150px; margin-top:5px;">
-                <option value="">Assign Rider</option>
-                ${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}
-            </select>`;
-        } else if(o.riderId){
-            assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`;
-        }
-
-        orderHtml += `
-            <div class="order">
-                <div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br>
-                <small>${o.phone} | ${o.address} | Status: ${o.status}</small><br>
-                ${assignDropdown}
-                </div>
-                <div>
-                    <a href="/invoice?id=${o.trackId}" target="_blank" class="btn-orange">📄 Invoice</a>
-                    <a href="/track?id=${o.trackId}" target="_blank" class="btn-blue">Track</a>
-                </div>
-            </div>
-        `;
-    }
-    document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
-}
-
-async function approveRider(id){
-    await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'});
-    alert('Rider Approved!');
-    loadData();
-}
-
-loadData();
-</script>
-</body>
-</html>
+    const today = new Date().toISOString().split('
