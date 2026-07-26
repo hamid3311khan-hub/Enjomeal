@@ -7,20 +7,20 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     body{font-family:Arial; background:#f4f4f4; padding:20px;}
-.top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
-.card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
+   .top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+   .card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
     input, select, button, textarea{padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc; width:calc(100% - 22px);}
     button{background:#ff6600; color:white; border:none; cursor:pointer;} button:hover{opacity:0.9;}
-.grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
-.stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
-.stat-card h2{margin:0; font-size:30px;}
-.order,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
-.btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}.btn-warning{background:#ffc107; color:#000;}
-.logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
+   .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
+   .stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
+   .stat-card h2{margin:0; font-size:30px;}
+   .order,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
+   .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}.btn-warning{background:#ffc107; color:#000;}
+   .logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
     small{color:#666; font-size:12px;}
-canvas{background:white; padding:10px; border-radius:8px;}
-.alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
-.badge{padding:3px 8px; border-radius:4px; color:white; font-size:12px;}
+    canvas{background:white; padding:10px; border-radius:8px;}
+   .alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
+   .badge{padding:3px 8px; border-radius:4px; color:white; font-size:12px;}
 </style>
 </head>
 <body>
@@ -104,14 +104,31 @@ let salesChart = null;
 let allRiders = [];
 
 const ADMIN_PASSWORD = 'admin123';
+
+// FIX 1: LOGIN CHECK UPDATE
 function checkLogin(){
     if(sessionStorage.getItem('adminLoggedIn')!== 'true'){
         let pass = prompt("🔒 Admin Login\nPassword daalo:");
-        if(pass === ADMIN_PASSWORD){ sessionStorage.setItem('adminLoggedIn', 'true'); loadData(); }
-        else { alert("Galat Password!"); window.location = '/'; }
-    } else { loadData(); }
+        if(pass === ADMIN_PASSWORD){
+            sessionStorage.setItem('adminLoggedIn', 'true');
+            loadData();
+        }
+        else {
+            alert("Galat Password!");
+            window.location.href = '/'; // Home pe bhej dega
+        }
+    } else {
+        loadData();
+    }
 }
-function logout(){ sessionStorage.clear(); alert("Logout ho gaye"); window.location = '/'; }
+
+// FIX 2: LOGOUT UPDATE
+function logout(){
+    sessionStorage.clear();
+    sessionStorage.removeItem('adminLoggedIn');
+    alert("Logout ho gaye");
+    window.location.href = '/'; // Home pe bhej dega
+}
 
 async function loadGraph(){
     try{
@@ -126,7 +143,7 @@ async function loadGraph(){
             {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
             {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
         ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } });
-    }catch(e){}
+    }catch(e){ console.log("Graph Error:", e) }
 }
 
 async function loadOwners(){
@@ -136,7 +153,6 @@ async function loadOwners(){
 }
 async function approveOwner(id){ await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'}); alert('Restaurant Approved!'); loadData(); }
 
-// FIXED LINE
 async function loadShopDropdown(){
     const res = await fetch(`${API}/api/restaurants`);
     const shops = await res.json();
