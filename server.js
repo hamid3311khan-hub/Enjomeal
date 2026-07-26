@@ -8,7 +8,7 @@ const { Server } = require("socket.io");
 const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const fs = require('fs');
-const upload = multer();
+const cloudinary = require('cloudinary').v2; // ✅ NEW
 const bcrypt = require('bcryptjs');
 const axios = require('axios');
 
@@ -16,6 +16,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: {origin: "*"} });
 const PORT = process.env.PORT || 10000;
+
+// ✅ CLOUDINARY CONFIG
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Memory storage for cloudinary
+const upload = multer({ storage: multer.memoryStorage() }); // ✅ CHANGED
 
 if (!fs.existsSync('./uploads')){ fs.mkdirSync('./uploads'); }
 
@@ -26,13 +36,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.3.9'))
+.then(()=>console.log('✅ MongoDB Connected v3.4.0 Cloudinary'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
-const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"},registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},image_base64: {type: String, default: null},upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},trial_end_date: {type: Date}, payout_due: {type: Number, default: 0},paymentStatus: {type: String, default: "Paid"}, lastPaymentDate: {type: Date, default: Date.now},nextDueDate: {type: Date}, createdAt: {type: Date, default: Date.now}});
+
+const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"},registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},image: {type: String, default: null}, // ✅ base64 hatake image kiya
+upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},trial_end_date: {type: Date}, payout_due: {type: Number, default: 0},paymentStatus: {type: String, default: "Paid"}, lastPaymentDate: {type: Date, default: Date.now},nextDueDate: {type: Date}, createdAt: {type: Date, default: Date.now}});
+
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000},weekly_orders: {type: Number, default: 0}, weekly_bonus: {type: Number, default: 0}});
+
 const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},total:Number, cash_to_restaurant: {type: Number, default: 0},paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number, pointsEarned:Number,coupon:String, discount:Number, shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, restaurantId: {type: String, default: 'default-shop'},cash_deposited: {type: Boolean, default: false}, cash_deposit_proof: {type: String, default: null},is_peak: {type: Boolean, default: false}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
@@ -58,7 +72,33 @@ function calculateBill(item_total) {
   return {item_total, commission_5, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total, is_peak};
 }
 
-// ===== API ROUTES =====
+// ===== NEW: MENU API WITH CLOUDINARY =====
+app.post('/api/menu', upload.single('image'), async (req,res)=>{
+  try{
+    let imageUrl = req.body.image; // edit ke time purana url
+
+    if(req.file){ // naya image aaya hai
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: "eat4bite/menu", resource_type: "image" },
+          (error, result) => {
+            if (error) reject(error); else resolve(result);
+          }
+        ).end(req.file.buffer);
+      });
+      imageUrl = uploadResult.secure_url;
+    }
+
+    const data = {...req.body, image: imageUrl, price: Number(req.body.price), veg: req.body.veg === 'true'};
+    await new MenuItem(data).save();
+    res.json({success:true, msg:"Item Added!"})
+  }catch(e){
+    console.log(e);
+    res.json({success:false, msg:e.message})
+  }
+})
+
+// ===== ALL YOUR OLD APIs =====
 app.put('/api/order/assign', async (req,res)=>{
   const rider = await Rider.findOne({mobile: req.body.riderId});
   if(!rider){ return res.json({success:false, msg:"Rider not found"}); }
@@ -73,7 +113,7 @@ app.post('/api/order/delivered', async (req,res)=>{const {orderId, cashCollected
 
 app.post('/api/coupon/validate', async (req,res)=>{const {code} = req.body;const offer = await Offer.findOne({code: code.toUpperCase()});if(!offer) return res.json({success:false, msg:"Invalid Coupon"});res.json({success:true, discount: offer.discount, type: offer.type});});
 
-app.post('/api/restaurant/register', async (req,res)=>{try{const {restaurantId, restaurantName, ownerName, mobile, email, address, password, image_base64, upi_id} = req.body;const exists = await RestaurantOwner.findOne({$or: [{mobile}, {email}, {restaurantId}]});if(exists) return res.json({success:false, msg: "Mobile/Email/ID already exists"});const hashedPassword = await bcrypt.hash(password, 10);let trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);await new RestaurantOwner({...req.body, password: hashedPassword, image_base64, upi_id, trial_end_date: trialEnd}).save();res.json({success:true, msg: "Registered. Approval pending."})}catch(e){ res.json({success:false, msg:e.message}) }});
+app.post('/api/restaurant/register', async (req,res)=>{try{const {restaurantId, restaurantName, ownerName, mobile, email, address, password, upi_id} = req.body;const exists = await RestaurantOwner.findOne({$or: [{mobile}, {email}, {restaurantId}]});if(exists) return res.json({success:false, msg: "Mobile/Email/ID already exists"});const hashedPassword = await bcrypt.hash(password, 10);let trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);await new RestaurantOwner({...req.body, password: hashedPassword, upi_id, trial_end_date: trialEnd}).save();res.json({success:true, msg: "Registered. Approval pending."})}catch(e){ res.json({success:false, msg:e.message}) }});
 
 app.post('/api/restaurant/login', async (req,res)=>{ 
   const {mobile, password} = req.body;
@@ -94,15 +134,12 @@ app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.fin
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) });
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status:"Online"}); res.json({success:true, msg:"Rider Approved"}) });
 
-// ===== NEW: 1. ADMIN SALES REPORT =====
 app.get('/api/report', async (req,res)=>{
   const {start, end, shop} = req.query;
   let filter = {createdAt: {$gte: new Date(start), $lte: new Date(end+'T23:59:59')}};
   if(shop !== 'all') filter.restaurantId = shop;
-
   const orders = await Order.find(filter);
   const totalRevenue = orders.reduce((a,b)=>a+Number(b.item_total),0);
-
   if(shop === 'all'){
     const shops = await RestaurantOwner.find({status:'Approved'});
     const shopData = [];
@@ -115,7 +152,6 @@ app.get('/api/report', async (req,res)=>{
   res.json({totalOrders: orders.length, totalRevenue});
 })
 
-// ===== NEW: 2. ADMIN BROADCAST =====
 app.post('/api/broadcast', async (req,res)=>{
   const {message, type} = req.body;
   let mobiles = [];
@@ -127,7 +163,6 @@ app.post('/api/broadcast', async (req,res)=>{
   res.json({count: mobiles.length, msg:"Broadcast Sent"});
 })
 
-// ===== NEW: 3. ADMIN RIDER CASH LIST =====
 app.get('/api/admin/rider-cash', async (req,res)=>{
   const riders = await Rider.find({status: {$in: ["Online", "Approved"]}});
   const data = [];
@@ -140,14 +175,12 @@ app.get('/api/admin/rider-cash', async (req,res)=>{
   res.json(data);
 })
 
-// ===== NEW: 4. ADMIN MARK DEPOSIT =====
 app.post('/api/admin/rider-deposit', async (req,res)=>{
   const {mobile} = req.body;
   await Rider.updateOne({mobile}, {$set: {cash_balance: 0}});
   res.json({success: true, msg:"Deposit Marked"});
 })
 
-// ===== NEW: 5. RESTAURANT CONFIRM DEPOSIT =====
 app.post('/api/restaurant/cash-confirm', async (req,res)=>{
   const {riderId, depositedAmount} = req.body;
   await Rider.updateOne({mobile: riderId}, {$set: {cash_balance: 0}});
@@ -155,7 +188,7 @@ app.post('/api/restaurant/cash-confirm', async (req,res)=>{
 })
 
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
-app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({id: s.restaurantId, name: s.restaurantName, address: s.address, image: s.image_base64, upi_id: s.upi_id}))) });
+app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({id: s.restaurantId, name: s.restaurantName, address: s.address, image: s.image, upi_id: s.upi_id}))) });
 app.get('/api/orders', async (req,res)=>{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) });
 app.post('/api/coupon', async (req,res)=>{ await new Offer(req.body).save(); res.json({success:true}) });
 
@@ -183,4 +216,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.3.9 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.4.0 Cloudinary on ${PORT}`));
