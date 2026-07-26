@@ -22,15 +22,18 @@ body.dark #restaurantList a{color:#eee; border-color:#333;}
 
 button{background:#ff6600;color:white;border:none;padding:10px 15px;border-radius:5px;cursor:pointer}
 
-#sysMenu{display:none; position:absolute; right:0; top:45px; background:white; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); min-width:220px; z-index:999; overflow:hidden;}
+/* FIX 1: 3 DOT MENU POSITION + Z-INDEX */
+#sysMenu{display:none; position:absolute; right:10px; top:50px; background:white; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); min-width:220px; z-index:9999; overflow:hidden;}
 #sysMenu a{display:block; padding:12px 15px; color:#333; text-decoration:none; border-bottom:1px solid #eee;}
+#sysMenu a:hover{background:#f5f5f5;}
 body.dark #sysMenu{background:#2a2a2a;}
+body.dark #sysMenu a{color:#eee; border-color:#444;}
 
 .grid{display:grid; grid-template-columns:1fr; gap:15px; padding:10px;}
 .card{background:white;border-radius:12px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden;position:relative;}
 .card img{width:100%;height:180px;object-fit:cover;display:block;}
 .card h3{padding:12px 15px 5px 15px; font-size:18px; margin:0;}
-.restaurant-name{padding:0 15px; font-size:12px; color:#ff6600; font-weight:bold;} /* NAYA CSS */
+.restaurant-name{padding:0 15px; font-size:12px; color:#ff6600; font-weight:bold;}
 .card p{padding:5px 15px 5px 15px; color:#666; font-size:14px; margin:0; line-height:1.4;}
 .desc-short{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .read-more{color:#ff6600;font-size:12px;font-weight:bold;cursor:pointer;padding:0 15px 10px 15px;display:inline-block;}
@@ -45,8 +48,11 @@ body.dark .card{background:#1e1e1e;}
     <div style="display:flex; gap:15px; align-items:center; position:relative;">
         <button onclick="toggleDark()">🌙</button>
         <button onclick="showCart()" style="background:white;color:#ff6600;border-radius:20px;padding:8px 15px;font-weight:bold;">Cart (<span id="count">0</span>)</button>
-        <button onclick="toggleSysMenu()" style="font-size:24px;">⋮</button>
-        <div id="sysMenu"><a href="/restaurant-login">🏪 Restaurant Login</a><a href="/restaurant-register">+ Add New Restaurant</a><a href="/rider">🚴 Rider Login</a><a href="/admin" style="color:red;">👑 Admin Panel</a></div>
+        <!-- FIX 2: 3 DOT KO DIV ME WRAP KIYA -->
+        <div style="position:relative;">
+            <button onclick="toggleSysMenu()" style="font-size:24px; padding:0 10px;">⋮</button>
+            <div id="sysMenu"><a href="/restaurant-login">🏪 Restaurant Login</a><a href="/restaurant-register">+ Add New Restaurant</a><a href="/rider">🚴 Rider Login</a><a href="/admin" style="color:red;">👑 Admin Panel</a></div>
+        </div>
     </div>
 </nav>
 
@@ -67,9 +73,9 @@ body.dark .card{background:#1e1e1e;}
 const API = 'https://quickbite-ymqk.onrender.com/api';
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let allItems = []; 
-let allRestaurants = []; // NAYA
+let allRestaurants = [];
 const urlParams = new URLSearchParams(window.location.search);
-const shopId = urlParams.get('shop'); // CHANGE 1: default-shop hataya
+const shopId = urlParams.get('shop');
 
 if(localStorage.getItem('dark')=='true') document.body.classList.add('dark');
 function toggleDark(){document.body.classList.toggle('dark');localStorage.setItem('dark', document.body.classList.contains('dark'));}
@@ -80,18 +86,38 @@ document.addEventListener('click', function(e){if(!e.target.closest('#sysMenu') 
 async function loadBanner(){try{const res = await fetch(`${API}/promo`);const banner = await res.json();const div = document.getElementById('promoBanner');if(banner.image){div.innerHTML = `<img src="${banner.image}">`;div.style.display = 'block';}}catch(e){}}
 loadBanner();
 
-let searchTimeout;
-async function searchRestaurant(){clearTimeout(searchTimeout);const query = document.getElementById('search').value.toLowerCase();const listDiv = document.getElementById('restaurantList');if(query.length < 2){listDiv.style.display = 'none';return;}searchTimeout = setTimeout(async () => {try{const res = await fetch(`${API}/restaurants?search=${query}`);const restaurants = await res.json();if(restaurants.length > 0){listDiv.innerHTML = restaurants.map(r => `<a href="/?shop=${r._id || r.id}"><img src="${r.image || 'https://via.placeholder.com/40'}" onerror="this.src='https://via.placeholder.com/40/ff6600/fff'"><b>${r.name}</b> <br><small style="color:#888">${r.address || ''}</small></a>`).join('');listDiv.style.display = 'block';}}catch(e){console.log("Search Error", e)}}, 300);}
+// FIX 3: PAGE LOAD PE RESTAURANT LIST LE AAO - SEARCH KE LIYE
+fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{allRestaurants = data;})
 
-// CHANGE 2: NAYA LOAD FUNCTION
+// FIX 4: SEARCH LOCAL FILTER KIYA - API CALL NAHI
+let searchTimeout;
+function searchRestaurant(){
+    if(allRestaurants.length == 0) return;
+    clearTimeout(searchTimeout);
+    const query = document.getElementById('search').value.toLowerCase();
+    const listDiv = document.getElementById('restaurantList');
+    if(query.length < 1){ listDiv.style.display = 'none'; return; } // 2 se 1 kiya
+    
+    searchTimeout = setTimeout(() => {
+        const filtered = allRestaurants.filter(r => r.name.toLowerCase().includes(query));
+        if(filtered.length > 0){
+            listDiv.innerHTML = filtered.map(r => `<a href="/?shop=${r._id}"><img src="${r.image || 'https://via.placeholder.com/40'}" onerror="this.src='https://via.placeholder.com/40/ff6600/fff'"><b>${r.name}</b> <br><small style="color:#888">${r.address || ''}</small></a>`).join('');
+            listDiv.style.display = 'block';
+        } else {
+            listDiv.innerHTML = `<a style="color:#999">Koi restaurant nahi mila</a>`;
+            listDiv.style.display = 'block';
+        }
+    }, 200);
+}
+
 async function loadMenu(){
   try{
     const resRest = await fetch(`${API}/restaurants`);
     allRestaurants = await resRest.json();
 
     let url = `${API}/menu`;
-    if(shopId) url += `?shop=${shopId}`; // 1 restaurant
-    else url += `/all`; // sab restaurant
+    if(shopId) url += `?shop=${shopId}`;
+    else url += `/all`;
 
     const res = await fetch(url);
     allItems = await res.json();
@@ -109,14 +135,14 @@ function displayItems(items){
         if(cleanDesc == '') cleanDesc = 'Delicious ' + item.name;
         const needsToggle = cleanDesc.length > 80;
         const descId = `desc-${index}`;
-        const restName = allRestaurants.find(r=>r._id==item.shopId)?.name || ''; // NAYA
+        const restName = allRestaurants.find(r=>r._id==item.restaurantId)?.name || ''; // FIX 5: shopId se restaurantId kiya
         
         return `
         <div class="card">
             ${item.inStock===false ? '<div class="out-stock">Out of Stock</div>' : ''}
             <img src="${item.image || item.img}" onerror="this.src='https://via.placeholder.com/300x200/ff6600/ffffff?text=Eat4Bite'">
             <h3>${item.name} ${item.offer?`<span style="color:red;background:#ffe0e0;padding:2px 6px;border-radius:4px; font-size:12px;">-${item.offer}%</span>`:''}</h3>
-            ${!shopId && restName ? `<div class="restaurant-name">📍 ${restName}</div>` : ''} <!-- CHANGE 3: Restaurant naam -->
+            ${!shopId && restName ? `<div class="restaurant-name">📍 ${restName}</div>` : ''}
             <p id="${descId}" class="${needsToggle ? 'desc-short' : ''}">${cleanDesc}</p>
             ${needsToggle ? `<span class="read-more" onclick="toggleDesc('${descId}', this)">Read More</span>` : ''}
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px; padding:0 15px 15px 15px;">
