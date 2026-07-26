@@ -121,7 +121,7 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
 
-// ===== FIXED BANNER API WITH DB =====
+// ===== BANNER API WITH DB =====
 app.get('/api/promo', async (req,res)=>{ 
   const banner = await Banner.findOne().sort({updatedAt: -1});
   res.json(banner || { text: "", image: "", color: "#ff6600" })
@@ -187,61 +187,47 @@ app.post('/api/admin/rider-deposit', async (req,res)=>{
   res.json({success: true, msg:"Deposit Marked"});
 })
 
-// ===== NEW: RESTAURANT REGISTER + LOGIN =====
+// ===== RESTAURANT REGISTER + LOGIN =====
 app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,res)=>{
   try{
     const {restaurantName, ownerName, mobile, email, address, password} = req.body;
     const existing = await RestaurantOwner.findOne({$or: [{mobile}, {email}]});
     if(existing) return res.json({success:false, msg:"Mobile ya Email pehle se hai"});
-
     let paymentProofUrl = "";
     if(req.file){
       const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {folder: 'eat4bite_proofs'});
       paymentProofUrl = result.secure_url;
     }
-
     const restaurantId = "shop_" + Date.now();
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 7); 
-
     await new RestaurantOwner({
       restaurantId, restaurantName, ownerName, mobile, email, address, password,
       status: "Pending", payment_proof: paymentProofUrl, trial_end_date: trialEnd
     }).save();
-    
     res.json({success:true, msg:"Registration ho gayi. Approval ke baad login karna"})
-  }catch(e){ 
-    console.log(e)
-    res.json({success:false, msg:e.message}) 
-  }
+  }catch(e){ console.log(e); res.json({success:false, msg:e.message}) }
 });
 
 app.post('/api/restaurant-login', async (req,res)=>{
   try{
     const {mobile, password} = req.body;
     const restaurant = await RestaurantOwner.findOne({mobile});
-    
     if(!restaurant) return res.status(400).json({success:false, msg:"Restaurant nahi mila"});
     if(restaurant.password !== password) return res.status(400).json({success:false, msg:"Password galat"});
     if(restaurant.status !== "Approved") return res.status(400).json({success:false, msg:"Approval pending hai"});
-
     res.json({success:true, token: restaurant.restaurantId, name: restaurant.restaurantName})
-  }catch(e){ 
-    console.log(e)
-    res.status(500).json({success:false, msg:"Server Error"}) 
-  }
+  }catch(e){ console.log(e); res.status(500).json({success:false, msg:"Server Error"}) }
 });
 
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop ? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
 app.get('/api/orders', async (req,res)=>{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) });
 
-// FIXED: _id and name bhejne ke liye
+// FIXED: _id and name
 app.get('/api/restaurants', async (req,res)=>{ 
   const {search} = req.query;
   let filter = {status: "Approved"};
-  if(search){
-    filter.restaurantName = { $regex: search, $options: 'i' }
-  }
+  if(search){ filter.restaurantName = { $regex: search, $options: 'i' } }
   const shops = await RestaurantOwner.find(filter); 
   res.json(shops.map(s => ({
     _id: s.restaurantId, 
