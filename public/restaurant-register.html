@@ -16,7 +16,7 @@
 .plan-card.active{border-color:#ff6600; background:#fff5f0;}
 .plan-card:hover{border-color:#ff6600;}
 .plan-info-btn{background:#ff6600; color:#fff; border:none; width:100%; padding:12px; border-radius:10px; font-weight:600; margin:15px 0}
-.plan-details{display:none; background:#fff8e1; border:1px solid #ffc107; border-radius:10px; padding:15px 15px 8px 15px; margin-top:10px} /* Niche ka padding kam kiya */
+.plan-details{display:none; background:#fff8e1; border:1px solid #ffc107; border-radius:10px; padding:15px 15px 8px 15px; margin-top:10px}
 .preview-with-qr{display:none; background:#fff; padding:12px; border-radius:10px; border:2px dashed #ff6600; margin-top:12px}
 .preview-with-qr img{max-width:100px; border-radius:8px}
 </style>
@@ -28,60 +28,33 @@
         <h4 class="text-center mb-3">Restaurant Registration</h4>
         <p class="text-center text-success fw-bold" id="planText">30 Days Trial - ₹200 Registration Fee</p>
 
-        <form id="registerForm">
-            <!-- PLAN SELECTION -->
+        <form id="registerForm" enctype="multipart/form-data">
             <div class="mb-3">
                 <label class="form-label fw-bold">Choose Your Plan</label>
-                <div class="plan-card active" onclick="selectPlan('Trial', 200)">
+                <div class="plan-card active" onclick="selectPlan('Trial', 200, event)">
                     <input type="radio" name="plan" value="Trial" checked>
                     <b>30 Days Trial</b> - ₹200 Only
-                    <small class="text-muted d-block">Test the platform for 30 days</small>
                 </div>
-                <div class="plan-card" onclick="selectPlan('Annual', 2000)">
+                <div class="plan-card" onclick="selectPlan('Annual', 2000, event)">
                     <input type="radio" name="plan" value="Annual">
                     <b>Annual Support Plan</b> - ₹2000 / Year
-                    <small class="text-muted d-block">Website + Menu + 24x7 Support</small>
                 </div>
             </div>
 
-            <button type="button" class="plan-info-btn" onclick="togglePlanInfo()">
-                ℹ️ View Annual Support Plan - ₹2000/Year
-            </button>
+            <button type="button" class="plan-info-btn" onclick="togglePlanInfo()">ℹ️ View Annual Support Plan - ₹2000/Year</button>
+            <div id="planDetails" class="plan-details"> ... Plan Details ... </div>
 
-            <div id="planDetails" class="plan-details">
-              <h5 class="fw-bold" style="color:#ff6600">Eat4Bite™ Annual Support Plan</h5>
-              <p class="fw-semibold mb-2">Grow Your Restaurant. We Handle The Tech.</p>
-              <p class="small">The Eat4Bite™ Annual Support Plan is designed for local restaurants to go digital without any hassle. For a small annual fee, you get a complete technology and marketing solution for 12 months.</p>
-
-              <h6 class="fw-bold mt-3">What's Included:</h6>
-              <ul class="small mb-2">
-                <li><b>Website & Brand Listing:</b> Get a professional restaurant page with photos, menu, and location.</li>
-                <li><b>24x7 Technical Support:</b> Issue resolved within 15 minutes on Call/WhatsApp.</li>
-                <li><b>Free Menu & Offer Management:</b> Send us update, we do it for you. Absolutely Free.</li>
-                <li><b>Secure Payments & Billing:</b> Earnings transferred to bank every 3 days. 100% Safe.</li>
-              </ul>
-
-              <div class="alert alert-warning p-3 text-center mb-0" style="border-radius:10px">
-                <h5 class="fw-bold mb-1" style="color:#8B4513">₹2000 / Year</h5>
-                <p class="mb-0 fw-semibold" style="color:#8B4513">One Full Year of Tension-Free Business</p>
-                <hr class="my-2">
-                <small><b>Note:</b> 5% Commission + ₹10 Platform Fee per order. No Hidden Charges.</small>
-              </div>
-            </div>
-
-            <div class="mb-3 mt-2"><label class="form-label">Owner Name</label><input type="text" id="name" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Email</label><input type="email" id="email" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Password</label><input type="password" id="password" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Mobile Number</label><input type="tel" id="mobile" class="form-control" pattern="[0-9]{10}" maxlength="10" required></div>
-            <div class="mb-3"><label class="form-label">Restaurant Name</label><input type="text" id="restaurantName" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Restaurant Address</label><textarea id="address" class="form-control" rows="2" required></textarea></div>
+            <div class="mb-3 mt-2"><label class="form-label">Owner Name</label><input type="text" name="ownerName" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label">Mobile Number</label><input type="tel" name="mobile" class="form-control" pattern="[0-9]{10}" maxlength="10" required></div>
+            <div class="mb-3"><label class="form-label">Restaurant Name</label><input type="text" name="restaurantName" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label">Restaurant Address</label><textarea name="address" class="form-control" rows="2" required></textarea></div>
 
             <div class="info-box mb-3">
-                <h6 class="fw-bold">Upload Restaurant Photo</h6>
-                <input type="file" id="restaurant_photo" class="form-control" accept="image/*" required>
+                <h6 class="fw-bold">Upload Restaurant Photo + Payment Proof</h6>
+                <input type="file" name="payment_proof" id="restaurant_photo" class="form-control" accept="image/*" required>
                 <img id="photoPreview" src=""/>
-                
-                <!-- PHOTO + QR EK SATH PREVIEW -->
                 <div id="previewWithQR" class="preview-with-qr">
                     <div class="row align-items-center">
                         <div class="col-4 text-center">
@@ -105,15 +78,13 @@
             <p><b>UPI ID:</b> <span id="upiText" class="text-primary"></span></p>
             <p class="small">Payment karke Admin se approval lein</p>
         </div>
-
         <div id="msg" class="mt-3"></div>
         <p class="text-center mt-3">Already have an account? <a href="/restaurant-login">Login</a></p>
     </div>
 </div>
 
 <script>
-const API = "";
-let photoBase64 = "";
+const API = 'https://quickbite-ymqk.onrender.com'; // FIX 1: API URL DAAL DIYA
 let selectedAmount = 200;
 let selectedPlan = 'Trial';
 
@@ -122,7 +93,7 @@ function togglePlanInfo(){
   details.style.display = details.style.display === 'block'? 'none' : 'block';
 }
 
-function selectPlan(plan, amount){
+function selectPlan(plan, amount, event){
     selectedPlan = plan;
     selectedAmount = amount;
     document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
@@ -130,8 +101,6 @@ function selectPlan(plan, amount){
     document.querySelector(`input[value=${plan}]`).checked = true;
     document.getElementById('registerBtn').innerText = `Register & Pay ₹${amount}`;
     document.getElementById('planText').innerText = plan === 'Trial'? '30 Days Trial - ₹200 Registration Fee' : 'Annual Plan - ₹2000 / Year';
-    
-    // QR preview amount bhi update karo
     if(document.getElementById('previewWithQR').style.display === 'block'){
         document.getElementById('payAmountPreview').innerText = '₹' + amount;
         document.getElementById('qrImgPreview').src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=${amount}&cu=INR`;
@@ -142,12 +111,9 @@ document.getElementById('restaurant_photo').addEventListener('change', function(
     const file = e.target.files[0];
     const reader = new FileReader();
     reader.onload = function(event){
-        photoBase64 = event.target.result;
-        document.getElementById('photoPreview').src = photoBase64;
+        document.getElementById('photoPreview').src = event.target.result;
         document.getElementById('photoPreview').style.display = 'block';
-        
-        // NAYA: Photo + QR sath me preview
-        document.getElementById('photoPreviewSmall').src = photoBase64;
+        document.getElementById('photoPreviewSmall').src = event.target.result;
         document.getElementById('previewWithQR').style.display = 'block';
         document.getElementById('payAmountPreview').innerText = '₹' + selectedAmount;
         document.getElementById('qrImgPreview').src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=${selectedAmount}&cu=INR`;
@@ -160,34 +126,28 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
     const btn = e.target.querySelector('button');
     btn.disabled = true; btn.innerText = "Registering...";
 
-    const payload = {
-        ownerName: document.getElementById('name').value,
-        email: document.getElementById('email').value,
-        password: document.getElementById('password').value,
-        mobile: document.getElementById('mobile').value,
-        restaurantName: document.getElementById('restaurantName').value,
-        address: document.getElementById('address').value,
-        restaurantId: document.getElementById('restaurantName').value.toLowerCase().replace(/ /g,'-') + Date.now(),
-        image_base64: photoBase64,
-        plan: selectedPlan,
-        amount: selectedAmount
-    };
+    const formData = new FormData(e.target); // FIX 2: JSON ki jagah FormData
+    formData.append('plan', selectedPlan);
+    formData.append('amount', selectedAmount);
 
     try {
-        const res = await fetch(`${API}/api/restaurant/register`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+        // FIX 3: API URL SAHI KIYA
+        const res = await fetch(`${API}/api/restaurant-register`, {method: 'POST', body: formData});
         const result = await res.json();
 
         if(result.success){
             document.getElementById('registerForm').style.display = 'none';
             document.getElementById('qrBox').classList.remove('d-none');
-            document.getElementById('upiText').innerText = result.upi_id;
+            document.getElementById('upiText').innerText = result.upi_id || "tanbalkhi2014-3@okhdfcbank";
             document.getElementById('payAmount').innerText = '₹' + selectedAmount;
-            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${result.upi_id}&pn=Eat4Bite&am=${selectedAmount}&cu=INR&tn=Reg${payload.restaurantName}`;
-            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Registered! Now pay ₹${selectedAmount}</div>`;
+            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=${selectedAmount}&cu=INR`;
+            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Registered! Now pay ₹${selectedAmount} and wait for approval</div>`;
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.msg}</div>`;
         }
-    } catch(err) { document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error</div>`; }
+    } catch(err) { 
+        document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error: ${err.message}</div>`; 
+    }
     btn.disabled = false; btn.innerText = `Register & Pay ₹${selectedAmount}`;
 });
 </script>
