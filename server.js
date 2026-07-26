@@ -33,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.6.8'))
+.then(()=>console.log('✅ MongoDB Connected v3.6.9'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -44,8 +44,14 @@ const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:Str
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
 
-// PROMO KE LIYE MEMORY ME STORE
-let currentPromo = { text: "", image: "", color: "#ff6600" };
+// ===== NAYA BANNER MODEL - MEMORY HAT GAYA =====
+const Banner = mongoose.model('Banner', {
+  text: String, 
+  image: String, 
+  color: String,
+  updatedAt: {type: Date, default: Date.now}
+});
+// ================================================
 
 async function sendWhatsApp(to, message) {console.log(`📲 WHATSAPP TO ${to}: ${message}`);}
 
@@ -122,26 +128,39 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
 
-// ===== FIXED BANNER API WITH IMAGE UPLOAD =====
-app.get('/api/promo', (req,res)=> res.json(currentPromo))
+// ===== FIXED BANNER API WITH DB - AB KABHI NAHI UDEGA =====
+app.get('/api/promo', async (req,res)=>{ 
+  const banner = await Banner.findOne().sort({updatedAt: -1});
+  res.json(banner || { text: "", image: "", color: "#ff6600" })
+})
+
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{
   try{
-    let imageUrl = currentPromo.image;
+    let imageUrl = "";
+    const oldBanner = await Banner.findOne().sort({updatedAt: -1});
+    
     if(req.file){
       const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {
         folder: 'eat4bite_banners'
       });
       imageUrl = result.secure_url;
+    } else {
+      imageUrl = oldBanner ? oldBanner.image : "";
     }
-    currentPromo = {
+
+    await Banner.create({
       text: req.body.text || "",
       image: imageUrl,
       color: req.body.color || "#ff6600"
-    };
-    res.json({success:true, msg:"Banner Updated"})
+    });
+    res.json({success:true, msg:"Banner Saved in DB"})
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
-app.delete('/api/admin/promo', (req,res)=>{ currentPromo = { text: "", image: "", color: "#ff6600" }; res.json({success:true, msg:"Banner Removed"}) })
+
+app.delete('/api/admin/promo', async (req,res)=>{ 
+  await Banner.deleteMany({});
+  res.json({success:true, msg:"Banner Removed"}) 
+})
 // ===== END BANNER FIX =====
 
 app.get('/api/admin/graph', async (req,res)=>{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)});
@@ -208,4 +227,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.6.8 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.6.9 on ${PORT}`));
