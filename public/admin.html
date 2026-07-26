@@ -7,26 +7,22 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     body{font-family:Arial; background:#f4f4f4; padding:20px;}
-.top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
-.top-buttons a{padding:10px 15px; border-radius:5px; text-decoration:none; color:white; margin-left:10px; font-weight:bold;}
-.btn-admin{background:#333;}.btn-owner{background:orange;}
-.card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
+   .top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+   .top-buttons button{padding:10px 15px; border-radius:5px; border:none; color:white; margin-left:10px; font-weight:bold; cursor:pointer;}
+   .btn-admin{background:#333;}.btn-owner{background:orange;}
+   .card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
     input, select, button, textarea{padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc; width:calc(100% - 22px);}
     button{background:#ff6600; color:white; border:none; cursor:pointer;}
     button:hover{opacity:0.9;}
-.grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
-.stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
-.stat-card h2{margin:0; font-size:30px;}
-.order,.menu-item,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
-.btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}.btn-warning{background:#ffc107; color:#000;}
-.report-result p{margin:5px 0; font-size:16px;}
-.logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
+   .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
+   .stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
+   .stat-card h2{margin:0; font-size:30px;}
+   .order,.rider-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;}
+   .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}.btn-warning{background:#ffc107; color:#000;}
+   .logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
     small{color:#666; font-size:12px;}
-.rider-docs img{width:70px; height:70px; object-fit:cover; border:1px solid #ccc; border-radius:5px; margin:3px;}
-.menu-item img{width:80px; height:80px; object-fit:cover; border-radius:5px; float:left; margin-right:10px;}
-canvas{background:white; padding:10px; border-radius:8px;}
-.alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
-.badge{padding:3px 8px; border-radius:4px; color:white; font-size:12px;}
+    canvas{background:white; padding:10px; border-radius:8px;}
+   .alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
 </style>
 </head>
 <body>
@@ -50,69 +46,35 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <canvas id="salesChart" height="100"></canvas>
 </div>
 
-<!-- 1. ALL RESTAURANT SALES REPORT -->
-<div class="card">
-    <h2>📊 All Restaurants Sales Report</h2>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <select id="reportShop" style="width:200px;">
-            <option value="all">All Restaurants</option>
-        </select>
-        <input type="date" id="startDate">
-        <input type="date" id="endDate">
-    </div>
-    <button class="btn-blue" onclick="getReport()">Get Report</button>
-    <div id="reportResult" class="report-result" style="margin-top:15px;"></div>
-</div>
-
-<!-- 2. BROADCAST TO ALL RESTAURANTS -->
-<div class="card">
-    <h2>📢 Broadcast to All Restaurants</h2>
-    <p style="color:#666; font-size:13px;">Ye message sabhi restaurant owners ko WhatsApp pe chala jayega</p>
-    <textarea id="broadcastMsg" placeholder="Notice: Kal se Delivery charge ₹10 badh raha hai" rows="3"></textarea>
-    <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
-</div>
-
-<!-- 3. PROMOTION BANNER - FILE UPLOAD WALA -->
+<!-- PROMOTION BANNER - FILE UPLOAD -->
 <div class="card">
     <h2>📢 Promotion Banner</h2>
     <p style="color:#666; font-size:13px;">Text ya Image dono daal sakte ho</p>
-
     <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF - CODE: FIRST50">
     <label><b>Ya Image Upload Karo:</b></label>
     <input type="file" id="promoFile" accept="image/*">
-
-    <input type="text" id="promoColor" placeholder="Background Color - Ex: #ff6600" value="#ff6600">
-
+    <input type="text" id="promoColor" placeholder="Background Color" value="#ff6600">
     <button class="btn-orange" onclick="updatePromo()">Update Banner</button>
     <button class="btn-red" onclick="removePromo()">Remove Banner</button>
-
     <div id="promoPreview" style="margin-top:10px;"></div>
 </div>
 
-<!-- 4. RIDER CASH MANAGEMENT -->
+<!-- ALL ORDERS WITH MANUAL ASSIGN -->
 <div class="card">
-    <h2>🏍️ Rider Cash Management</h2>
-    <div id="riderCashList">Loading...</div>
-</div>
-
-<!-- 5. RESTAURANT APPROVALS -->
-<div class="card">
-    <h2>🏪 Restaurant Approvals - ₹200 Trial / ₹2000 Annual</h2>
-    <div id="pendingOwnersList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>🏍️ Pending Rider Approvals</h2>
-    <div id="pendingRidersList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>📦 Orders</h2>
+    <h2>📦 All Orders - Manual Assign + Auto 5min</h2>
     <div id="ordersList">Loading...</div>
 </div>
 
+<!-- APPROVED RIDERS -->
+<div class="card">
+    <h2>🏍️ Approved Riders</h2>
+    <div id="riderList">Loading...</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
 <script>
 const API = '';
+const socket = io();
 let salesChart = null;
 let allRiders = [];
 
@@ -121,10 +83,14 @@ function checkLogin(){
     if(sessionStorage.getItem('adminLoggedIn')!== 'true'){
         let pass = prompt("🔒 Admin Login\nPassword daalo:");
         if(pass === ADMIN_PASSWORD){ sessionStorage.setItem('adminLoggedIn', 'true'); }
-        else { alert("Galat Password!"); window.location = '/'; }
+        else { alert("Galat Password!"); window.location.href = '/'; }
     }
 }
-function logout(){ sessionStorage.removeItem('adminLoggedIn'); alert("Logout ho gaye"); window.location = '/'; }
+function logout(){
+    sessionStorage.clear();
+    alert("Logout ho gaye");
+    window.location.href = '/'; // FIXED
+}
 checkLogin();
 
 async function loadGraph(){
@@ -147,98 +113,17 @@ async function loadGraph(){
     }catch(e){ console.log("Graph error", e) }
 }
 
-async function loadOwners(){
-    const res = await fetch(`${API}/api/admin/restaurants`);
-    const owners = await res.json();
-    if(owners.length === 0){
-        document.getElementById('pendingOwnersList').innerHTML = 'Koi pending restaurant nahi hai';
-        return;
-    }
-    document.getElementById('pendingOwnersList').innerHTML = owners.map(o => {
-        let statusBadge = `<span class="badge" style="background:orange;">Pending</span>`;
-        let paymentInfo = `₹${o.registration_fee_paid || 200} ${o.plan_status || 'Trial'} Plan`;
-        let trialDate = o.trial_end_date? new Date(o.trial_end_date).toLocaleDateString('en-IN') : '-';
-        return `
-        <div class="owner-item">
-            <div style="flex:1;">
-                <b>${o.restaurantName}</b> - ${o.ownerName} ${statusBadge} <br>
-                <small>ID: ${o.restaurantId} | Mobile: ${o.mobile} | Email: ${o.email}</small><br>
-                <small>Payment: ${paymentInfo} | Trial End: ${trialDate}</small>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <button class="btn-green" onclick="approveOwner('${o._id}')">✅ Approve ₹200</button>
-                ${o.image_base64? `<img src="${o.image_base64}" style="width:80px; height:80px; object-fit:cover; border-radius:5px;">` : ''}
-            </div>
-        </div>
-        `;
-    }).join('');
-}
-
-async function approveOwner(id){
-    await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'});
-    alert('Restaurant Approved! 30 din trial start');
-    loadData();
-}
-
-async function loadShopDropdown(){
-    const res = await fetch(`${API}/api/restaurants`);
-    const shops = await res.json();
-    const select = document.getElementById('reportShop');
-    select.innerHTML = `<option value="all">All Restaurants</option>`;
-    shops.forEach(s => {
-        select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`;
-    });
-}
-
-async function getReport(){
-    let shop = document.getElementById('reportShop').value;
-    let s = document.getElementById('startDate').value;
-    let e = document.getElementById('endDate').value;
-    if(!s ||!e) return alert('Start aur End date select karo');
-    const d = await fetch(`${API}/api/report?start=${s}&end=${e}&shop=${shop}`).then(r=>r.json());
-    let html = `<h4>Report: ${s} to ${e}</h4>`;
-    if(shop === 'all'){
-        html += `<table style="width:100%; margin-top:10px; border-collapse:collapse;"><tr style="background:#eee"><th style="padding:8px; border:1px solid #ddd;">Restaurant</th><th style="padding:8px; border:1px solid #ddd;">Orders</th><th style="padding:8px; border:1px solid #ddd;">Revenue</th></tr>`;
-        d.shops.forEach(shop => {
-            html += `<tr><td style="padding:8px; border:1px solid #ddd;">${shop.name}</td><td style="padding:8px; border:1px solid #ddd;">${shop.orders}</td><td style="padding:8px; border:1px solid #ddd;">₹${shop.revenue}</td></tr>`
-        });
-        html += `<tr style="font-weight:bold; background:#f8f9fa"><td style="padding:8px; border:1px solid #ddd;">TOTAL</td><td style="padding:8px; border:1px solid #ddd;">${d.totalOrders}</td><td style="padding:8px; border:1px solid #ddd;">₹${d.totalRevenue}</td></tr></table>`;
-    } else {
-        html += `<p><b>Total Revenue:</b> ₹${d.totalRevenue}</p><p><b>Total Orders:</b> ${d.totalOrders}</p>`;
-    }
-    document.getElementById('reportResult').innerHTML = html;
-}
-
-async function sendBroadcast(type){
-    const message = document.getElementById('broadcastMsg').value;
-    if(!message) return alert('Message likho');
-    const res = await fetch(`${API}/api/broadcast`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message, type})
-    });
-    const data = await res.json();
-    alert(`${data.count} Restaurant owners ko message bhej diya`);
-}
-
-// PROMO FUNCTIONS - FIXED WITH FILE UPLOAD
+// PROMO FUNCTIONS
 async function loadPromo(){
     try{
         const res = await fetch(`${API}/api/promo`);
         const promo = await res.json();
-        if(promo){
-            document.getElementById('promoText').value = promo.text || '';
-            document.getElementById('promoColor').value = promo.color || '#ff6600';
-            showPromoPreview(promo);
-        }
+        if(promo) showPromoPreview(promo);
     }catch(e){}
 }
-
 async function updatePromo(){
     const fileInput = document.getElementById('promoFile');
     let imageBase64 = '';
-
-    // Agar file select ki hai to usko base64 me convert karo
     if(fileInput.files[0]){
         imageBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -246,18 +131,16 @@ async function updatePromo(){
             reader.readAsDataURL(fileInput.files[0]);
         });
     }
-
     const promo = {
         text: document.getElementById('promoText').value,
-        image: imageBase64, // yaha base64 chala jayega
+        image: imageBase64,
         color: document.getElementById('promoColor').value
     }
     await fetch(`${API}/api/admin/promo`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(promo)});
     alert('Banner Updated!');
     showPromoPreview(promo);
-    fileInput.value = ''; // file clear kar do
+    fileInput.value = '';
 }
-
 async function removePromo(){
     await fetch(`${API}/api/admin/promo`, {method:'DELETE'});
     alert('Banner Removed!');
@@ -266,7 +149,6 @@ async function removePromo(){
     document.getElementById('promoColor').value = '#ff6600';
     document.getElementById('promoFile').value = '';
 }
-
 function showPromoPreview(promo){
     let html = `<div style="background:${promo.color}; color:white; padding:10px; text-align:center; border-radius:8px;">`;
     if(promo.image) html += `<img src="${promo.image}" style="width:100%; max-height:150px; object-fit:cover; border-radius:5px;">`;
@@ -275,72 +157,22 @@ function showPromoPreview(promo){
     document.getElementById('promoPreview').innerHTML = html;
 }
 
-async function loadRiderCash(){
-    try{
-        const res = await fetch(`${API}/api/admin/rider-cash`);
-        const riders = await res.json();
-        if(riders.length === 0){
-            document.getElementById('riderCashList').innerHTML = 'Abhi koi rider registered nahi hai';
-            return;
-        }
-        document.getElementById('riderCashList').innerHTML = riders.map(r => {
-            let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED - Limit Cross</div>` : '';
-            return `
-            <div class="rider-item">
-                <div>
-                    <b>${r.name}</b> - ${r.mobile} <br>
-                    <small>Cash in Hand: ₹${r.pending_cash} | Today Collected: ₹${r.today_collected}</small> <br>
-                    ${alert}
-                </div>
-                <button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button>
-            </div>
-            `;
-        }).join('');
-    }catch(err){
-        document.getElementById('riderCashList').innerHTML = 'Error loading riders';
-    }
-}
-
-async function markDeposited(mobile){
-    if(!confirm(`Pakka deposit le liye?`)) return;
-    await fetch(`${API}/api/admin/rider-deposit`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({mobile})
-    });
-    alert('Deposit Marked!');
-    loadRiderCash();
-}
-
+// MANUAL ASSIGN FUNCTION
 async function assignRider(orderId, riderId){
     if(!riderId) return;
-    await fetch(`${API}/api/admin/assign-rider`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
+    const res = await fetch(`${API}/api/admin/assign-rider`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({orderId, riderId})
     });
-    alert('Rider Assigned!');
+    const data = await res.json();
+    alert(data.error || 'Rider Assigned!');
     loadData();
 }
 
 async function loadData(){
     await loadGraph();
-    await loadOwners();
-    await loadShopDropdown();
-    await loadRiderCash();
-    await loadPromo(); // PROMO LOAD
+    await loadPromo();
 
     const ridersRes = await fetch(`${API}/api/admin/approved-riders`);
     allRiders = await ridersRes.json();
-
-    const pendingRiders = await fetch(`${API}/api/admin/pending-riders`).then(r=>r.json());
-    document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' :
-    pendingRiders.map(r => `
-        <div class="rider-item">
-            <div><b>${r.name}</b> - ${r.mobile}</div>
-            <button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve Karo</button>
-        </div>
-    `).join('');
-
-    const orders = await fetch(`${API}/api/orders`).then(r=>r.json());
-    const today = new Date().toISOString().split('
+    document.getElementById('riderList').
