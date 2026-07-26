@@ -8,6 +8,7 @@
 <style>
 .card:hover{transform: scale(1.02); transition: 0.2s;}
 .navbar-brand{color:white!important;}
+a{text-decoration:none;} /* NAYA */
 </style>
 </head>
 <body class="bg-light">
@@ -37,15 +38,11 @@ async function loadRestaurants(){
             return;
         }
 
-        shops.forEach(shop => {
-            const imgText = encodeURIComponent(shop.name);
-            list.innerHTML += `
+        list.innerHTML = shops.map(shop => `
             <div class="col-md-4 col-12">
-                <!-- FIX 1: shop.id ko shop._id kiya -->
-                <a href="/?shop=${shop._id}" class="text-decoration-none">
-                    <div class="card shadow-sm p-3" style="cursor:pointer">
-                        <!-- FIX 2: shop.image add kiya -->
-                        <img src="${shop.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${imgText}`}" 
+                <a href="/?shop=${shop._id}"> <!-- FIX: DIRECT LINK -->
+                    <div class="card shadow-sm p-3">
+                        <img src="${shop.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${encodeURIComponent(shop.name)}`}" 
                              class="card-img-top mb-2" 
                              style="height:180px; object-fit:cover; border-radius:8px"
                              onerror="this.src='https://via.placeholder.com/400x180/ff6600/ffffff?text=Eat4Bite'">
@@ -53,14 +50,12 @@ async function loadRestaurants(){
                         <p class="text-muted small">📍 ${shop.address || 'Address not added'}</p>
                     </div>
                 </a>
-            </div>`;
-        });
+            </div>
+        `).join('');
     }catch(err){
-        document.getElementById('restaurantList').innerHTML = '<p class="text-center text-danger">Restaurants load nahi ho paaye. Server check karo</p>';
-        console.log(err)
+        document.getElementById('restaurantList').innerHTML = '<p class="text-center text-danger">Restaurants load nahi ho paaye</p>';
     }
 }
-
 loadRestaurants();
 </script>
 </body>
