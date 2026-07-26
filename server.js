@@ -10,7 +10,6 @@ const multer = require('multer');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
 const bcrypt = require('bcryptjs');
-const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
@@ -36,16 +35,34 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.5.1 Eat4Bite'))
+.then(()=>console.log('✅ MongoDB Connected v3.5.3 Eat4Bite'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
 
-const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,password: String, status: {type: String, default: "Pending"}, plan: {type: String, default: "Trial"},
-registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},image: {type: String, default: null},
-upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},trial_end_date: {type: Date}, plan_expiry: {type: Date},
-payout_due: {type: Number, default: 0},paymentStatus: {type: String, default: "Pending"}, lastPaymentDate: {type: Date, default: Date.now},nextDueDate: {type: Date}, createdAt: {type: Date, default: Date.now}});
+const RestaurantOwner = mongoose.model('RestaurantOwner', {
+  restaurantId: {type: String, unique: true}, 
+  restaurantName: String, 
+  ownerName: String,
+  mobile: {type: String, unique: true}, 
+  email: {type: String, unique: true}, 
+  address: String,
+  password: String, 
+  status: {type: String, default: "Pending"}, 
+  plan: {type: String, default: "Trial"},
+  registration_fee_paid: {type: Number, default: 200}, 
+  payment_proof: {type: String, default: null},
+  image: {type: String, default: null},
+  upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},
+  trial_end_date: {type: Date}, 
+  plan_expiry: {type: Date},
+  payout_due: {type: Number, default: 0},
+  paymentStatus: {type: String, default: "Pending"}, 
+  lastPaymentDate: {type: Date, default: Date.now},
+  nextDueDate: {type: Date}, 
+  createdAt: {type: Date, default: Date.now}
+});
 
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000},weekly_orders: {type: Number, default: 0}, weekly_bonus: {type: Number, default: 0}});
 
@@ -90,12 +107,14 @@ app.post('/api/menu', upload.single('image'), async (req,res)=>{
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
 
-// ===== 1. REGISTER WITH QR + AUTO ID =====
+// ===== 1. REGISTER WITH PLAN + QR =====
 app.post('/api/restaurant/register', async (req,res)=>{
   try{
-    let {restaurantId, restaurantName, ownerName, mobile, email, address, password, image_base64} = req.body;
+    let {restaurantId, restaurantName, ownerName, mobile, email, address, password, image_base64, plan} = req.body;
     
-    // FIX 1: Auto generate restaurantId
+    if(!plan) plan = "Trial";
+    let amount = plan === "Annual" ? 2000 : 200;
+    
     if(!restaurantId) restaurantId = restaurantName.toLowerCase().replace(/ /g,'-') + '-' + Date.now();
 
     const exists = await RestaurantOwner.findOne({$or: [{mobile}, {email}, {restaurantId}]});
@@ -106,52 +125,62 @@ app.post('/api/restaurant/register', async (req,res)=>{
       restaurantId, restaurantName, ownerName, mobile, email, address,
       password: hashedPassword, 
       image: image_base64,
-      plan: "Trial",
+      plan: plan,
       paymentStatus: "Pending",
-      registration_fee_paid: 200,
+      registration_fee_paid: amount,
       upi_id: "tanbalkhi2014-3@okhdfcbank"
     }).save();
     
-    res.json({success:true, upi_id: "tanbalkhi2014-3@okhdfcbank", msg: "Registered. Pay ₹200"})
+    res.json({success:true, upi_id: "tanbalkhi2014-3@okhdfcbank", amount: amount, msg: `Registered! Pay ₹${amount}`})
   }catch(e){ res.json({success:false, msg:e.message}) }
 });
 
 // ===== 2. LOGIN WITH EMAIL =====
 app.post('/api/restaurant/login', async (req,res)=>{ 
-  const {email, password} = req.body;
-  const shop = await RestaurantOwner.findOne({email});
-  if(!shop) return res.json({success:false, msg:"Email not registered"});
-  if(shop.status !== "Approved") return res.json({success:false, msg:"Approval pending"});
-  const valid = await bcrypt.compare(password, shop.password);
-  if(!valid) return res.json({success:false, msg:"Wrong password"});
-  res.json({success:true, shop})
+  try{
+    const {email, password} = req.body;
+    const shop = await RestaurantOwner.findOne({email});
+    if(!shop) return res.json({success:false, msg:"Email not registered"});
+    if(shop.status !== "Approved") return res.json({success:false, msg:"Approval pending"});
+    if(shop.paymentStatus !== "Paid") return res.json({success:false, msg:"Pay registration fee first"});
+    const valid = await bcrypt.compare(password, shop.password);
+    if(!valid) return res.json({success:false, msg:"Wrong password"});
+    const {password: pass, ...shopData} = shop.toObject();
+    res.json({success:true, shop: shopData})
+  }catch(e){ res.json({success:false, msg:e.message}) }
 });
 
 // ===== 3. ALL RESTAURANTS FOR ADMIN =====
 app.get('/api/restaurant/requests', async (req,res)=>{
   try{
-    const restaurants = await RestaurantOwner.find({});
+    const restaurants = await RestaurantOwner.find({}).sort({createdAt: -1});
     res.json(restaurants);
   }catch(e){ res.json([]) }
 });
 
-// FIX 2: Old route bhi sab bhejega ab
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ 
-  res.json(await RestaurantOwner.find({}))
+  res.json(await RestaurantOwner.find({}).sort({createdAt: -1}))
 });
 
-// ===== 4. APPROVE + TRIAL DATE SET =====
+// ===== 4. APPROVE + PLAN DATE SET =====
 app.put('/api/restaurant/approve/:id', async (req,res)=>{
   try{
-    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);
-    await RestaurantOwner.findByIdAndUpdate(req.params.id, {
-      status:"Approved", 
-      trial_end_date:trialEnd,
-      paymentStatus: "Paid",
-      lastPaymentDate: new Date()
-    });
-    res.json({success:true, msg:"Restaurant Approved. 30 Days Trial Started"})
-  }catch(e){ res.json({success:false}) }
+    const shop = await RestaurantOwner.findById(req.params.id);
+    if(!shop) return res.json({success:false, msg:"Not found"});
+    
+    let updateData = {status:"Approved", paymentStatus: "Paid", lastPaymentDate: new Date()};
+    
+    if(shop.plan === "Trial"){
+      const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);
+      updateData.trial_end_date = trialEnd;
+    } else {
+      const yearEnd = new Date(); yearEnd.setFullYear(yearEnd.getFullYear() + 1);
+      updateData.plan_expiry = yearEnd;
+    }
+    
+    await RestaurantOwner.findByIdAndUpdate(req.params.id, updateData);
+    res.json({success:true, msg:`Restaurant Approved. ${shop.plan} Activated`})
+  }catch(e){ res.json({success:false, msg:e.message}) }
 });
 
 // ===== 5. ANNUAL UPGRADE =====
@@ -166,10 +195,10 @@ app.post('/api/restaurant/upgrade-annual/:id', async (req,res)=>{
       registration_fee_paid: 2000
     });
     res.json({success:true, msg:"Upgraded to Annual Plan"})
-  }catch(e){ res.json({success:false}) }
+  }catch(e){ res.json({success:false, msg:e.message}) }
 });
 
-// ===== BAAD WALE SAB API SAME =====
+// ===== ORDER & OTHER APIS =====
 app.put('/api/order/assign', async (req,res)=>{
   const rider = await Rider.findOne({mobile: req.body.riderId});
   if(!rider){ return res.json({success:false, msg:"Rider not found"}); }
@@ -246,7 +275,7 @@ app.post('/api/restaurant/cash-confirm', async (req,res)=>{
 })
 
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
-app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({id: s.restaurantId, name: s.restaurantName, address: s.address, image: s.image, upi_id: s.upi_id}))) });
+app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({restaurantId: s.restaurantId, restaurantName: s.restaurantName, address: s.address, image: s.image, upi_id: s.upi_id}))) });
 app.get('/api/orders', async (req,res)=>{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) });
 app.post('/api/coupon', async (req,res)=>{ await new Offer(req.body).save(); res.json({success:true}) });
 
@@ -272,6 +301,4 @@ app.get('/restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public'
 app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
 app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
-app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
-
-server.listen(PORT, ()=> console.log(`🚀 Server v3.5.1 Eat4Bite on ${PORT}`));
+app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restau
