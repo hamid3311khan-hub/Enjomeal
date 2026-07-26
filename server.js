@@ -33,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.6.7'))
+.then(()=>console.log('✅ MongoDB Connected v3.6.8'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -121,9 +121,29 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
     res.json({success:true, msg:"Rider Assigned!"});
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
+
+// ===== FIXED BANNER API WITH IMAGE UPLOAD =====
 app.get('/api/promo', (req,res)=> res.json(currentPromo))
-app.post('/api/admin/promo', (req,res)=>{ currentPromo = req.body; res.json({success:true, msg:"Banner Updated"}) })
+app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{
+  try{
+    let imageUrl = currentPromo.image;
+    if(req.file){
+      const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {
+        folder: 'eat4bite_banners'
+      });
+      imageUrl = result.secure_url;
+    }
+    currentPromo = {
+      text: req.body.text || "",
+      image: imageUrl,
+      color: req.body.color || "#ff6600"
+    };
+    res.json({success:true, msg:"Banner Updated"})
+  }catch(e){ res.json({success:false, msg:e.message}) }
+})
 app.delete('/api/admin/promo', (req,res)=>{ currentPromo = { text: "", image: "", color: "#ff6600" }; res.json({success:true, msg:"Banner Removed"}) })
+// ===== END BANNER FIX =====
+
 app.get('/api/admin/graph', async (req,res)=>{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)});
 app.get('/api/report', async (req,res)=>{
   const {start, end, shop} = req.query;
@@ -175,7 +195,7 @@ app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwn
 app.get('/api/rider/ledger', async (req,res)=>{const rider = await Rider.findOne({mobile: req.query.riderId});if(!rider) return res.json({success:false});const today = new Date(); today.setHours(0,0,0,0);const orders = await Order.find({riderId: req.query.riderId, createdAt: {$gte: today}});const collected = orders.reduce((a,b)=>a+Number(b.cashCollected), 0);res.json({ pending_cash: rider.cash_balance, limit: rider.cashLimit, today_collected: collected, today_orders: orders.length, progress: Math.round((rider.cash_balance / rider.cashLimit) * 100) })});
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.total}`); doc.end(); });
 
-// ===== PAGE ROUTES - SAB 1 BAAR ME =====
+// ===== PAGE ROUTES =====
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
 app.get('/rider', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider.html')));
 app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
@@ -188,4 +208,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.6.7 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.6.8 on ${PORT}`));
