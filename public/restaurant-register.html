@@ -7,7 +7,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-.card{max-width:600px; margin:50px auto; border-radius:15px}
+.card{max-width:650px; margin:30px auto; border-radius:15px}
 .logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
 .info-box{background:#D1E7DD; padding:15px; border-radius:10px; border:1px solid #0F5132}
 #photoPreview{max-width:100%; border-radius:10px; margin-top:10px; display:none}
@@ -15,6 +15,7 @@
 .plan-card{border:2px solid #ddd; border-radius:10px; padding:15px; cursor:pointer; transition:0.3s; margin-bottom:10px}
 .plan-card.active{border-color:#ff6600; background:#fff5f0;}
 .plan-card:hover{border-color:#ff6600;}
+.explain-card{background:#fff8e1; border:1px solid #ffc107; border-radius:10px}
 </style>
 </head>
 <body>
@@ -25,12 +26,13 @@
         <p class="text-center text-success fw-bold" id="planText">30 Days Trial - ₹200 Registration Fee</p>
 
         <form id="registerForm">
-            <!-- PLAN SELECTION NEW -->
+            <!-- PLAN SELECTION -->
             <div class="mb-3">
                 <label class="form-label fw-bold">Choose Your Plan</label>
                 <div class="plan-card active" onclick="selectPlan('Trial', 200)">
                     <input type="radio" name="plan" value="Trial" checked>
                     <b>30 Days Trial</b> - ₹200 One Time
+                    <small class="text-muted d-block">Test the platform for 30 days</small>
                 </div>
                 <div class="plan-card" onclick="selectPlan('Annual', 2000)">
                     <input type="radio" name="plan" value="Annual">
@@ -53,6 +55,26 @@
             </div>
             <button type="submit" id="registerBtn" class="btn btn-warning w-100 fw-bold">Register & Pay ₹200</button>
         </form>
+
+        <!-- PLAN EXPLANATION - TERA SCREENSHOT WALA -->
+        <div class="card shadow-sm p-3 mt-3 explain-card">
+          <h5 class="fw-bold" style="color:#ff6600">Eat4Bite™ Annual Support Plan - ₹2000 / Year</h5>
+          <p class="fw-semibold mb-2">Grow Your Restaurant. We Handle The Tech.</p>
+          <p class="small">The Eat4Bite™ Annual Support Plan is designed for local restaurants to go digital without any hassle. For a small annual fee, you get a complete technology and marketing solution for 12 months.</p>
+
+          <h6 class="fw-bold mt-3">What's Included:</h6>
+          <ul class="small mb-2">
+            <li><b>Website & Brand Listing:</b> Get a professional restaurant page with photos, menu, and location. Be visible to thousands of customers on Google and the Eat4Bite™ App.</li>
+            <li><b>24x7 Technical Support:</b> Facing any issue with App, Website, or Payments? Our dedicated support team is available 24x7. Call or WhatsApp us and get it resolved within 15 minutes.</li>
+            <li><b>Free Menu & Offer Management:</b> Want to update prices or add new items? Just send us a message. We will update it for you in real-time. Absolutely Free.</li>
+            <li><b>Secure Payments & Billing:</b> Accept Online Payments, UPI, and get automated billing. Your earnings are transferred to your bank account every 3 days. 100% Safe & Transparent.</li>
+          </ul>
+
+          <div class="alert alert-warning p-2 small mb-0">
+            <b>One-time ₹2000. One Full Year of Tension-Free Business.</b><br>
+            <b>Compare:</b> Zomato/Swiggy take 25-30% per order. On ₹500 order they take ₹125. We take only ₹65.
+          </div>
+        </div>
 
         <div id="qrBox" class="mt-3 p-3 text-center d-none">
             <h5 class="text-danger">Step 2: Pay <span id="payAmount">₹200</span> to Activate</h5>
@@ -107,7 +129,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
         address: document.getElementById('address').value,
         restaurantId: document.getElementById('restaurantName').value.toLowerCase().replace(/ /g,'-') + Date.now(),
         image_base64: photoBase64,
-        plan: selectedPlan // ✅ NEW
+        plan: selectedPlan
     };
 
     try {
@@ -118,8 +140,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
             document.getElementById('registerForm').style.display = 'none';
             document.getElementById('qrBox').classList.remove('d-none');
             document.getElementById('upiText').innerText = result.upi_id;
-            document.getElementById('payAmount').innerText = '₹' + selectedAmount; // ✅ DYNAMIC
-            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${result.upi_id}&pn=Eat4Bite&am=${selectedAmount}&cu=INR&tn=Reg${payload.restaurantName}`; // ✅ AMOUNT DYNAMIC
+            document.getElementById('payAmount').innerText = '₹' + selectedAmount;
+            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${result.upi_id}&pn=Eat4Bite&am=${selectedAmount}&cu=INR&tn=Reg${payload.restaurantName}`;
             document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Registered! Now pay ₹${selectedAmount}</div>`;
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.msg}</div>`;
