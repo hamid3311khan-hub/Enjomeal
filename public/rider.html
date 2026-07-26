@@ -18,6 +18,7 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden; margin:10px 0;}
 .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
 .cash-input{border:2px solid #ff6600 !important}
+.btn-directions{background:#007bff; margin-top:8px;}
 </style>
 </head>
 <body>
@@ -52,11 +53,11 @@ button{width:100%; padding:14px; background:#ff6600; color:white; border:none; b
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/socket.io/socket.io.js"></script> <!-- ✅ Render pe ye wala -->
+<script src="/socket.io/socket.io.js"></script>
 <script>
-const API = ''; // ✅ SAME DOMAIN
-const socket = io(); // ✅ SAME DOMAIN
-let riderData = null; let locationInterval = null; let map = null; let riderMarker = null;
+const API = '';
+const socket = io();
+let riderData = null; let locationInterval = null; let map = null; let riderMarker = null; let customerMarkers = {};
 
 window.onload = () => {
   riderData = JSON.parse(localStorage.getItem('riderData'));
@@ -93,7 +94,7 @@ async function riderLogin(){
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
 async function goOnline(){
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})}); // ✅ Ye server me hai
+  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
   riderData.status = 'Online';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   document.getElementById('riderStatus').innerText = 'Online';
@@ -102,7 +103,7 @@ async function goOnline(){
 
 async function goOffline(){
   clearInterval(locationInterval);
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})}); // ✅ Offline = Approved
+  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
   riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   document.getElementById('riderStatus').innerText = 'Offline';
@@ -117,11 +118,11 @@ function startLocationTracking(){
 
 function updateRiderLocation(pos){
   const lat = pos.coords.latitude; const lng = pos.coords.longitude;
-  if(!riderMarker){ riderMarker = L.marker([lat, lng]).addTo(map); map.setView([lat, lng], 15); }
+  if(!riderMarker){ riderMarker = L.marker([lat, lng]).addTo(map).bindPopup("You"); map.setView([lat, lng], 15); }
   else { riderMarker.setLatLng([lat, lng]); }
   
   fetch(`${API}/api/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})});
-  socket.emit('riderLocation', {mobile: riderData.mobile, lat: lat, lng: lng}); // ✅ Live update
+  socket.emit('riderLocation', {mobile: riderData.mobile, lat: lat, lng: lng});
 }
 
 async function loadHisab(){
@@ -139,23 +140,37 @@ async function loadHisab(){
   if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; } else { document.getElementById('cashAlert').style.display = 'none'; }
 }
 
+// UPDATED WITH DIRECTIONS + MAP MARKER
 async function loadMyOrders(){
   const res = await fetch(`${API}/api/rider/orders/${riderData.mobile}`);
   const orders = await res.json();
   if(orders.length === 0){ document.getElementById('myOrders').innerHTML = 'No orders yet'; return; }
   
-  document.getElementById('myOrders').innerHTML = orders.map(o => `
+  document.getElementById('myOrders').innerHTML = orders.map(o => {
+    const hasLocation = o.custLat && o.custLng;
+    const directionsLink = hasLocation ? `https://www.google.com/maps/search/?api=1&query=${o.custLat},${o.custLng}` : '#';
+    
+    // Add customer marker on map
+    if(hasLocation && !customerMarkers[o._id]){
+      customerMarkers[o._id] = L.marker([o.custLat, o.custLng]).addTo(map).bindPopup(`${o.name}<br>${o.address}`);
+    }
+
+    return `
     <div class="order">
       <b>${o.trackId}</b> - ₹${o.total} <br>
       <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
+      <b>Address:</b> ${o.address} <br>
       <b>Status:</b> ${o.status} <br>
+      
+      ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn btn-directions">📍 Get Directions</a>` : '<small class="text-muted">Location not shared</small>'}
+
       ${o.status === 'Out for Delivery' ? `
         <label><b>Cash Collected ₹:</b></label>
         <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.total}">
         <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
       ` : ''}
       <a href="/invoice?id=${o.trackId}" target="_blank">📄 Bill</a>
-    </div>`).join('');
+    </div>`}).join('');
 }
 
 async function markDelivered(orderId){
