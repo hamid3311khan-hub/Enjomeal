@@ -43,15 +43,7 @@ const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:St
 const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},total:Number, cash_to_restaurant: {type: Number, default: 0},paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number, pointsEarned:Number,coupon:String, discount:Number, shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'},cash_deposited: {type: Boolean, default: false}, cash_deposit_proof: {type: String, default: null},is_peak: {type: Boolean, default: false}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
-
-// ===== NAYA BANNER MODEL - MEMORY HAT GAYA =====
-const Banner = mongoose.model('Banner', {
-  text: String, 
-  image: String, 
-  color: String,
-  updatedAt: {type: Date, default: Date.now}
-});
-// ================================================
+const Banner = mongoose.model('Banner', {text: String, image: String, color: String, updatedAt: {type: Date, default: Date.now}});
 
 async function sendWhatsApp(to, message) {console.log(`📲 WHATSAPP TO ${to}: ${message}`);}
 
@@ -106,6 +98,11 @@ app.delete('/api/menu/:id', async (req,res)=>{
 })
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
 
+// NAYA ROUTE 1: SAB KA MENU
+app.get('/api/menu/all', async (req,res)=> { 
+  res.json(await MenuItem.find({})); 
+});
+
 // ===== ADMIN APIs =====
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await RestaurantOwner.find({status: "Pending"})) });
 app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: "Pending"})) });
@@ -128,40 +125,26 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
 
-// ===== FIXED BANNER API WITH DB - AB KABHI NAHI UDEGA =====
+// ===== FIXED BANNER API WITH DB =====
 app.get('/api/promo', async (req,res)=>{ 
   const banner = await Banner.findOne().sort({updatedAt: -1});
   res.json(banner || { text: "", image: "", color: "#ff6600" })
 })
-
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{
   try{
     let imageUrl = "";
     const oldBanner = await Banner.findOne().sort({updatedAt: -1});
-    
     if(req.file){
-      const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {
-        folder: 'eat4bite_banners'
-      });
+      const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {folder: 'eat4bite_banners'});
       imageUrl = result.secure_url;
     } else {
       imageUrl = oldBanner ? oldBanner.image : "";
     }
-
-    await Banner.create({
-      text: req.body.text || "",
-      image: imageUrl,
-      color: req.body.color || "#ff6600"
-    });
+    await Banner.create({text: req.body.text || "", image: imageUrl, color: req.body.color || "#ff6600"});
     res.json({success:true, msg:"Banner Saved in DB"})
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
-
-app.delete('/api/admin/promo', async (req,res)=>{ 
-  await Banner.deleteMany({});
-  res.json({success:true, msg:"Banner Removed"}) 
-})
-// ===== END BANNER FIX =====
+app.delete('/api/admin/promo', async (req,res)=>{ await Banner.deleteMany({}); res.json({success:true, msg:"Banner Removed"}) })
 
 app.get('/api/admin/graph', async (req,res)=>{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)});
 app.get('/api/report', async (req,res)=>{
@@ -210,7 +193,24 @@ app.post('/api/admin/rider-deposit', async (req,res)=>{
 
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop ? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
 app.get('/api/orders', async (req,res)=>{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) });
-app.get('/api/restaurants', async (req,res)=>{ const shops = await RestaurantOwner.find({status: "Approved"}); res.json(shops.map(s => ({id: s.restaurantId, name: s.restaurantName, address: s.address, image: s.image_base64, upi_id: s.upi_id}))) });
+
+// UPDATED ROUTE 2: SEARCH + _id ADD KIYA
+app.get('/api/restaurants', async (req,res)=>{ 
+  const {search} = req.query;
+  let filter = {status: "Approved"};
+  if(search){
+    filter.restaurantName = { $regex: search, $options: 'i' }
+  }
+  const shops = await RestaurantOwner.find(filter); 
+  res.json(shops.map(s => ({
+    _id: s.restaurantId, // IMPORTANT for frontend
+    name: s.restaurantName, 
+    address: s.address, 
+    image: s.image_base64, 
+    upi_id: s.upi_id
+  }))) 
+});
+
 app.get('/api/rider/ledger', async (req,res)=>{const rider = await Rider.findOne({mobile: req.query.riderId});if(!rider) return res.json({success:false});const today = new Date(); today.setHours(0,0,0,0);const orders = await Order.find({riderId: req.query.riderId, createdAt: {$gte: today}});const collected = orders.reduce((a,b)=>a+Number(b.cashCollected), 0);res.json({ pending_cash: rider.cash_balance, limit: rider.cashLimit, today_collected: collected, today_orders: orders.length, progress: Math.round((rider.cash_balance / rider.cashLimit) * 100) })});
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.total}`); doc.end(); });
 
