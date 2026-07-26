@@ -7,16 +7,17 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-.navbar-brand{color:#ff6600!important; font-weight:bold}
-.nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;}
-.stat-card{border-radius:15px; color:white; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1)}
-.stat-card h3{font-size:28px; margin:0;}
-.new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
+   .navbar-brand{color:#ff6600!important; font-weight:bold}
+   .nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;}
+   .stat-card{border-radius:15px; color:white; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+   .stat-card h3{font-size:28px; margin:0;}
+   .new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
     @keyframes blink {50%{background:#fff3cd;}}
-.trial-banner{background:#D1E7DD; border-left:5px solid #0F5132}
-.alert-info{background:#d1ecf1; border-left:5px solid #0dcaf0}
-.progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden;}
-.progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
+   .trial-banner{background:#D1E7DD; border-left:5px solid #0F5132}
+   .alert-info{background:#d1ecf1; border-left:5px solid #0dcaf0}
+   .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden;}
+   .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
+   .map-box{border-radius:8px; overflow:hidden; margin-top:8px;}
 </style>
 </head>
 <body>
@@ -35,7 +36,6 @@
         <p class="mb-0"><b id="trialDays">0</b> days left. ₹2000/Year will apply after trial.</p>
     </div>
 
-    <!-- NEW 4 CARDS -->
     <div class="row mb-4">
         <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#28a745;"><h6>Today's Orders</h6><h3 id="todayOrders">0</h3></div></div>
         <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#007bff;"><h6>Today's Revenue</h6><h3 id="todayRevenue">₹0</h3></div></div>
@@ -43,7 +43,6 @@
         <div class="col-md-3 col-6 mb-3"><div class="stat-card" style="background:#dc3545;"><h6>Pending Orders</h6><h3 id="pendingOrders">0</h3></div></div>
     </div>
 
-    <!-- NEW: LEDGER CARD -->
     <div class="card shadow-sm p-3 mb-4">
         <h5>📊 Today's Ledger</h5>
         <div class="row">
@@ -63,7 +62,6 @@
     </ul>
 
     <div class="tab-content">
-        <!-- MENU TAB SAME -->
         <div class="tab-pane fade show active" id="menu">
             <div class="card shadow-sm p-3">
                 <h5 id="formTitle">Add New Item</h5>
@@ -86,7 +84,6 @@
             </div>
         </div>
 
-        <!-- ORDERS TAB SAME -->
         <div class="tab-pane fade" id="orders">
             <div class="card shadow-sm p-3">
                 <h5>New Orders</h5>
@@ -95,7 +92,6 @@
             </div>
         </div>
 
-        <!-- CASH TAB UPDATED -->
         <div class="tab-pane fade" id="cash">
             <div class="card shadow-sm p-3">
                 <h5>🏦 Rider Cash Confirmation</h5>
@@ -104,7 +100,6 @@
             </div>
         </div>
 
-        <!-- PAYOUT TAB SAME -->
         <div class="tab-pane fade" id="payout">
             <div class="card shadow-sm p-3">
                 <h5>💰 Restaurant Payout</h5>
@@ -156,7 +151,6 @@ function checkTrial(){
     }
 }
 
-// MENU CODE SAME AS YOURS...
 document.getElementById('imageFile').addEventListener('change', function(e){
     const file = e.target.files[0];
     if(!file) return;
@@ -186,6 +180,7 @@ async function loadMenu(){const res = await fetch(`${API}/api/menu?shop=${restau
 async function toggleStock(id){ await fetch(`${API}/api/menu/${id}/stock`, {method:'PUT'}); loadMenu(); }
 async function deleteItem(id){ if(confirm('Are you sure?')){ await fetch(`${API}/api/menu/${id}`, {method:'DELETE'}); loadMenu(); loadStats(); } }
 
+// UPDATED WITH MAP
 async function loadOrders(){
     try{
         const res = await fetch(`${API}/api/orders?shop=${restaurantId}`);
@@ -197,16 +192,43 @@ async function loadOrders(){
         let html = '';
         if(orders.length === 0) html = '<p class="text-center text-muted">No orders yet</p>';
         orders.forEach(o=>{
-            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}"><div class="d-flex justify-content-between"><div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone} | ${o.paymentMode || 'COD'}</small></div><h5 class="text-success">₹${o.total}</h5></div><p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p><p class="mb-1"><b>Bill:</b> Item ₹${o.item_total} | Your Cut: ₹${o.commission_5+o.platform_fee}</p><div class="d-flex gap-2 align-items-center mb-2"><b>Status:</b><select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;"><option ${o.status=='Pending'?'selected':''}>Pending</option><option ${o.status=='Preparing'?'selected':''}>Preparing</option><option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option><option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option><option ${o.status=='Delivered'?'selected':''}>Delivered</option></select></div><a href="/bill-template.html?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Print Bill</a></div>`;
+            const hasMap = o.custLat && o.custLng?
+            `<iframe src="https://www.google.com/maps?q=${o.custLat},${o.custLng}&z=15&output=embed"
+             width="100%" height="200" style="border:0;" class="map-box" loading="lazy"></iframe>`
+            : '<small class="text-muted">📍 Location not available</small>';
+
+            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}">
+                <div class="d-flex justify-content-between">
+                    <div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone} | ${o.paymentMode || 'COD'}</small></div>
+                    <h5 class="text-success">₹${o.total}</h5>
+                </div>
+                <p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p>
+                <p class="mb-1"><b>Address:</b> ${o.address}</p>
+
+                <!-- MAP BOX -->
+                <div class="mb-2">${hasMap}</div>
+
+                <p class="mb-1"><b>Bill:</b> Item ₹${o.item_total} | Your Cut: ₹${o.commission_5+o.platform_fee}</p>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <b>Status:</b>
+                    <select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;">
+                        <option ${o.status=='Pending'?'selected':''}>Pending</option>
+                        <option ${o.status=='Preparing'?'selected':''}>Preparing</option>
+                        <option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option>
+                        <option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option>
+                        <option ${o.status=='Delivered'?'selected':''}>Delivered</option>
+                    </select>
+                </div>
+                <a href="/bill-template.html?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Print Bill</a>
+            </div>`;
         });
         document.getElementById('ordersList').innerHTML = html;
     }catch(err){ document.getElementById('ordersList').innerHTML = '<p class="text-danger">Failed to load orders</p>'; }
 }
 
-// ✅ UPDATED CASH CONFIRM
 async function loadCashPending(){
-    const res = await fetch(`${API}/api/rider/ledger?riderId=all&shop=${restaurantId}`); // we will filter
-    const riders = await fetch(`${API}/api/riders`).then(r=>r.json());
+    const res = await fetch(`${API}/api/riders`);
+    const riders = await res.json();
     const shopRiders = riders.filter(r=>r.restaurantId === restaurantId && r.cash_balance > 0);
 
     if(shopRiders.length === 0) {
@@ -235,7 +257,6 @@ async function confirmCash(riderId){
     loadCashPending(); loadStats();
 }
 
-// ✅ UPDATED LEDGER STATS
 async function loadStats(){
     const res = await fetch(`${API}/api/restaurant/ledger?shop=${restaurantId}`);
     const data = await res.json();
