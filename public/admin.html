@@ -72,15 +72,20 @@ canvas{background:white; padding:10px; border-radius:8px;}
     <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
 </div>
 
-<!-- 3. PROMOTION BANNER - NAYA ADD KIYA -->
+<!-- 3. PROMOTION BANNER - FILE UPLOAD WALA -->
 <div class="card">
     <h2>📢 Promotion Banner</h2>
-    <p style="color:#666; font-size:13px;">Ye banner customer wali site ke upar dikhega</p>
-    <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF on First Order - CODE: FIRST50">
-    <input type="text" id="promoImage" placeholder="Image URL - agar image lagani hai to">
+    <p style="color:#666; font-size:13px;">Text ya Image dono daal sakte ho</p>
+
+    <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF - CODE: FIRST50">
+    <label><b>Ya Image Upload Karo:</b></label>
+    <input type="file" id="promoFile" accept="image/*">
+
     <input type="text" id="promoColor" placeholder="Background Color - Ex: #ff6600" value="#ff6600">
+
     <button class="btn-orange" onclick="updatePromo()">Update Banner</button>
     <button class="btn-red" onclick="removePromo()">Remove Banner</button>
+
     <div id="promoPreview" style="margin-top:10px;"></div>
 </div>
 
