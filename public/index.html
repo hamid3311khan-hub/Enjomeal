@@ -1,4 +1,8 @@
-<!DOCTYPE html><html lang="hi"><head><title>Eat4Bite™</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<title>Eat4Bite™</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
 *{margin:0;font-family:Arial} 
@@ -7,96 +11,164 @@ body.dark .card, body.dark .search-bar{background:#1e1e1e;color:#eee}
 nav{background:#ff6600;color:white;padding:15px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:100;align-items:center;}
 nav a{color:white;text-decoration:none;margin:0 10px;font-weight:bold} 
 nav button{background:none; border:none; color:white; cursor:pointer; font-size:16px;}
-.banner{color:white;text-align:center;padding:0;font-size:18px;font-weight:bold;border-radius:10px;margin:10px;display:none} 
+.banner{margin:10px;border-radius:10px;display:none} 
 .banner img{width:100%; border-radius:10px; display:block;}
 .search-bar{padding:15px;background:white;position:sticky;top:60px;z-index:99;position:relative;}
 body.dark .search-bar{background:#1e1e1e;}
 .search-bar input{width:95%;padding:12px;border-radius:20px;border:1px solid #ddd;font-size:16px;}
 #restaurantList{display:none; position:absolute; top:55px; left:15px; right:15px; background:white; border:1px solid #ddd; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); max-height:300px; overflow-y:auto; z-index:1000;}
 #restaurantList a{display:block; padding:12px 15px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;}
-#sysMenu{display:none; position:absolute; right:10px; top:50px; background:white; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); min-width:220px; z-index:9999;}
-#sysMenu a{display:block; padding:12px 15px; color:#333; text-decoration:none;}
+#restaurantList a:hover{background:#fff3e0;}
+body.dark #restaurantList{background:#2a2a2a; border-color:#444;}
+body.dark #restaurantList a{color:#eee; border-color:#333;}
+#sysMenu{display:none; position:absolute; right:10px; top:50px; background:white; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); min-width:220px; z-index:9999; overflow:hidden;}
+#sysMenu a{display:block; padding:12px 15px; color:#333; text-decoration:none; border-bottom:1px solid #eee;}
+#sysMenu a:hover{background:#f5f5f5;}
+body.dark #sysMenu{background:#2a2a2a;}
+body.dark #sysMenu a{color:#eee; border-color:#444;}
 .grid{display:grid; grid-template-columns:1fr; gap:15px; padding:10px;}
-.card{background:white;border-radius:12px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden;position:relative;}
+.card{background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden;}
 .card img{width:100%;height:180px;object-fit:cover;display:block;}
-.card h3{padding:12px 15px 5px 15px; font-size:18px; margin:0;}
-.restaurant-name{padding:0 15px; font-size:12px; color:#ff6600; font-weight:bold;}
+.card-body{padding:12px 15px;}
+.card h3{font-size:18px; margin:0 0 5px 0;}
 .card .price{font-weight:bold; font-size:18px; color:#ff6600;}
 button{background:#ff6600;color:white;border:none;padding:10px 15px;border-radius:5px;cursor:pointer}
-</style></head><body>
+.empty-state{text-align:center; padding:60px 20px; color:#999;}
+</style>
+</head>
+<body>
 
 <nav>
     <div><a href="/">🍴 Eat4Bite™ Home</a> <a href="/track">📦 Track</a></div>
     <div style="display:flex; gap:15px; align-items:center; position:relative;">
-        <button onclick="toggleDark()">🌙</button>
         <button onclick="showCart()" style="background:white;color:#ff6600;border-radius:20px;padding:8px 15px;font-weight:bold;">Cart (<span id="count">0</span>)</button>
         <div style="position:relative;">
             <button onclick="toggleSysMenu()" style="font-size:24px; padding:0 10px;">⋮</button>
-            <div id="sysMenu"><a href="/restaurant-login">🏪 Restaurant Login</a><a href="/restaurant-register">+ Add New Restaurant</a><a href="/rider">🚴 Rider Login</a><a href="/admin" style="color:red;">👑 Admin Panel</a></div>
+            <!-- 5 OPTION WAPAS -->
+            <div id="sysMenu">
+                <a href="/restaurant-login">🏪 Restaurant Login</a>
+                <a href="/restaurant-register">+ Add New Restaurant</a>
+                <a href="/rider-register">🚴 Rider Register</a>
+                <a href="/rider">🚴 Rider Login</a>
+                <a href="/admin" style="color:red;">👑 Admin Panel</a>
+            </div>
         </div>
     </div>
 </nav>
 
 <div id="promoBanner" class="banner"></div>
-<div class="container mt-3 mb-2"><a href="/restaurants" class="btn btn-warning w-100 fw-bold shadow-lg py-3 fs-5">🍽️ Switch Restaurant / More Restaurants</a></div>
-<div class="search-bar"><input id="search" placeholder="🔍 Search Restaurant Name..." onkeyup="searchRestaurant()" autocomplete="off"><div id="restaurantList"></div></div>
-<div class="grid" id="menu"><p style="text-align:center">Loading...</p></div>
+
+<div class="container mt-3 mb-2">
+  <a href="/restaurants" class="btn btn-warning w-100 fw-bold shadow-lg py-3 fs-5">🍽️ Switch Restaurant / More Restaurants</a>
+</div>
+
+<div class="search-bar">
+    <input id="search" placeholder="🔍 Search Restaurant Name..." onkeyup="searchRestaurant()" autocomplete="off">
+    <div id="restaurantList"></div>
+</div>
+
+<div class="grid" id="menu">
+    <div class="empty-state">
+        <h4>👆 Upar se Restaurant Search karein</h4>
+        <p>Ya "More Restaurants" button pe click karein</p>
+    </div>
+</div>
 
 <script>
 const API = 'https://quickbite-ymqk.onrender.com/api';
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
-let allItems = []; 
 let allRestaurants = [];
 const shopId = new URLSearchParams(window.location.search).get('shop');
 
 if(localStorage.getItem('dark')=='true') document.body.classList.add('dark');
-function toggleDark(){document.body.classList.toggle('dark');localStorage.setItem('dark', document.body.classList.contains('dark'));}
-function toggleSysMenu(){const menu = document.getElementById('sysMenu');menu.style.display = menu.style.display === 'block' ? 'none' : 'block';}
 
+function toggleSysMenu(){const menu = document.getElementById('sysMenu');menu.style.display = menu.style.display === 'block' ? 'none' : 'block';}
+document.addEventListener('click', function(e){if(!e.target.closest('#sysMenu') && !e.target.closest('button[onclick="toggleSysMenu()"]')){document.getElementById('sysMenu').style.display = 'none';}if(!e.target.closest('.search-bar')){document.getElementById('restaurantList').style.display = 'none';}})
+
+// BANNER LOAD
+async function loadBanner(){
+    try{
+        const res = await fetch(`${API}/promo`);
+        const banner = await res.json();
+        const div = document.getElementById('promoBanner');
+        if(banner.image){ 
+            div.innerHTML = `<img src="${banner.image}">`; 
+            div.style.display = 'block'; 
+        }
+    }catch(e){}
+}
+loadBanner();
+
+// RESTAURANT LIST LOAD
 fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{allRestaurants = data;})
 
+// SEARCH FUNCTION
 function searchRestaurant(){
     const query = document.getElementById('search').value.toLowerCase();
     const listDiv = document.getElementById('restaurantList');
     if(query.length < 1){ listDiv.style.display = 'none'; return; }
     const filtered = allRestaurants.filter(r => r.name.toLowerCase().includes(query));
-    listDiv.innerHTML = filtered.map(r => `<a href="/?shop=${r._id}"><b>${r.name}</b></a>`).join('');
-    listDiv.style.display = 'block';
+    if(filtered.length > 0){
+        listDiv.innerHTML = filtered.map(r => `<a href="/?shop=${r._id}"><b>${r.name}</b><br><small style="color:#888">${r.address||''}</small></a>`).join('');
+        listDiv.style.display = 'block';
+    } else {
+        listDiv.innerHTML = `<a style="color:#999">Koi restaurant nahi mila</a>`;
+        listDiv.style.display = 'block';
+    }
 }
 
-async function loadMenu(){
-  try{
-    const resRest = await fetch(`${API}/restaurants`);
-    allRestaurants = await resRest.json();
-    let url = `${API}/menu`;
-    if(shopId) url += `?shop=${shopId}`; else url += `/all`;
+// MENU LOAD FUNCTION
+async function loadMenuByShop(id){
+    document.getElementById('restaurantList').style.display = 'none';
+    const selected = allRestaurants.find(r=>r._id==id);
+    if(selected) document.getElementById('search').value = selected.name;
+    
+    document.getElementById('menu').innerHTML = '<p style="text-align:center">Loading...</p>';
+    let url = `${API}/menu?shop=${id}`;
     const res = await fetch(url);
-    allItems = await res.json();
-    displayItems(allItems);
-  }catch(e){document.getElementById('menu').innerHTML="<h3>Server Error</h3>"}
-} // <-- YAHI } LAGAYA
+    const items = await res.json();
+    displayItems(items);
+}
 
-loadMenu(); // <-- YAHI BAHAR NIKALA
+// PAGE LOAD PE CHECK
+if(shopId){
+    fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{
+        allRestaurants = data;
+        loadMenuByShop(shopId);
+    });
+}
 
 function displayItems(items){
-    if(items.length==0) document.getElementById('menu').innerHTML = "<p style='text-align:center'>Koi item nahi mila</p>";
-    else document.getElementById('menu').innerHTML = items.map((item, index)=>{
+    if(items.length==0) document.getElementById('menu').innerHTML = "<p style='text-align:center'>Is restaurant me koi item nahi hai</p>";
+    else document.getElementById('menu').innerHTML = items.map(item=>{
         const price = item.offer? Math.round(item.price*(1-item.offer/100)) : item.price;
-        const restName = allRestaurants.find(r=>r._id==item.restaurantId)?.name || '';
         return `
         <div class="card">
-            <img src="${item.image}">
-            <h3>${item.name}</h3>
-            ${!shopId && restName ? `<div class="restaurant-name">📍 ${restName}</div>` : ''}
-            <div style="padding:15px;display:flex;justify-content:space-between;">
-                <span class="price">₹${price}</span>
+            <img src="${item.image}" onerror="this.src='https://via.placeholder.com/300x200/ff6600/ffffff?text=Eat4Bite'">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h3>${item.name} ${item.offer?`<span style="color:red;background:#ffe0e0;padding:2px 6px;border-radius:4px; font-size:12px;">-${item.offer}%</span>`:''}</h3>
+                    <span class="price">₹${price}</span>
+                </div>
                 <button onclick='addToCart(${JSON.stringify(item)})'>Add +</button>
             </div>
         </div>`
     }).join('')
 }
-function addToCart(item){let cart=JSON.parse(localStorage.getItem('cart')||'[]'); cart.push(item); localStorage.setItem('cart',JSON.stringify(cart)); document.getElementById('count').innerText=cart.length; alert('Added')}
+
+function addToCart(item){
+    let cart=JSON.parse(localStorage.getItem('cart')||'[]'); 
+    const ex = cart.find(i=>i._id==item._id); 
+    if(ex) ex.qty++; 
+    else cart.push({...item, qty:1}); 
+    localStorage.setItem('cart',JSON.stringify(cart)); 
+    updateCart(); 
+    alert(item.name + " added to cart!")
+}
+
 function showCart(){window.location = '/cart';} 
+function updateCart(){document.getElementById('count').innerText = cart.reduce((s,i)=>s+i.qty,0);}
 updateCart();
-function updateCart(){document.getElementById('count').innerText = cart.length;}
-</script></body></html>
+</script>
+</body>
+</html>
