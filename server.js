@@ -8,7 +8,7 @@ const { Server } = require("socket.io");
 const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const fs = require('fs');
-const cloudinary = require('cloudinary').v2; // ✅ NEW
+const cloudinary = require('cloudinary').v2;
 const bcrypt = require('bcryptjs');
 const axios = require('axios');
 
@@ -25,7 +25,7 @@ cloudinary.config({
 });
 
 // Memory storage for cloudinary
-const upload = multer({ storage: multer.memoryStorage() }); // ✅ CHANGED
+const upload = multer({ storage: multer.memoryStorage() });
 
 if (!fs.existsSync('./uploads')){ fs.mkdirSync('./uploads'); }
 
@@ -36,14 +36,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.4.0 Cloudinary'))
+.then(()=>console.log('✅ MongoDB Connected v3.5.1 Eat4Bite'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
 
-const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"},registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},image: {type: String, default: null}, // ✅ base64 hatake image kiya
-upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},trial_end_date: {type: Date}, payout_due: {type: Number, default: 0},paymentStatus: {type: String, default: "Paid"}, lastPaymentDate: {type: Date, default: Date.now},nextDueDate: {type: Date}, createdAt: {type: Date, default: Date.now}});
+const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,password: String, status: {type: String, default: "Pending"}, plan: {type: String, default: "Trial"},
+registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},image: {type: String, default: null},
+upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},trial_end_date: {type: Date}, plan_expiry: {type: Date},
+payout_due: {type: Number, default: 0},paymentStatus: {type: String, default: "Pending"}, lastPaymentDate: {type: Date, default: Date.now},nextDueDate: {type: Date}, createdAt: {type: Date, default: Date.now}});
 
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000},weekly_orders: {type: Number, default: 0}, weekly_bonus: {type: Number, default: 0}});
 
@@ -72,33 +74,102 @@ function calculateBill(item_total) {
   return {item_total, commission_5, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total, is_peak};
 }
 
-// ===== NEW: MENU API WITH CLOUDINARY =====
+// ===== MENU API WITH CLOUDINARY =====
 app.post('/api/menu', upload.single('image'), async (req,res)=>{
   try{
-    let imageUrl = req.body.image; // edit ke time purana url
-
-    if(req.file){ // naya image aaya hai
+    let imageUrl = req.body.image;
+    if(req.file){
       const uploadResult = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          { folder: "eat4bite/menu", resource_type: "image" },
-          (error, result) => {
-            if (error) reject(error); else resolve(result);
-          }
-        ).end(req.file.buffer);
+        cloudinary.uploader.upload_stream({ folder: "eat4bite/menu", resource_type: "image" },(error, result) => {if (error) reject(error); else resolve(result);}).end(req.file.buffer);
       });
       imageUrl = uploadResult.secure_url;
     }
-
     const data = {...req.body, image: imageUrl, price: Number(req.body.price), veg: req.body.veg === 'true'};
     await new MenuItem(data).save();
     res.json({success:true, msg:"Item Added!"})
-  }catch(e){
-    console.log(e);
-    res.json({success:false, msg:e.message})
-  }
+  }catch(e){ res.json({success:false, msg:e.message}) }
 })
 
-// ===== ALL YOUR OLD APIs =====
+// ===== 1. REGISTER WITH QR + AUTO ID =====
+app.post('/api/restaurant/register', async (req,res)=>{
+  try{
+    let {restaurantId, restaurantName, ownerName, mobile, email, address, password, image_base64} = req.body;
+    
+    // FIX 1: Auto generate restaurantId
+    if(!restaurantId) restaurantId = restaurantName.toLowerCase().replace(/ /g,'-') + '-' + Date.now();
+
+    const exists = await RestaurantOwner.findOne({$or: [{mobile}, {email}, {restaurantId}]});
+    if(exists) return res.json({success:false, msg: "Mobile/Email/ID already exists"});
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await new RestaurantOwner({
+      restaurantId, restaurantName, ownerName, mobile, email, address,
+      password: hashedPassword, 
+      image: image_base64,
+      plan: "Trial",
+      paymentStatus: "Pending",
+      registration_fee_paid: 200,
+      upi_id: "tanbalkhi2014-3@okhdfcbank"
+    }).save();
+    
+    res.json({success:true, upi_id: "tanbalkhi2014-3@okhdfcbank", msg: "Registered. Pay ₹200"})
+  }catch(e){ res.json({success:false, msg:e.message}) }
+});
+
+// ===== 2. LOGIN WITH EMAIL =====
+app.post('/api/restaurant/login', async (req,res)=>{ 
+  const {email, password} = req.body;
+  const shop = await RestaurantOwner.findOne({email});
+  if(!shop) return res.json({success:false, msg:"Email not registered"});
+  if(shop.status !== "Approved") return res.json({success:false, msg:"Approval pending"});
+  const valid = await bcrypt.compare(password, shop.password);
+  if(!valid) return res.json({success:false, msg:"Wrong password"});
+  res.json({success:true, shop})
+});
+
+// ===== 3. ALL RESTAURANTS FOR ADMIN =====
+app.get('/api/restaurant/requests', async (req,res)=>{
+  try{
+    const restaurants = await RestaurantOwner.find({});
+    res.json(restaurants);
+  }catch(e){ res.json([]) }
+});
+
+// FIX 2: Old route bhi sab bhejega ab
+app.get('/api/admin/pending-restaurants', async (req,res)=>{ 
+  res.json(await RestaurantOwner.find({}))
+});
+
+// ===== 4. APPROVE + TRIAL DATE SET =====
+app.put('/api/restaurant/approve/:id', async (req,res)=>{
+  try{
+    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);
+    await RestaurantOwner.findByIdAndUpdate(req.params.id, {
+      status:"Approved", 
+      trial_end_date:trialEnd,
+      paymentStatus: "Paid",
+      lastPaymentDate: new Date()
+    });
+    res.json({success:true, msg:"Restaurant Approved. 30 Days Trial Started"})
+  }catch(e){ res.json({success:false}) }
+});
+
+// ===== 5. ANNUAL UPGRADE =====
+app.post('/api/restaurant/upgrade-annual/:id', async (req,res)=>{
+  try{
+    const nextYear = new Date(); nextYear.setFullYear(nextYear.getFullYear() + 1);
+    await RestaurantOwner.findByIdAndUpdate(req.params.id, {
+      plan: "Annual",
+      plan_expiry: nextYear,
+      paymentStatus: "Paid",
+      lastPaymentDate: new Date(),
+      registration_fee_paid: 2000
+    });
+    res.json({success:true, msg:"Upgraded to Annual Plan"})
+  }catch(e){ res.json({success:false}) }
+});
+
+// ===== BAAD WALE SAB API SAME =====
 app.put('/api/order/assign', async (req,res)=>{
   const rider = await Rider.findOne({mobile: req.body.riderId});
   if(!rider){ return res.json({success:false, msg:"Rider not found"}); }
@@ -113,23 +184,10 @@ app.post('/api/order/delivered', async (req,res)=>{const {orderId, cashCollected
 
 app.post('/api/coupon/validate', async (req,res)=>{const {code} = req.body;const offer = await Offer.findOne({code: code.toUpperCase()});if(!offer) return res.json({success:false, msg:"Invalid Coupon"});res.json({success:true, discount: offer.discount, type: offer.type});});
 
-app.post('/api/restaurant/register', async (req,res)=>{try{const {restaurantId, restaurantName, ownerName, mobile, email, address, password, upi_id} = req.body;const exists = await RestaurantOwner.findOne({$or: [{mobile}, {email}, {restaurantId}]});if(exists) return res.json({success:false, msg: "Mobile/Email/ID already exists"});const hashedPassword = await bcrypt.hash(password, 10);let trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30);await new RestaurantOwner({...req.body, password: hashedPassword, upi_id, trial_end_date: trialEnd}).save();res.json({success:true, msg: "Registered. Approval pending."})}catch(e){ res.json({success:false, msg:e.message}) }});
-
-app.post('/api/restaurant/login', async (req,res)=>{ 
-  const {mobile, password} = req.body;
-  const shop = await RestaurantOwner.findOne({mobile});
-  if(!shop) return res.json({success:false, msg:"Mobile not registered"});
-  if(shop.status !== "Approved") return res.json({success:false, msg:"Approval pending"});
-  const valid = await bcrypt.compare(password, shop.password);
-  if(!valid) return res.json({success:false, msg:"Wrong password"});
-  res.json({success:true, shop})
-});
-
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop ? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}\nPayment: ${req.body.paymentMode}\nAddress: ${req.body.address}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
 
 app.get('/api/admin/graph', async (req,res)=>{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)});
 
-app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await RestaurantOwner.find({status: "Pending"})) });
 app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: "Pending"})) });
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) });
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status:"Online"}); res.json({success:true, msg:"Rider Approved"}) });
@@ -216,4 +274,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.4.0 Cloudinary on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.5.1 Eat4Bite on ${PORT}`));
