@@ -27,12 +27,15 @@ body.dark #restaurantList a{color:#eee; border-color:#333;}
 body.dark #sysMenu{background:#2a2a2a;}
 body.dark #sysMenu a{color:#eee; border-color:#444;}
 .grid{display:grid; grid-template-columns:1fr; gap:15px; padding:10px;}
-.card{background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);overflow:hidden;}
-.card img{width:100%;height:180px;object-fit:cover;display:block;}
-.card-body{padding:12px 15px;}
-.card h3{font-size:18px; margin:0 0 5px 0;}
-.card .price{font-weight:bold; font-size:18px; color:#ff6600;}
-button{background:#ff6600;color:white;border:none;padding:10px 15px;border-radius:5px;cursor:pointer}
+.card {background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;margin-bottom:15px;display:flex;gap:12px;padding:12px;align-items:center;}
+.card img{width:100px;height:100px;object-fit:cover;border-radius:10px;flex-shrink:0;}
+.card-content{flex:1;}
+.card h3{font-size:16px; margin:0 0 4px 0;font-weight:600;}
+.card .price{font-weight:bold; font-size:15px; color:#ff6600;}
+.add-btn{background:#fff;color:#ff6600;border:1px solid #ff6600;padding:6px 14px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;white-space: nowrap;}
+.add-btn:hover{background:#fff3e0;}
+body.dark .card{background:#1e1e1e;}
+body.dark .add-btn{background:#2a2a2a; color:#ff6600;}
 .empty-state{text-align:center; padding:60px 20px; color:#999;}
 </style>
 </head>
@@ -44,7 +47,6 @@ button{background:#ff6600;color:white;border:none;padding:10px 15px;border-radiu
         <button onclick="showCart()" style="background:white;color:#ff6600;border-radius:20px;padding:8px 15px;font-weight:bold;">Cart (<span id="count">0</span>)</button>
         <div style="position:relative;">
             <button onclick="toggleSysMenu()" style="font-size:24px; padding:0 10px;">⋮</button>
-            <!-- 5 OPTION WAPAS -->
             <div id="sysMenu">
                 <a href="/restaurant-login">🏪 Restaurant Login</a>
                 <a href="/restaurant-register">+ Add New Restaurant</a>
@@ -140,20 +142,21 @@ if(shopId){
 
 function displayItems(items){
     if(items.length==0) document.getElementById('menu').innerHTML = "<p style='text-align:center'>Is restaurant me koi item nahi hai</p>";
-    else document.getElementById('menu').innerHTML = items.map(item=>{
-        const price = item.offer? Math.round(item.price*(1-item.offer/100)) : item.price;
-        return `
-        <div class="card">
-            <img src="${item.image}" onerror="this.src='https://via.placeholder.com/300x200/ff6600/ffffff?text=Eat4Bite'">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <h3>${item.name} ${item.offer?`<span style="color:red;background:#ffe0e0;padding:2px 6px;border-radius:4px; font-size:12px;">-${item.offer}%</span>`:''}</h3>
+    else {
+        document.getElementById('menu').innerHTML = items.map(item=>{
+            const price = item.offer? Math.round(item.price*(1-item.offer/100)) : item.price;
+            return `
+            <div class="card">
+                <img src="${item.image}" onerror="this.src='https://via.placeholder.com/100x100/ff6600/ffffff?text=Food'">
+                <div class="card-content">
+                    <h3>${item.name} ${item.offer?`<span style="color:red;font-size:11px;">-${item.offer}%</span>`:''}</h3>
                     <span class="price">₹${price}</span>
                 </div>
-                <button onclick='addToCart(${JSON.stringify(item)})'>Add +</button>
-            </div>
-        </div>`
-    }).join('')
+                <button class="add-btn" onclick='addToCart(${JSON.stringify(item)})'>ADD +</button>
+            </div>`
+        }).join('');
+        document.getElementById('menu').scrollIntoView({behavior: 'smooth'});
+    }
 }
 
 function addToCart(item){
