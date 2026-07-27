@@ -158,18 +158,30 @@ app.post('/api/admin/rider-deposit', async (req,res)=>{ try{
   res.json({success:true})
 }catch(e){ res.json({success:false}) }});
 
+// ===== FIXED BANNER ROUTE =====
 app.get('/api/admin/promo', async (req,res)=>{ try{ res.json(await Banner.findOne().sort({updatedAt:-1}) || {}) }catch(e){ res.json({}) }});
+
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{ try{
-  let imageUrl = '';
-  if(req.file){
-    const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`);
+  const existing = await Banner.findOne({});
+
+  let imageUrl = existing?.image || ''; // purani image le lo
+  if(req.file){ // nayi image aayi to upload karo
+    const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {folder: 'eat4bite-banners'});
     imageUrl = result.secure_url;
   }
-  await Banner.deleteMany({});
-  await new Banner({text:req.body.text, image:imageUrl, color:req.body.color}).save();
+
+  await Banner.findOneAndUpdate({}, {
+    text: req.body.text,
+    image: imageUrl,
+    color: req.body.color,
+    updatedAt: new Date()
+  }, {upsert: true});
+
   res.json({success:true})
 }catch(e){ res.json({success:false, msg:e.message}) }});
+
 app.delete('/api/admin/promo', async (req,res)=>{ try{ await Banner.deleteMany({}); res.json({success:true}) }catch(e){ res.json({success:false}) }});
+// ===== BANNER ROUTE END =====
 
 app.post('/api/broadcast', async (req,res)=>{ try{
   const owners = await RestaurantOwner.find({status:"Approved"});
