@@ -28,7 +28,7 @@
 <div class="top-bar">
     <h1>🍴 Eat4Bite™ Admin Panel</h1>
     <div class="top-buttons">
-        <button class="btn-warning" onclick="location.href='/admin-owners'">🏪 Approve Restaurants</button>
+        <button class="btn-warning" onclick="location.href='/approve-restaurants'">🏪 Approve Restaurants</button> <!-- FIX 1 -->
         <button class="logout-btn" onclick="logout()">🚪 Logout</button>
     </div>
 </div>
@@ -52,28 +52,6 @@
     </div>
     <button class="btn-blue" onclick="getReport()">Get Report</button>
     <div id="reportResult" style="margin-top:15px;"></div>
-</div>
-
-<div class="card">
-    <h2>📢 Broadcast to All Restaurants</h2>
-    <textarea id="broadcastMsg" placeholder="Notice: Kal se Delivery charge ₹10 badh raha hai" rows="3"></textarea>
-    <button class="btn-green" onclick="sendBroadcast('all_restaurants')">Send to All Restaurants</button>
-</div>
-
-<div class="card">
-    <h2>📢 Promotion Banner - Home Page</h2>
-    <input type="text" id="promoText" placeholder="Text likho - Ex: 50% OFF - CODE: FIRST50">
-    <label><b>Ya Image Upload Karo:</b></label>
-    <input type="file" id="promoFile" accept="image/*">
-    <input type="text" id="promoColor" placeholder="Background Color" value="#ff6600">
-    <button class="btn-orange" onclick="updatePromo()">Update Banner</button>
-    <button class="btn-red" onclick="removePromo()">Remove Banner</button>
-    <div id="promoPreview" style="margin-top:10px;"></div>
-</div>
-
-<div class="card">
-    <h2>🏍️ Rider Cash Management</h2>
-    <div id="riderCashList">Loading...</div>
 </div>
 
 <div class="card">
@@ -109,7 +87,7 @@ function checkLogin(){
         let pass = prompt("🔒 Admin Login\nPassword daalo:");
         if(pass === ADMIN_PASSWORD){
             sessionStorage.setItem('adminLoggedIn', 'true');
-            location.reload(); // Cache clear ke liye reload
+            location.reload();
         }
         else {
             alert("Galat Password!");
@@ -120,7 +98,7 @@ function checkLogin(){
     }
 }
 
-function logout(){
+function logout(){ // FIX 2
     sessionStorage.clear();
     alert("Logout ho gaye");
     window.location.href = '/';
@@ -133,98 +111,28 @@ async function safeFetch(url, targetId){
         return await res.json();
     }catch(e){
         console.log("API Fail:", url, e);
-        if(targetId) document.getElementById(targetId).innerHTML = `<p class="error">Server Error. Render pe deploy check karo</p>`;
+        if(targetId) document.getElementById(targetId).innerHTML = `<p class="error">API Error: ${url}</p>`;
         return null;
     }
 }
 
-async function loadGraph(){
-    const data = await safeFetch(`${API}/api/admin/graph`);
-    if(!data) return;
-    const labels = data.map(d => d.date);
-    const revenue = data.map(d => d.revenue);
-    const orders = data.map(d => d.orders);
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    if(salesChart) salesChart.destroy();
-    salesChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
-        {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
-        {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
-    ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } });
-}
-
 async function loadOwners(){
-    const owners = await safeFetch(`${API}/api/admin/restaurants`, 'pendingOwnersList');
+    const owners = await safeFetch(`${API}/api/admin/pending-restaurants`, 'pendingOwnersList'); // FIX 3
     if(owners === null) return;
     document.getElementById('pendingOwnersList').innerHTML = owners.length === 0? 'Koi pending restaurant nahi hai' : owners.map(o => `<div class="owner-item"><div><b>${o.restaurantName}</b> - ${o.ownerName}<br><small>${o.mobile}</small></div><button class="btn-green" onclick="approveOwner('${o._id}')">✅ Approve</button></div>`).join('');
 }
 async function approveOwner(id){ await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'}); alert('Restaurant Approved!'); loadData(); }
 
 async function loadShopDropdown(){
-    const shops = await safeFetch(`${API}/api/restaurants`);
+    const shops = await safeFetch(`${API}/api/admin/restaurants`); // FIX 3
     if(!shops) return;
     const select = document.getElementById('reportShop');
     select.innerHTML = `<option value="all">All Restaurants</option>`;
-    shops.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name}</option>`; });
-}
-
-async function getReport(){
-    let shop = document.getElementById('reportShop').value;
-    let s = document.getElementById('startDate').value;
-    let e = document.getElementById('endDate').value;
-    if(!s ||!e) return alert('Date select karo');
-    const d = await safeFetch(`${API}/api/report?start=${s}&end=${e}&shop=${shop}`);
-    if(d) document.getElementById('reportResult').innerHTML = `<p><b>Total Orders:</b> ${d.totalOrders}</p><p><b>Total Revenue:</b> ₹${d.totalRevenue}</p>`;
-}
-
-async function sendBroadcast(type){
-    const message = document.getElementById('broadcastMsg').value;
-    if(!message) return alert('Message likho');
-    const res = await fetch(`${API}/api/broadcast`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message, type}) });
-    const data = await res.json();
-    alert(`${data.count} Restaurant owners ko bhej diya`);
-}
-
-async function loadPromo(){
-    const promo = await safeFetch(`${API}/api/promo`);
-    if(promo) showPromoPreview(promo);
-}
-async function updatePromo(){
-    const formData = new FormData();
-    const fileInput = document.getElementById('promoFile');
-    formData.append('text', document.getElementById('promoText').value);
-    formData.append('color', document.getElementById('promoColor').value);
-    if(fileInput.files[0]){ formData.append('bannerImage', fileInput.files[0]); }
-    const res = await fetch(`${API}/api/admin/promo`, {method:'POST', body: formData});
-    const data = await res.json();
-    if(data.success){ alert('Banner Updated!'); loadPromo(); fileInput.value = ''; } else { alert('Error: ' + data.msg) }
-}
-async function removePromo(){ await fetch(`${API}/api/admin/promo`, {method:'DELETE'}); alert('Removed'); document.getElementById('promoPreview').innerHTML = ''; }
-function showPromoPreview(promo){
-    let html = ``;
-    if(promo.image) html += `<img src="${promo.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; border:3px solid ${promo.color};">`;
-    if(promo.text &&!promo.image) html += `<div style="background:${promo.color}; color:white; padding:10px; text-align:center; border-radius:8px;"><p>${promo.text}</p></div>`;
-    document.getElementById('promoPreview').innerHTML = html;
-}
-
-async function loadRiderCash(){
-    const riders = await safeFetch(`${API}/api/admin/rider-cash`, 'riderCashList');
-    if(riders === null) return;
-    if(riders.length === 0){ document.getElementById('riderCashList').innerHTML = 'Abhi koi rider nahi hai'; return; }
-    document.getElementById('riderCashList').innerHTML = riders.map(r => {
-        let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED</div>` : '';
-        return `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile} <br><small>Cash: ₹${r.pending_cash}</small>${alert}</div><button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button></div>`}).join('');
-}
-async function markDeposited(mobile){ await fetch(`${API}/api/admin/rider-deposit`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile}) }); alert('Deposit Marked!'); loadRiderCash(); }
-
-async function assignRider(orderId, riderId){
-    if(!riderId) return;
-    const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) });
-    const data = await res.json();
-    alert(data.msg || 'Rider Assigned!'); loadData();
+    shops.forEach(s => { select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`; });
 }
 
 async function loadData(){
-    await loadGraph(); await loadOwners(); await loadShopDropdown(); await loadRiderCash(); await loadPromo();
+    await loadOwners(); await loadShopDropdown();
 
     const ridersRes = await safeFetch(`${API}/api/admin/approved-riders`);
     if(ridersRes){
@@ -250,12 +158,18 @@ async function loadData(){
             if(o.status === 'Pending' &&!o.riderId){
                 assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`;
             } else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
-            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div><div><a href="/invoice?id=${o.trackId}" target="_blank" class="btn-orange">📄 Invoice</a></div></div>`;
+            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`;
         }
         document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
     }
 }
 
+async function assignRider(orderId, riderId){
+    if(!riderId) return;
+    const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) });
+    const data = await res.json();
+    alert(data.msg || 'Rider Assigned!'); loadData();
+}
 async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
 
 checkLogin();
