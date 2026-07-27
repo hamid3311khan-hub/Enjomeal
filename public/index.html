@@ -61,10 +61,10 @@ body.dark .add-btn{background:#2a2a2a; color:#ff6600;}
     </div>
 </nav>
 
-<!-- NAYA BANNER SECTION - ADMIN SE JO BHEJA JAYEGA WO YAHAN DIKHEGA -->
+<!-- BANNER SECTION - ADMIN SE JO BHEJA JAYEGA WO YAHAN DIKHEGA -->
 <div id="homeBanner" class="container-fluid p-0 mb-3" style="display:none;">
   <div id="bannerBox" class="text-center fw-bold text-white">
-    <img id="bannerImg" src="" class="img-fluid w-100" style="max-height:220px; object-fit:cover;">
+    <img id="bannerImg" src="" class="img-fluid w-100" style="max-height:220px; object-fit:cover;" onerror="this.style.display='none'">
     <div id="bannerTextDiv" class="p-3" style="font-size:18px;"></div>
   </div>
 </div>
@@ -96,13 +96,21 @@ if(localStorage.getItem('dark')=='true') document.body.classList.add('dark');
 function toggleSysMenu(){const menu = document.getElementById('sysMenu');menu.style.display = menu.style.display === 'block' ? 'none' : 'block';}
 document.addEventListener('click', function(e){if(!e.target.closest('#sysMenu') && !e.target.closest('button[onclick="toggleSysMenu()"]')){document.getElementById('sysMenu').style.display = 'none';}if(!e.target.closest('.search-bar')){document.getElementById('restaurantList').style.display = 'none';}})
 
-// UPDATED BANNER FUNCTION
+// FIXED BANNER FUNCTION
 async function loadBanner(){
     try{
-        const res = await fetch(`${API}/promo`);
+        const res = await fetch(`${API}/admin/promo`); // /admin/ add kiya
         const banner = await res.json();
-        if(banner && banner.text){
-            document.getElementById('homeBanner'
+        console.log("Banner Data:", banner)
+        if(banner && banner.image){
+            document.getElementById('homeBanner').style.display = 'block';
+            document.getElementById('bannerImg').src = banner.image;
+            document.getElementById('bannerTextDiv').innerText = banner.text;
+            document.getElementById('bannerBox').style.background = banner.color || '#ff6600';
+        }
+    }catch(e){console.log("Banner load error", e)}
+}
+loadBanner();
 
 fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{allRestaurants = data;})
 
