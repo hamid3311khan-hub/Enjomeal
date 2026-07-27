@@ -42,7 +42,16 @@
             </div>
 
             <button type="button" class="plan-info-btn" onclick="togglePlanInfo()">ℹ️ View Annual Support Plan - ₹2000/Year</button>
-            <div id="planDetails" class="plan-details"> ... Plan Details ... </div>
+            <div id="planDetails" class="plan-details">
+                <h6>Annual Support Plan Benefits:</h6>
+                <ul class="mb-2">
+                    <li>1 Year Platform Access</li>
+                    <li>Unlimited Orders</li>
+                    <li>Priority Support</li>
+                    <li>Free Marketing Tools</li>
+                    <li>Low 5% Commission Only</li>
+                </ul>
+            </div>
 
             <div class="mb-3 mt-2"><label class="form-label">Owner Name</label><input type="text" name="ownerName" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
@@ -84,7 +93,7 @@
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com'; // FIX 1: API URL DAAL DIYA
+const API = 'https://quickbite-ymqk.onrender.com'; 
 let selectedAmount = 200;
 let selectedPlan = 'Trial';
 
@@ -126,12 +135,11 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
     const btn = e.target.querySelector('button');
     btn.disabled = true; btn.innerText = "Registering...";
 
-    const formData = new FormData(e.target); // FIX 2: JSON ki jagah FormData
+    const formData = new FormData(e.target);
     formData.append('plan', selectedPlan);
     formData.append('amount', selectedAmount);
 
     try {
-        // FIX 3: API URL SAHI KIYA
         const res = await fetch(`${API}/api/restaurant-register`, {method: 'POST', body: formData});
         const result = await res.json();
 
