@@ -61,7 +61,7 @@ body.dark .add-btn{background:#2a2a2a; color:#ff6600;}
     </div>
 </nav>
 
-<!-- BANNER SECTION -->
+<!-- BANNER SECTION - Teri wali gane ki pic yahi rahegi -->
 <div id="homeBanner" class="container-fluid p-0 mb-3" style="display:none;">
   <div id="bannerBox" class="text-center fw-bold text-white">
     <img id="bannerImg" src="" class="img-fluid w-100" style="max-height:220px; object-fit:cover; display:block;">
@@ -96,29 +96,28 @@ if(localStorage.getItem('dark')=='true') document.body.classList.add('dark');
 function toggleSysMenu(){const menu = document.getElementById('sysMenu');menu.style.display = menu.style.display === 'block' ? 'none' : 'block';}
 document.addEventListener('click', function(e){if(!e.target.closest('#sysMenu') && !e.target.closest('button[onclick="toggleSysMenu()"]')){document.getElementById('sysMenu').style.display = 'none';}if(!e.target.closest('.search-bar')){document.getElementById('restaurantList').style.display = 'none';}})
 
-// FINAL BANNER FUNCTION WITH CACHE BUST
+// BANNER FUNCTION
 async function loadBanner(){
     try{
         const res = await fetch(`${API}/admin/promo?v=` + Date.now());
         const banner = await res.json();
-        console.log("Banner Data:", banner)
         if(banner && banner.image){
             document.getElementById('homeBanner').style.display = 'block';
-            document.getElementById('bannerImg').src = banner.image + '?v=' + Date.now(); // cache bust
+            document.getElementById('bannerImg').src = banner.image + '?v=' + Date.now();
             document.getElementById('bannerTextDiv').innerText = banner.text;
             document.getElementById('bannerBox').style.background = banner.color || '#ff6600';
         }
     }catch(e){console.log("Banner load error", e)}
 }
 
-// FEATURED RESTAURANTS FUNCTION - NAYA ADD KIYA
+// FEATURED RESTAURANTS - FIXED
 async function loadFeatured(){
-    if(shopId) return; // agar koi restaurant already select hai to mat dikhao
+    if(shopId) return;
     
     try{
         const res = await fetch(`${API}/restaurants`);
         const restaurants = await res.json();
-        allRestaurants = restaurants; // search ke liye bhi save kar liya
+        allRestaurants = restaurants;
         
         if(restaurants.length > 0){
             document.getElementById('menu').innerHTML = `
@@ -142,6 +141,7 @@ async function loadFeatured(){
     }catch(e){console.log("Featured load error", e)}
 }
 
+// SEARCH - FIXED
 function searchRestaurant(){
     const query = document.getElementById('search').value.toLowerCase();
     const listDiv = document.getElementById('restaurantList');
@@ -173,7 +173,6 @@ if(shopId){
         loadMenuByShop(shopId);
     });
 } else {
-    // Agar koi shop select nahi hai to featured load karo
     loadBanner();
     loadFeatured();
 }
