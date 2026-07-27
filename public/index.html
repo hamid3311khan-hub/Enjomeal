@@ -110,9 +110,37 @@ async function loadBanner(){
         }
     }catch(e){console.log("Banner load error", e)}
 }
-loadBanner();
 
-fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{allRestaurants = data;})
+// FEATURED RESTAURANTS FUNCTION - NAYA ADD KIYA
+async function loadFeatured(){
+    if(shopId) return; // agar koi restaurant already select hai to mat dikhao
+    
+    try{
+        const res = await fetch(`${API}/restaurants`);
+        const restaurants = await res.json();
+        allRestaurants = restaurants; // search ke liye bhi save kar liya
+        
+        if(restaurants.length > 0){
+            document.getElementById('menu').innerHTML = `
+                <h3 style="padding:10px 15px; margin:0;">🔥 Featured Restaurants</h3>
+                <div class="grid">
+                ${restaurants.slice(0,6).map(r=>`
+                    <div class="card" onclick="window.location='/?shop=${r._id}'" style="cursor:pointer;">
+                        <img src="${r.image || 'https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'}" onerror="this.src='https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'">
+                        <div class="card-body">
+                            <h3>${r.name}</h3>
+                            <p style="font-size:12px; color:#888; margin:0;">${r.address || 'Nearby'}</p>
+                            <div class="card-footer">
+                                <span style="color:#00a000; font-weight:bold;">View Menu →</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+                </div>
+            `;
+        }
+    }catch(e){console.log("Featured load error", e)}
+}
 
 function searchRestaurant(){
     const query = document.getElementById('search').value.toLowerCase();
@@ -144,6 +172,10 @@ if(shopId){
         allRestaurants = data;
         loadMenuByShop(shopId);
     });
+} else {
+    // Agar koi shop select nahi hai to featured load karo
+    loadBanner();
+    loadFeatured();
 }
 
 function displayItems(items){
