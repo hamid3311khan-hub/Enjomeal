@@ -19,7 +19,7 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden; margin:10px 0;}
 .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
 .cash-input{border:2px solid #ff6600 !important}
-.btn-directions{background:#007bff; margin-top:8px;}
+.btn-directions{background:#007bff; margin-top:8px; color:white; text-decoration:none; padding:8px; border-radius:6px; display:inline-block;}
 </style>
 </head>
 <body>
@@ -57,7 +57,7 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const API = '';
+const API = 'https://quickbite-ymqk.onrender.com';
 const socket = io();
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null; let customerMarkers = {};
 
@@ -81,7 +81,6 @@ function showTab(tab, btn){
   document.getElementById('tab-'+tab).style.display='block';
 }
 
-// FIX 1: Button enable/disable wala function
 function updateStatusUI(status){
   document.getElementById('riderStatus').innerText = status;
   if(status === 'Online'){
@@ -96,7 +95,7 @@ function updateStatusUI(status){
 async function riderLogin(){
   const mobile = document.getElementById('riderMobile').value;
   if(mobile.length!=10) return alert('Enter 10 digit mobile');
-  const res = await fetch(`${API}/api/rider/login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
+  const res = await fetch(`${API}/api/rider-login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
   const data = await res.json();
   if(data.success){
     riderData = data.rider;
@@ -108,7 +107,7 @@ async function riderLogin(){
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
 async function goOnline(){
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
+  await fetch(`${API}/api/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
   riderData.status = 'Online';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   updateStatusUI('Online');
@@ -117,7 +116,7 @@ async function goOnline(){
 
 async function goOffline(){
   clearInterval(locationInterval);
-  await fetch(`${API}/api/rider/${riderData._id}/status`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
+  await fetch(`${API}/api/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
   riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   updateStatusUI('Approved');
@@ -145,7 +144,7 @@ async function loadHisab(){
   document.getElementById('cashInHand').innerText = data.pending_cash || 0;
   document.getElementById('cashPending').innerText = data.pending_cash || 0;
   document.getElementById('todayCollection').innerText = data.today_collected || 0;
-  document.getElementById 'todayOrders').innerText = data.today_orders || 0;
+  document.getElementById('todayOrders').innerText = data.today_orders || 0; // FIXED
   
   const percent = data.progress || 0;
   document.getElementById('limitBar').style.width = percent + '%';
@@ -154,16 +153,15 @@ async function loadHisab(){
   if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; } else { document.getElementById('cashAlert').style.display = 'none'; }
 }
 
-// FIX 2: Socket se auto order update
-socket.on('new_order', (order) => {
-  if(order.riderId === riderData.mobile){
-    alert(`Naya Order Aaya! ${order.trackId}`);
-    loadMyOrders(); // turant list refresh
+socket.on('newOrderForRider', (data) => { // FIXED event name
+  if(data.riderId === riderData.mobile){
+    alert(`Naya Order Aaya!`);
+    loadMyOrders();
   }
 });
 
 async function loadMyOrders(){
-  const res = await fetch(`${API}/api/rider/orders/${riderData.mobile}`);
+  const res = await fetch(`${API}/api/rider-orders/${riderData.mobile}`);
   const orders = await res.json();
   if(orders.length === 0){ document.getElementById('myOrders').innerHTML = 'No orders yet'; return; }
   
@@ -181,9 +179,7 @@ async function loadMyOrders(){
       <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
       <b>Address:</b> ${o.address} <br>
       <b>Status:</b> ${o.status} <br>
-      
-      ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn btn-directions">📍 Get Directions</a>` : '<small class="text-muted">Location not shared</small>'}
-
+      ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn-directions">📍 Get Directions</a>` : '<small>Location not shared</small>'}
       ${o.status === 'Out for Delivery' ? `
         <label><b>Cash Collected ₹:</b></label>
         <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.total}">
@@ -197,7 +193,7 @@ async function markDelivered(orderId){
   const cashInput = document.getElementById(`cash_${orderId}`).value;
   if(!cashInput) return alert('Please enter cash collected amount');
   
-  await fetch(`${API}/api/order/delivered`, {
+  await fetch(`${API}/api/order-delivered`, {
     method:'POST', 
     headers:{'Content-Type':'application/json'}, 
     body:JSON.stringify({orderId, cashCollected: Number(cashInput)})
