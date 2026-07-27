@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,25 +7,25 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-  .navbar-brand{color:#ff6600!important; font-weight:bold}
-  .nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;}
-  .stat-card{border-radius:15px; color:white; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1)}
-  .stat-card h3{font-size:28px; margin:0;}
-  .new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
+ .navbar-brand{color:#ff6600!important; font-weight:bold}
+ .nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;}
+ .stat-card{border-radius:15px; color:white; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+ .stat-card h3{font-size:28px; margin:0;}
+ .new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
     @keyframes blink {50%{background:#fff3cd;}}
-  .trial-banner{background:#D1E7DD; border-left:5px solid #0F5132}
-  .alert-info{background:#d1ecf1; border-left:5px solid #0dcaf0}
-  .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden;}
-  .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
-  .map-box{border-radius:8px; overflow:hidden; margin-top:8px;}
+ .trial-banner{background:#D1E7DD; border-left:5px solid #0F5132}
+ .alert-info{background:#d1ecf1; border-left:5px solid #0dcaf0}
+ .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden;}
+ .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
+ .map-box{border-radius:8px; overflow:hidden; margin-top:8px;}
 </style>
 </head>
 <body>
 
 <nav class="navbar bg-white shadow-sm px-3">
-    <a href="/restaurant-dashboard.html" class="navbar-brand">🍴 <span id="resName"></span> Dashboard</a>
+    <a href="/restaurant-dashboard" class="navbar-brand">🍴 <span id="resName"></span> Dashboard</a> <!-- FIX:.html hata -->
     <div>
-        <a href="/restaurant-profile.html" class="btn btn-outline-secondary btn-sm me-2">⚙️ Profile</a>
+        <a href="/restaurant-profile" class="btn btn-outline-secondary btn-sm me-2">⚙️ Profile</a> <!-- FIX:.html hata -->
         <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
     </div>
 </nav>
@@ -71,7 +71,7 @@
                     <input id="price" name="price" type="number" class="form-control mb-2" placeholder="Price" required>
                     <input id="category" name="category" class="form-control mb-2" placeholder="Category e.g. Snacks, Main Course">
                     <textarea id="desc" name="desc" class="form-control mb-2" placeholder="Description"></textarea>
-                    <input type="file" id="imageFile" name="image" class="form-control mb-2" accept="image/*"> <!-- ✅ name="image" add kiya -->
+                    <input type="file" id="imageFile" name="image" class="form-control mb-2" accept="image/*">
                     <img id="preview" style="display:none; width:100px; margin:10px 0; border-radius:8px;">
                     <button id="formBtn" class="btn btn-success w-100" style="background:#ff6600; border:none;">Add Item</button>
                     <button type="button" id="cancelBtn" class="btn btn-secondary w-100 mt-2 d-none" onclick="resetForm()">Cancel</button>
@@ -133,7 +133,7 @@ const owner = restaurantOwner;
 
 if(!restaurantId){
     alert("Login info missing. Please login again");
-    window.location.href = '/restaurant-login.html';
+    window.location.href = '/restaurant-login'; // FIX:.html hata
 }
 
 document.getElementById('resName').innerText = restaurantName || 'Eat4Bite™ Shop';
@@ -150,7 +150,6 @@ function checkTrial(){
     }
 }
 
-// ✅ PREVIEW KE LIYE - base64 nahi bhejega
 document.getElementById('imageFile').addEventListener('change', function(e){
     const file = e.target.files[0];
     if(!file) return;
@@ -162,7 +161,6 @@ document.getElementById('imageFile').addEventListener('change', function(e){
     reader.readAsDataURL(file);
 });
 
-// ✅ YEH PURA CHANGE KIYA - FormData use hoga
 document.getElementById('itemForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const formData = new FormData();
@@ -173,14 +171,14 @@ document.getElementById('itemForm').addEventListener('submit', async (e)=>{
     formData.append('restaurantId', restaurantId);
 
     const file = document.getElementById('imageFile').files[0];
-    if(file) formData.append('image', file); // ✅ file bhej rahe
+    if(file) formData.append('image', file);
 
     const id = document.getElementById('editId').value;
     let url = `${API}/api/menu`;
     let method = 'POST';
     if(id){ url = `${API}/api/menu/${id}`; method = 'PUT'; }
 
-    const res = await fetch(url, {method:method, body:formData}); // ✅ header nahi lagega
+    const res = await fetch(url, {method:method, body:formData});
     const result = await res.json();
     if(result.success){
         document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ ${id? 'Item Updated!' : 'Item Added!'}</div>`;
@@ -236,7 +234,6 @@ async function loadMenu(){
 async function toggleStock(id){ await fetch(`${API}/api/menu/${id}/stock`, {method:'PUT'}); loadMenu(); }
 async function deleteItem(id){ if(confirm('Are you sure?')){ await fetch(`${API}/api/menu/${id}`, {method:'DELETE'}); loadMenu(); loadStats(); } }
 
-// BAaki sab same...
 async function loadOrders(){
     try{
         const res = await fetch(`${API}/api/orders?shop=${restaurantId}`);
@@ -252,7 +249,7 @@ async function loadOrders(){
             `<iframe src="https://www.google.com/maps?q=${o.custLat},${o.custLng}&z=15&output=embed"
              width="100%" height="200" style="border:0;" class="map-box" loading="lazy"></iframe>`
             : '<small class="text-muted">📍 Location not available</small>';
-            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}"><div class="d-flex justify-content-between"><div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone} | ${o.paymentMode || 'COD'}</small></div><h5 class="text-success">₹${o.total}</h5></div><p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p><p class="mb-1"><b>Address:</b> ${o.address}</p><div class="mb-2">${hasMap}</div><p class="mb-1"><b>Bill:</b> Item ₹${o.item_total} | Your Cut: ₹${o.commission_5+o.platform_fee}</p><div class="d-flex gap-2 align-items-center mb-2"><b>Status:</b><select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;"><option ${o.status=='Pending'?'selected':''}>Pending</option><option ${o.status=='Preparing'?'selected':''}>Preparing</option><option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option><option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option><option ${o.status=='Delivered'?'selected':''}>Delivered</option></select></div><a href="/bill-template.html?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Print Bill</a></div>`;
+            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}"><div class="d-flex justify-content-between"><div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone} | ${o.paymentMode || 'COD'}</small></div><h5 class="text-success">₹${o.total}</h5></div><p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p><p class="mb-1"><b>Address:</b> ${o.address}</p><div class="mb-2">${hasMap}</div><p class="mb-1"><b>Bill:</b> Item ₹${o.item_total} | Your Cut: ₹${o.commission_5+o.platform_fee}</p><div class="d-flex gap-2 align-items-center mb-2"><b>Status:</b><select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;"><option ${o.status=='Pending'?'selected':''}>Pending</option><option ${o.status=='Preparing'?'selected':''}>Preparing</option><option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option><option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option><option ${o.status=='Delivered'?'selected':''}>Delivered</option></select></div><a href="/invoice?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Print Bill</a></div>`; // FIX: invoice
         });
         document.getElementById('ordersList').innerHTML = html;
     }catch(err){ document.getElementById('ordersList').innerHTML = '<p class="text-danger">Failed to load orders</p>'; }
@@ -314,7 +311,7 @@ async function addOffer(){
     setTimeout(()=>document.getElementById('offerMsg').innerHTML='', 3000);
 }
 
-function logout(){localStorage.clear(); window.location.href = '/restaurant-login.html';}
+function logout(){localStorage.clear(); window.location.href = '/restaurant-login';} // FIX:.html hata
 
 checkTrial();
 loadMenu(); loadOrders(); loadStats(); loadCashPending();
