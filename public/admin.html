@@ -7,20 +7,20 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     body{font-family:Arial; background:#f4f4f4; padding:20px;}
-   .top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
-   .card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
+  .top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+  .card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
     input, select, button, textarea{padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc; width:calc(100% - 22px);}
     button{background:#ff6600; color:white; border:none; cursor:pointer;} button:hover{opacity:0.9;}
-   .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
-   .stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
-   .stat-card h2{margin:0; font-size:30px;}
-   .order,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
-   .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}.btn-warning{background:#ffc107; color:#000;}
-   .logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
+  .stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
+  .stat-card h2{margin:0; font-size:30px;}
+  .order,.rider-item,.owner-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
+  .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}.btn-orange{background:orange;}.btn-warning{background:#ffc107; color:#000;}
+  .logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
     small{color:#666; font-size:12px;}
     canvas{background:white; padding:10px; border-radius:8px;}
-   .alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
-   .badge{padding:3px 8px; border-radius:4px; color:white; font-size:12px;}
+  .alert{padding:10px; background:#fff3cd; border-left:4px solid #ffc107; margin-top:10px; border-radius:5px;}
+  .error{color:red; font-size:14px; padding:10px;}
 </style>
 </head>
 <body>
@@ -102,60 +102,66 @@ const API = '';
 const socket = io();
 let salesChart = null;
 let allRiders = [];
-
 const ADMIN_PASSWORD = 'admin123';
 
-// FIX 1: LOGIN CHECK UPDATE
 function checkLogin(){
     if(sessionStorage.getItem('adminLoggedIn')!== 'true'){
         let pass = prompt("🔒 Admin Login\nPassword daalo:");
         if(pass === ADMIN_PASSWORD){
             sessionStorage.setItem('adminLoggedIn', 'true');
-            loadData();
+            location.reload(); // Cache clear ke liye reload
         }
         else {
             alert("Galat Password!");
-            window.location.href = '/'; // Home pe bhej dega
+            window.location.href = '/';
         }
     } else {
         loadData();
     }
 }
 
-// FIX 2: LOGOUT UPDATE
 function logout(){
     sessionStorage.clear();
-    sessionStorage.removeItem('adminLoggedIn');
     alert("Logout ho gaye");
-    window.location.href = '/'; // Home pe bhej dega
+    window.location.href = '/';
+}
+
+async function safeFetch(url, targetId){
+    try{
+        const res = await fetch(url);
+        if(!res.ok) throw new Error(res.status);
+        return await res.json();
+    }catch(e){
+        console.log("API Fail:", url, e);
+        if(targetId) document.getElementById(targetId).innerHTML = `<p class="error">Server Error. Render pe deploy check karo</p>`;
+        return null;
+    }
 }
 
 async function loadGraph(){
-    try{
-        const res = await fetch(`${API}/api/admin/graph`);
-        const data = await res.json();
-        const labels = data.map(d => d.date);
-        const revenue = data.map(d => d.revenue);
-        const orders = data.map(d => d.orders);
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        if(salesChart) salesChart.destroy();
-        salesChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
-            {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
-            {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
-        ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } });
-    }catch(e){ console.log("Graph Error:", e) }
+    const data = await safeFetch(`${API}/api/admin/graph`);
+    if(!data) return;
+    const labels = data.map(d => d.date);
+    const revenue = data.map(d => d.revenue);
+    const orders = data.map(d => d.orders);
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    if(salesChart) salesChart.destroy();
+    salesChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [
+        {label: 'Revenue ₹', data: revenue, backgroundColor: '#ff6600'},
+        {label: 'Orders', data: orders, backgroundColor: '#007bff', type: 'line', yAxisID: 'y1'}
+    ]}, options: { responsive: true, scales: { y: {beginAtZero: true}, y1: {beginAtZero: true, position: 'right'} } });
 }
 
 async function loadOwners(){
-    const res = await fetch(`${API}/api/admin/restaurants`);
-    const owners = await res.json();
+    const owners = await safeFetch(`${API}/api/admin/restaurants`, 'pendingOwnersList');
+    if(owners === null) return;
     document.getElementById('pendingOwnersList').innerHTML = owners.length === 0? 'Koi pending restaurant nahi hai' : owners.map(o => `<div class="owner-item"><div><b>${o.restaurantName}</b> - ${o.ownerName}<br><small>${o.mobile}</small></div><button class="btn-green" onclick="approveOwner('${o._id}')">✅ Approve</button></div>`).join('');
 }
 async function approveOwner(id){ await fetch(`${API}/api/admin/approve-restaurant/${id}`, {method:'PUT'}); alert('Restaurant Approved!'); loadData(); }
 
 async function loadShopDropdown(){
-    const res = await fetch(`${API}/api/restaurants`);
-    const shops = await res.json();
+    const shops = await safeFetch(`${API}/api/restaurants`);
+    if(!shops) return;
     const select = document.getElementById('reportShop');
     select.innerHTML = `<option value="all">All Restaurants</option>`;
     shops.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name}</option>`; });
@@ -166,8 +172,8 @@ async function getReport(){
     let s = document.getElementById('startDate').value;
     let e = document.getElementById('endDate').value;
     if(!s ||!e) return alert('Date select karo');
-    const d = await fetch(`${API}/api/report?start=${s}&end=${e}&shop=${shop}`).then(r=>r.json());
-    document.getElementById('reportResult').innerHTML = `<p><b>Total Orders:</b> ${d.totalOrders}</p><p><b>Total Revenue:</b> ₹${d.totalRevenue}</p>`;
+    const d = await safeFetch(`${API}/api/report?start=${s}&end=${e}&shop=${shop}`);
+    if(d) document.getElementById('reportResult').innerHTML = `<p><b>Total Orders:</b> ${d.totalOrders}</p><p><b>Total Revenue:</b> ₹${d.totalRevenue}</p>`;
 }
 
 async function sendBroadcast(type){
@@ -179,11 +185,8 @@ async function sendBroadcast(type){
 }
 
 async function loadPromo(){
-    try{
-        const res = await fetch(`${API}/api/promo`);
-        const promo = await res.json();
-        if(promo) showPromoPreview(promo);
-    }catch(e){}
+    const promo = await safeFetch(`${API}/api/promo`);
+    if(promo) showPromoPreview(promo);
 }
 async function updatePromo(){
     const formData = new FormData();
@@ -204,14 +207,12 @@ function showPromoPreview(promo){
 }
 
 async function loadRiderCash(){
-    try{
-        const res = await fetch(`${API}/api/admin/rider-cash`);
-        const riders = await res.json();
-        if(riders.length === 0){ document.getElementById('riderCashList').innerHTML = 'Abhi koi rider nahi hai'; return; }
-        document.getElementById('riderCashList').innerHTML = riders.map(r => {
-            let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED</div>` : '';
-            return `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile} <br><small>Cash: ₹${r.pending_cash}</small>${alert}</div><button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button></div>`}).join('');
-    }catch(err){ document.getElementById('riderCashList').innerHTML = 'Error'; }
+    const riders = await safeFetch(`${API}/api/admin/rider-cash`, 'riderCashList');
+    if(riders === null) return;
+    if(riders.length === 0){ document.getElementById('riderCashList').innerHTML = 'Abhi koi rider nahi hai'; return; }
+    document.getElementById('riderCashList').innerHTML = riders.map(r => {
+        let alert = r.pending_cash >= 1000? `<div class="alert">⚠️ DEPOSIT NEEDED</div>` : '';
+        return `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile} <br><small>Cash: ₹${r.pending_cash}</small>${alert}</div><button class="btn-green" onclick="markDeposited('${r.mobile}')">💰 Deposit Le Liya</button></div>`}).join('');
 }
 async function markDeposited(mobile){ await fetch(`${API}/api/admin/rider-deposit`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile}) }); alert('Deposit Marked!'); loadRiderCash(); }
 
@@ -223,17 +224,19 @@ async function assignRider(orderId, riderId){
 }
 
 async function loadData(){
-    try{
-        await loadGraph(); await loadOwners(); await loadShopDropdown(); await loadRiderCash(); await loadPromo();
+    await loadGraph(); await loadOwners(); await loadShopDropdown(); await loadRiderCash(); await loadPromo();
 
-        const ridersRes = await fetch(`${API}/api/admin/approved-riders`);
-        allRiders = await ridersRes.json();
+    const ridersRes = await safeFetch(`${API}/api/admin/approved-riders`);
+    if(ridersRes){
+        allRiders = ridersRes;
         document.getElementById('riderList').innerHTML = allRiders.length === 0? 'Koi approved rider nahi' : allRiders.map(r => `<div class="rider-item"><b>${r.name}</b> - ${r.mobile}</div>`).join('');
+    }
 
-        const pendingRiders = await fetch(`${API}/api/admin/pending-riders`).then(r=>r.json());
-        document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' : pendingRiders.map(r => `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile}</div><button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve</button></div>`).join('');
+    const pendingRiders = await safeFetch(`${API}/api/admin/pending-riders`);
+    if(pendingRiders) document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' : pendingRiders.map(r => `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile}</div><button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve</button></div>`).join('');
 
-        const orders = await fetch(`${API}/api/orders`).then(r=>r.json());
+    const orders = await safeFetch(`${API}/api/orders`);
+    if(orders){
         const today = new Date().toISOString().split('T')[0];
         const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
         const todayRev = todayOrders.reduce((a,b) => a + Number(b.item_total || 0), 0);
@@ -250,7 +253,7 @@ async function loadData(){
             orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div><div><a href="/invoice?id=${o.trackId}" target="_blank" class="btn-orange">📄 Invoice</a></div></div>`;
         }
         document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
-    }catch(err){ console.log(err); alert("Error: Server se data nahi aa raha") }
+    }
 }
 
 async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
