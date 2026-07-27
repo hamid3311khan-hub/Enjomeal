@@ -79,6 +79,14 @@ body.dark .add-btn{background:#2a2a2a; color:#ff6600;}
     </div>
 </div>
 
+<!-- BANNER SHOW HOGA YAHAN -->
+<div id="homeBanner" class="container-fluid p-0 mb-3" style="display:none;">
+  <div id="bannerBox" class="text-center p-3 fw-bold text-white" style="font-size:18px;">
+    <img id="bannerImg" src="" class="img-fluid w-100" style="max-height:200px; object-fit:cover;">
+    <div id="bannerTextDiv"></div>
+  </div>
+</div>
+
 <script>
 const API = 'https://quickbite-ymqk.onrender.com/api';
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
