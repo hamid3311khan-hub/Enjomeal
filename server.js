@@ -27,16 +27,13 @@ const uploadRider = multer({ storage: multer.memoryStorage() });
 if (!fs.existsSync('./uploads')){ fs.mkdirSync('./uploads'); }
 
 app.use(cors({origin: "*"}));
-
-// FIX 1: LIMIT BADHA DI 50MB - Banner upload ke liye
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb', extended: true}));
-
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.7.0'))
+.then(()=>console.log('✅ MongoDB Connected v3.7.1'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -102,13 +99,13 @@ app.delete('/api/menu/:id', async (req,res)=>{
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
 app.get('/api/menu/all', async (req,res)=> { res.json(await MenuItem.find({})); });
 
-// ===== ADMIN APIs =====
-app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await RestaurantOwner.find({status: "Pending"})) });
-app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: "Pending"})) });
-app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) });
-app.put('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) });
-app.get('/api/admin/restaurants-all', async (req,res)=>{ res.json(await RestaurantOwner.find({}).sort({createdAt: -1})) });
-app.get('/api/admin/restaurants', async (req,res)=>{ res.json(await RestaurantOwner.find({status: "Pending"})) });
+// ===== ADMIN APIs - FIX 1: TRY CATCH LAGA DIYA =====
+app.get('/api/admin/pending-restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Pending"})) } catch(e){ console.log(e); res.status(500).json([]) }});
+app.get('/api/admin/pending-riders', async (req,res)=>{ try{ res.json(await Rider.find({status: "Pending"})) } catch(e){ console.log(e); res.status(500).json([]) }});
+app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ try{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) } catch(e){ res.status(500).json({success:false}) }});
+app.put('/api/admin/approve-rider/:id', async (req,res)=>{ try{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) } catch(e){ res.status(500).json({success:false}) }});
+app.get('/api/admin/restaurants-all', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({}).sort({createdAt: -1})) } catch(e){ console.log(e); res.status(500).json([]) }});
+app.get('/api/admin/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Pending"})) } catch(e){ console.log(e); res.status(500).json([]) }});
 app.get('/api/admin/approved-riders', async (req,res)=>{ try{ const riders = await Rider.find({status: "Approved"}).select('name mobile'); res.json(riders) } catch(e){ res.json([]) } })
 app.post('/api/admin/assign-rider', async (req,res)=>{
   try{
@@ -124,11 +121,8 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
 
-// ===== BANNER API WITH DB =====
-app.get('/api/promo', async (req,res)=>{ 
-  const banner = await Banner.findOne().sort({updatedAt: -1});
-  res.json(banner || { text: "", image: "", color: "#ff6600" })
-})
+// ===== BANNER API =====
+app.get('/api/promo', async (req,res)=>{ try{ const banner = await Banner.findOne().sort({updatedAt: -1}); res.json(banner || { text: "", image: "", color: "#ff6600" }) } catch(e){ res.json({ text: "", image: "", color: "#ff6600" }) }})
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{
   try{
     let imageUrl = "";
@@ -143,10 +137,10 @@ app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{
     res.json({success:true, msg:"Banner Saved in DB"})
   }catch(e){ res.json({success:false, msg:e.message}) }
 })
-app.delete('/api/admin/promo', async (req,res)=>{ await Banner.deleteMany({}); res.json({success:true, msg:"Banner Removed"}) })
+app.delete('/api/admin/promo', async (req,res)=>{ try{ await Banner.deleteMany({}); res.json({success:true, msg:"Banner Removed"}) } catch(e){ res.status(500).json({success:false}) }});
 
-app.get('/api/admin/graph', async (req,res)=>{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)});
-app.get('/api/report', async (req,res)=>{
+app.get('/api/admin/graph', async (req,res)=>{try{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)}catch(e){res.status(500).json([])}});
+app.get('/api/report', async (req,res)=>{try{
   const {start, end, shop} = req.query;
   let filter = {createdAt: {$gte: new Date(start), $lte: new Date(end+'T23:59:59')}};
   if(shop !== 'all') filter.restaurantId = shop;
@@ -162,8 +156,8 @@ app.get('/api/report', async (req,res)=>{
     return res.json({shops: shopData, totalOrders: orders.length, totalRevenue});
   }
   res.json({totalOrders: orders.length, totalRevenue});
-})
-app.post('/api/broadcast', async (req,res)=>{
+}catch(e){res.status(500).json({})}})
+app.post('/api/broadcast', async (req,res)=>{try{
   const {message, type} = req.body;
   let mobiles = [];
   if(type === 'all_restaurants'){
@@ -172,8 +166,8 @@ app.post('/api/broadcast', async (req,res)=>{
   }
   console.log("📢 BROADCAST TO:", mobiles, "MSG:", message);
   res.json({count: mobiles.length, msg:"Broadcast Sent"});
-})
-app.get('/api/admin/rider-cash', async (req,res)=>{
+}catch(e){res.status(500).json({})}})
+app.get('/api/admin/rider-cash', async (req,res)=>{try{
   const riders = await Rider.find({status: {$in: ["Online", "Approved"]}});
   const data = [];
   const today = new Date(); today.setHours(0,0,0,0);
@@ -183,12 +177,12 @@ app.get('/api/admin/rider-cash', async (req,res)=>{
     data.push({name: r.name, mobile: r.mobile, pending_cash: r.cash_balance || 0, today_collected: today_collected});
   }
   res.json(data);
-})
-app.post('/api/admin/rider-deposit', async (req,res)=>{
+}catch(e){console.log(e); res.status(500).json([])}})
+app.post('/api/admin/rider-deposit', async (req,res)=>{try{
   const {mobile} = req.body;
   await Rider.updateOne({mobile}, {$set: {cash_balance: 0}});
   res.json({success: true, msg:"Deposit Marked"});
-})
+}catch(e){res.status(500).json({success:false})}})
 
 // ===== RESTAURANT REGISTER + LOGIN =====
 app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,res)=>{
@@ -212,6 +206,7 @@ app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,
   }catch(e){ console.log(e); res.json({success:false, msg:e.message}) }
 });
 
+// FIX 2: LOGIN ME SHOP OBJECT BHEJA
 app.post('/api/restaurant-login', async (req,res)=>{
   try{
     const {mobile, password} = req.body;
@@ -219,29 +214,17 @@ app.post('/api/restaurant-login', async (req,res)=>{
     if(!restaurant) return res.status(400).json({success:false, msg:"Restaurant nahi mila"});
     if(restaurant.password !== password) return res.status(400).json({success:false, msg:"Password galat"});
     if(restaurant.status !== "Approved") return res.status(400).json({success:false, msg:"Approval pending hai"});
-    res.json({success:true, token: restaurant.restaurantId, name: restaurant.restaurantName})
+    res.json({success:true, shop: restaurant}) // YE CHANGE
   }catch(e){ console.log(e); res.status(500).json({success:false, msg:"Server Error"}) }
 });
 
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop ? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
-app.get('/api/orders', async (req,res)=>{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) });
+app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) } catch(e){ res.status(500).json([]) }});
 
-// FIXED: _id and name
-app.get('/api/restaurants', async (req,res)=>{ 
-  const {search} = req.query;
-  let filter = {status: "Approved"};
-  if(search){ filter.restaurantName = { $regex: search, $options: 'i' } }
-  const shops = await RestaurantOwner.find(filter); 
-  res.json(shops.map(s => ({
-    _id: s.restaurantId, 
-    name: s.restaurantName, 
-    address: s.address, 
-    image: s.image_base64, 
-    upi_id: s.upi_id
-  }))) 
-});
+// FIX 3: TRACK ID SE SEARCH KA NAYA ROUTE
+app.get('/api/orders/track/:id', async (req,res)=>{ try{ const order = await Order.findOne({trackId: req.params.id}); res.json(order) } catch(e){ res.status(500).json(null) }});
 
-app.get('/api/rider/ledger', async (req,res)=>{const rider = await Rider.findOne({mobile: req.query.riderId});if(!rider) return res.json({success:false});const today = new Date(); today.setHours(0,0,0,0);const orders = await Order.find({riderId: req.query.riderId, createdAt: {$gte: today}});const collected = orders.reduce((a,b)=>a+Number(b.cashCollected), 0);res.json({ pending_cash: rider.cash_balance, limit: rider.cashLimit, today_collected: collected, today_orders: orders.length, progress: Math.round((rider.cash_balance / rider.cashLimit) * 100) })});
+app.get('/api/rider/ledger', async (req,res)=>{try{const rider = await Rider.findOne({mobile: req.query.riderId});if(!rider) return res.json({success:false});const today = new Date(); today.setHours(0,0,0,0);const orders = await Order.find({riderId: req.query.riderId, createdAt: {$gte: today}});const collected = orders.reduce((a,b)=>a+Number(b.cashCollected || 0), 0);res.json({ pending_cash: rider.cash_balance, limit: rider.cashLimit, today_collected: collected, today_orders: orders.length, progress: Math.round((rider.cash_balance / rider.cashLimit) * 100) })}catch(e){res.status(500).json({})}});
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.total}`); doc.end(); });
 
 // ===== PAGE ROUTES =====
@@ -249,7 +232,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.htm
 app.get('/rider', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider.html')));
 app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
 app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html'))); // YE LINE ADMIN KE LIYE
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/admin-owners', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-owners.html')));
 app.get('/restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurants.html')));
 app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
@@ -257,4 +240,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.7.0 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.7.1 on ${PORT}`));
