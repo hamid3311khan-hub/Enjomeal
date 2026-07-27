@@ -76,7 +76,7 @@ app.post('/api/menu', upload.single('image'), async (req,res)=>{
     await new MenuItem({...req.body, image: imageUrl}).save();
     res.json({success:true, msg:"Item Added"})
   }catch(e){ res.json({success:false, msg:e.message}) }
-})
+});
 app.put('/api/menu/:id', upload.single('image'), async (req,res)=>{
   try{
     let updateData = {...req.body};
@@ -87,15 +87,15 @@ app.put('/api/menu/:id', upload.single('image'), async (req,res)=>{
     await MenuItem.findByIdAndUpdate(req.params.id, updateData);
     res.json({success:true, msg:"Item Updated"})
   }catch(e){ res.json({success:false, msg:e.message}) }
-})
+});
 app.put('/api/menu/:id/stock', async (req,res)=>{
   try{ const item = await MenuItem.findById(req.params.id); item.inStock = !item.inStock; await item.save(); res.json({success:true}) }
   catch(e){ res.json({success:false, msg:e.message}) }
-})
+});
 app.delete('/api/menu/:id', async (req,res)=>{
   try{ await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true, msg:"Item Deleted"}) }
   catch(e){ res.json({success:false, msg:e.message}) }
-})
+});
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
 app.get('/api/menu/all', async (req,res)=> { res.json(await MenuItem.find({})); });
 
@@ -105,8 +105,8 @@ app.get('/api/admin/pending-riders', async (req,res)=>{ try{ res.json(await Ride
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ try{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) } catch(e){ res.status(500).json({success:false}) }});
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ try{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) } catch(e){ res.status(500).json({success:false}) }});
 app.get('/api/admin/restaurants-all', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({}).sort({createdAt: -1})) } catch(e){ console.log(e); res.status(500).json([]) }});
-app.get('/api/admin/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Approved"})) } catch(e){ console.log(e); res.status(500).json([]) }}); // FIX: Approved bhejna hai
-app.get('/api/admin/approved-riders', async (req,res)=>{ try{ const riders = await Rider.find({status: "Approved"}).select('name mobile'); res.json(riders) } catch(e){ res.json([]) } })
+app.get('/api/admin/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Approved"})) } catch(e){ console.log(e); res.status(500).json([]) }});
+app.get('/api/admin/approved-riders', async (req,res)=>{ try{ const riders = await Rider.find({status: "Approved"}).select('name mobile'); res.json(riders) } catch(e){ res.json([]) } });
 app.post('/api/admin/assign-rider', async (req,res)=>{
   try{
     const {orderId, riderId} = req.body;
@@ -119,10 +119,10 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
     io.emit('newOrderForRider', {riderId});
     res.json({success:true, msg:"Rider Assigned!"});
   }catch(e){ res.json({success:false, msg:e.message}) }
-})
+});
 
 // ===== BANNER API =====
-app.get('/api/promo', async (req,res)=>{ try{ const banner = await Banner.findOne().sort({updatedAt: -1}); res.json(banner || { text: "", image: "", color: "#ff6600" }) } catch(e){ res.json({ text: "", image: "", color: "#ff6600" }) }})
+app.get('/api/promo', async (req,res)=>{ try{ const banner = await Banner.findOne().sort({updatedAt: -1}); res.json(banner || { text: "", image: "", color: "#ff6600" }) } catch(e){ res.json({ text: "", image: "", color: "#ff6600" }) }});
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{
   try{
     let imageUrl = "";
@@ -136,7 +136,7 @@ app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{
     await Banner.create({text: req.body.text || "", image: imageUrl, color: req.body.color || "#ff6600"});
     res.json({success:true, msg:"Banner Saved in DB"})
   }catch(e){ res.json({success:false, msg:e.message}) }
-})
+});
 app.delete('/api/admin/promo', async (req,res)=>{ try{ await Banner.deleteMany({}); res.json({success:true, msg:"Banner Removed"}) } catch(e){ res.status(500).json({success:false}) }});
 
 app.get('/api/admin/graph', async (req,res)=>{try{const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0); return d; }).reverse();let data = [];for(let d of last7Days){const nextDay = new Date(d); nextDay.setDate(d.getDate() + 1);const orders = await Order.find({createdAt: {$gte: d, $lt: nextDay}});const revenue = orders.reduce((a,b)=>a+Number(b.item_total), 0);data.push({date: d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short'}), revenue, orders: orders.length})};res.json(data)}catch(e){res.status(500).json([])}});
@@ -156,7 +156,7 @@ app.get('/api/report', async (req,res)=>{try{
     return res.json({shops: shopData, totalOrders: orders.length, totalRevenue});
   }
   res.json({totalOrders: orders.length, totalRevenue});
-}catch(e){res.status(500).json({})}})
+}catch(e){res.status(500).json({})}});
 app.post('/api/broadcast', async (req,res)=>{try{
   const {message, type} = req.body;
   let mobiles = [];
@@ -166,7 +166,7 @@ app.post('/api/broadcast', async (req,res)=>{try{
   }
   console.log("📢 BROADCAST TO:", mobiles, "MSG:", message);
   res.json({count: mobiles.length, msg:"Broadcast Sent"});
-}catch(e){res.status(500).json({})}})
+}catch(e){res.status(500).json({})}});
 app.get('/api/admin/rider-cash', async (req,res)=>{try{
   const riders = await Rider.find({status: {$in: ["Online", "Approved"]}});
   const data = [];
@@ -177,17 +177,17 @@ app.get('/api/admin/rider-cash', async (req,res)=>{try{
     data.push({name: r.name, mobile: r.mobile, pending_cash: r.cash_balance || 0, today_collected: today_collected});
   }
   res.json(data);
-}catch(e){console.log(e); res.status(500).json([])}})
+}catch(e){console.log(e); res.status(500).json([])}});
 app.post('/api/admin/rider-deposit', async (req,res)=>{try{
   const {mobile} = req.body;
   await Rider.updateOne({mobile}, {$set: {cash_balance: 0}});
   res.json({success: true, msg:"Deposit Marked"});
-}catch(e){res.status(500).json({success:false})}})
+}catch(e){res.status(500).json({success:false})}});
 
 // ===== RESTAURANT REGISTER + LOGIN =====
 app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,res)=>{
   try{
-    const {restaurantName, ownerName, mobile, email, address, password, plan, amount} = req.body; // NAYA: plan, amount
+    const {restaurantName, ownerName, mobile, email, address, password, plan, amount} = req.body;
     const existing = await RestaurantOwner.findOne({$or: [{mobile}, {email}]});
     if(existing) return res.json({success:false, msg:"Mobile ya Email pehle se hai"});
     let paymentProofUrl = "";
@@ -201,8 +201,8 @@ app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,
     await new RestaurantOwner({
       restaurantId, restaurantName, ownerName, mobile, email, address, password,
       status: "Pending", payment_proof: paymentProofUrl, trial_end_date: trialEnd,
-      plan_status: plan || "Trial", // NAYA
-      registration_fee_paid: Number(amount) || 200 // NAYA
+      plan_status: plan || "Trial",
+      registration_fee_paid: Number(amount) || 200
     }).save();
     res.json({success:true, msg:"Registration ho gayi. Approval ke baad login karna"})
   }catch(e){ console.log(e); res.json({success:false, msg:e.message}) }
@@ -219,7 +219,7 @@ app.post('/api/restaurant-login', async (req,res)=>{
   }catch(e){ console.log(e); res.status(500).json({success:false, msg:"Server Error"}) }
 });
 
-// ===== RIDER REGISTER API =====
+// ===== RIDER APIs =====
 app.post('/api/rider-register', uploadRider.fields([
   {name: 'aadharImg', maxCount: 1},
   {name: 'panImg', maxCount: 1},
@@ -254,7 +254,6 @@ app.post('/api/rider-register', uploadRider.fields([
   }catch(e){ console.log(e); res.json({success:false, msg:e.message}) }
 });
 
-// ===== RIDER LOGIN + STATUS =====
 app.post('/api/rider-login', async (req,res)=>{ try{ const rider = await Rider.findOne({mobile: req.body.mobile}); if(!rider) return res.json({success:false, msg:"Rider nahi mila"}); if(rider.status !== "Approved" && rider.status !== "Online") return res.json({success:false, msg:"Approval pending"}); res.json({success:true, rider}) }catch(e){ res.json({success:false}) }});
 app.put('/api/rider-status/:id', async (req,res)=>{ try{ await Rider.findByIdAndUpdate(req.params.id, {status: req.body.status}); res.json({success:true}) }catch(e){ res.json({success:false}) }});
 app.get('/api/rider-orders/:mobile', async (req,res)=>{ try{ res.json(await Order.find({riderId: req.params.mobile}).sort({createdAt:-1})) }catch(e){ res.json([]) }});
@@ -264,7 +263,7 @@ app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();cons
 app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) } catch(e){ res.status(500).json([]) }});
 app.get('/api/orders/track/:id', async (req,res)=>{ try{ const order = await Order.findOne({trackId: req.params.id}); res.json(order) } catch(e){ res.status(500).json(null) }});
 
-// ===== RESTAURANT DASHBOARD APIs - NAYA ADD =====
+// ===== RESTAURANT DASHBOARD APIs =====
 app.get('/api/restaurant/ledger', async (req,res)=>{ try{
   const shop = req.query.shop;
   const today = new Date(); today.setHours(0,0,0,0);
@@ -273,14 +272,7 @@ app.get('/api/restaurant/ledger', async (req,res)=>{ try{
   const cod = orders.filter(o=>o.paymentMode=='COD').reduce((a,b)=>a+Number(b.item_total),0);
   const online = revenue - cod;
   const payout_due = Math.round(cod * 0.95);
-  res.json({
-    orders: orders.length, 
-    revenue, 
-    cod, 
-    online, 
-    earning: Math.round(cod * 0.95),
-    payout_due
-  })
+  res.json({ orders: orders.length, revenue, cod, online, earning: Math.round(cod * 0.95), payout_due })
 }catch(e){ res.status(500).json({})}});
 
 app.post('/api/restaurant/payout', async (req,res)=>{ try{
@@ -299,3 +291,6 @@ app.get('/api/riders', async (req,res)=>{ try{
 }catch(e){ res.json([]) }});
 
 app.post('/api/restaurant/cash-confirm', async (req,res)=>{ try{
+  const {riderId, depositedAmount} = req.body;
+  await Rider.updateOne({mobile: riderId}, {$inc: {cash_balance: -depositedAmount}});
+  res
