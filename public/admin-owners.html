@@ -7,9 +7,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-   .badge-pending{background:#ffc107}
-   .badge-trial{background:#0dcaf0}
-   .badge-active{background:#198754}
+   .badge-pending{background:#ffc107; color:#000}
    .proof-img{width:80px; height:80px; object-fit:cover; cursor:pointer; border-radius:5px; border:1px solid #ddd}
    .navbar-brand{color:#ff4d4d !important; font-weight:bold}
 </style>
@@ -46,11 +44,11 @@
 </div>
 
 <script>
-const API = ''; // Render pe same domain hai to khali rakho
+const API = ''; 
 
 async function loadOwners(){
     try{
-        const res = await fetch(API+'/api/admin/pending-restaurants'); // ✅ FIXED
+        const res = await fetch(API+'/api/admin/pending-restaurants'); 
         const owners = await res.json();
 
         if(owners.length === 0){
@@ -60,13 +58,12 @@ async function loadOwners(){
 
         let rows = '';
         owners.forEach(o => {
-            let badge = 'badge-pending';
-            
-            let actionBtn = `<button class="btn btn-sm btn-success" onclick="approveOwner('${o._id}')">✅ Approve</button> <button class="btn btn-sm btn-danger" onclick="rejectOwner('${o._id}')">❌ Reject</button>`;
+            let actionBtn = `<button class="btn btn-sm btn-success me-1" onclick="approveOwner('${o._id}')">✅ Approve</button> <button class="btn btn-sm btn-danger" onclick="rejectOwner('${o._id}')">❌ Reject</button>`;
 
+            // FIX: Cloudinary direct link hai. /uploads/ hata diya
             let proofLink = o.payment_proof 
-                ? `<a href="${API}/uploads/${o.payment_proof}" target="_blank">
-                     <img src="${API}/uploads/${o.payment_proof}" class="proof-img" onerror="this.src='https://via.placeholder.com/80x80/cccccc/ffffff?text=No+Proof'">
+                ? `<a href="${o.payment_proof}" target="_blank">
+                     <img src="${o.payment_proof}" class="proof-img">
                    </a>` 
                 : '<span class="text-muted">-</span>';
             
@@ -80,35 +77,30 @@ async function loadOwners(){
                 <td>${o.mobile}</td>
                 <td>${proofLink}</td>
                 <td>${trialEnd}</td>
-                <td><span class="badge ${badge}">${o.status}</span></td>
+                <td><span class="badge badge-pending">${o.status}</span></td>
                 <td>${actionBtn}</td>
             </tr>`;
         });
         document.getElementById('ownersTable').innerHTML = rows;
     }catch(err){
         document.getElementById('ownersTable').innerHTML = `<tr><td colspan="8" class="text-center text-danger">Data load nahi hua: ${err.message}</td></tr>`;
-        console.log(err)
     }
 }
 
 async function approveOwner(id){
     if(!confirm('Pakka Approve karna hai? 30 Din ka trial start ho jayega.')) return;
-    const res = await fetch(API+`/api/admin/approve-restaurant/${id}`, {method:'PUT'}); // ✅ FIXED
+    const res = await fetch(API+`/api/admin/approve-restaurant/${id}`, {method:'PUT'}); 
     const result = await res.json();
-    if(result.success){
-        alert('Restaurant Approved ho gaya! Trial Active');
-        loadOwners();
-    } else {
-        alert('Error: '+result.msg);
-    }
+    if(result.success){ alert('Restaurant Approved ho gaya!'); loadOwners(); } 
+    else { alert('Error: '+result.msg); }
 }
 
 async function rejectOwner(id){
-    if(!confirm('Pakka Reject karna hai?')) return;
-    // Reject API abhi server me nahi hai, isliye Pending se hata do
-    await fetch(API+`/api/admin/approve-restaurant/${id}`, {method:'PUT'}); 
-    alert('Reject karne ke liye server me DELETE API add karni padegi');
-    loadOwners();
+    if(!confirm('Pakka Reject karna hai? Ye delete ho jayega.')) return;
+    const res = await fetch(API+`/api/admin/reject-restaurant/${id}`, {method:'DELETE'}); // FIX
+    const result = await res.json();
+    if(result.success){ alert('Restaurant Reject kar diya'); loadOwners(); } 
+    else { alert('Error: '+result.msg); }
 }
 
 loadOwners();
