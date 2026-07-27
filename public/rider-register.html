@@ -43,7 +43,6 @@ small{color:gray; font-size:12px;}
 <script>
 const API = 'https://quickbite-ymqk.onrender.com';
 
-// Photo ko 200KB pe compress karne wala function
 function compressImage(file) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -55,7 +54,7 @@ function compressImage(file) {
         const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
-        const maxSize = 800; // max width/height
+        const maxSize = 800;
         if(width > height && width > maxSize) {
           height *= maxSize / width;
           width = maxSize;
@@ -68,7 +67,7 @@ function compressImage(file) {
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
           resolve(new File([blob], file.name, {type: 'image/jpeg', lastModified: Date.now()}));
-        }, 'image/jpeg', 0.6); // 60% quality
+        }, 'image/jpeg', 0.6);
       };
     };
   });
@@ -84,7 +83,8 @@ async function loadRestaurants(){
             select.innerHTML += `<option disabled>Koi restaurant approved nahi hai</option>`;
         }
         shops.forEach(s=>{
-            select.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+            // FIX: s.id ki jagah s._id
+            select.innerHTML += `<option value="${s._id}">${s.name}</option>`;
         });
     }catch(err){
         document.getElementById('msg').innerText = "Restaurant list load nahi hui";
@@ -101,9 +101,14 @@ async function register(){
 
   try{
     const mobile = document.getElementById('mobile').value;
-    // 1. Mobile 10 digit check
     if(mobile.length!== 10 || isNaN(mobile)){
       msg.innerText = "Mobile 10 digit ka daalo";
+      msg.style.color = "red";
+      btn.disabled = false;
+      return;
+    }
+    if(!document.getElementById('restaurantId').value){
+      msg.innerText = "Pehle restaurant select karo";
       msg.style.color = "red";
       btn.disabled = false;
       return;
@@ -117,7 +122,6 @@ async function register(){
     fd.append('pan', document.getElementById('pan').value);
     fd.append('mobile', mobile);
 
-    // 2. Photo compress karke bhejo
     msg.innerText = "Photo compress ho rahi hai...";
     const aadharFile = await compressImage(document.getElementById('aadharImg').files[0]);
     const panFile = await compressImage(document.getElementById('panImg').files[0]);
@@ -127,7 +131,7 @@ async function register(){
     fd.append('panImg', panFile);
     fd.append('photoImg', photoFile);
 
-    const res = await fetch(API+'/api/rider/register', {method:'POST', body:fd});
+    const res = await fetch(API+'/api/rider-register', {method:'POST', body:fd}); // FIX: dash lagaya
     const d = await res.json();
     msg.innerText = d.msg;
     msg.style.color = d.success? 'green' : 'red';
