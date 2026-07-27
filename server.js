@@ -33,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.7.1'))
+.then(()=>console.log('✅ MongoDB Connected v3.7.2'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -99,7 +99,7 @@ app.delete('/api/menu/:id', async (req,res)=>{
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
 app.get('/api/menu/all', async (req,res)=> { res.json(await MenuItem.find({})); });
 
-// ===== ADMIN APIs - FIX 1: TRY CATCH LAGA DIYA =====
+// ===== ADMIN APIs =====
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Pending"})) } catch(e){ console.log(e); res.status(500).json([]) }});
 app.get('/api/admin/pending-riders', async (req,res)=>{ try{ res.json(await Rider.find({status: "Pending"})) } catch(e){ console.log(e); res.status(500).json([]) }});
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ try{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) } catch(e){ res.status(500).json({success:false}) }});
@@ -206,7 +206,6 @@ app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,
   }catch(e){ console.log(e); res.json({success:false, msg:e.message}) }
 });
 
-// FIX 2: LOGIN ME SHOP OBJECT BHEJA
 app.post('/api/restaurant-login', async (req,res)=>{
   try{
     const {mobile, password} = req.body;
@@ -214,14 +213,47 @@ app.post('/api/restaurant-login', async (req,res)=>{
     if(!restaurant) return res.status(400).json({success:false, msg:"Restaurant nahi mila"});
     if(restaurant.password !== password) return res.status(400).json({success:false, msg:"Password galat"});
     if(restaurant.status !== "Approved") return res.status(400).json({success:false, msg:"Approval pending hai"});
-    res.json({success:true, shop: restaurant}) // YE CHANGE
+    res.json({success:true, shop: restaurant})
   }catch(e){ console.log(e); res.status(500).json({success:false, msg:"Server Error"}) }
+});
+
+// ===== RIDER REGISTER API - NAYA ADD KIYA =====
+app.post('/api/rider-register', uploadRider.fields([
+  {name: 'aadharImg', maxCount: 1},
+  {name: 'panImg', maxCount: 1},
+  {name: 'photoImg', maxCount: 1}
+]), async (req,res)=>{
+  try{
+    const {name, fatherName, aadhar, pan, mobile, restaurantId} = req.body;
+    const existing = await Rider.findOne({mobile});
+    if(existing) return res.json({success:false, msg:"Ye mobile pehle se register hai"});
+
+    let aadharUrl = "", panUrl = "", photoUrl = "";
+    if(req.files.aadharImg){
+      const result = await cloudinary.uploader.upload(`data:image/jpeg;base64,${req.files.aadharImg[0].buffer.toString('base64')}`, {folder: 'eat4bite_riders'});
+      aadharUrl = result.secure_url;
+    }
+    if(req.files.panImg){
+      const result = await cloudinary.uploader.upload(`data:image/jpeg;base64,${req.files.panImg[0].buffer.toString('base64')}`, {folder: 'eat4bite_riders'});
+      panUrl = result.secure_url;
+    }
+    if(req.files.photoImg){
+      const result = await cloudinary.uploader.upload(`data:image/jpeg;base64,${req.files.photoImg[0].buffer.toString('base64')}`, {folder: 'eat4bite_riders'});
+      photoUrl = result.secure_url;
+    }
+
+    await new Rider({
+      name, fatherName, aadhar, pan, mobile, restaurantId,
+      aadharImg: aadharUrl, panImg: panUrl, photoImg: photoUrl,
+      status: "Pending"
+    }).save();
+
+    res.json({success:true, msg:"Registration ho gayi. Approval ka wait karo"})
+  }catch(e){ console.log(e); res.json({success:false, msg:e.message}) }
 });
 
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop ? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
 app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) } catch(e){ res.status(500).json([]) }});
-
-// FIX 3: TRACK ID SE SEARCH KA NAYA ROUTE
 app.get('/api/orders/track/:id', async (req,res)=>{ try{ const order = await Order.findOne({trackId: req.params.id}); res.json(order) } catch(e){ res.status(500).json(null) }});
 
 app.get('/api/rider/ledger', async (req,res)=>{try{const rider = await Rider.findOne({mobile: req.query.riderId});if(!rider) return res.json({success:false});const today = new Date(); today.setHours(0,0,0,0);const orders = await Order.find({riderId: req.query.riderId, createdAt: {$gte: today}});const collected = orders.reduce((a,b)=>a+Number(b.cashCollected || 0), 0);res.json({ pending_cash: rider.cash_balance, limit: rider.cashLimit, today_collected: collected, today_orders: orders.length, progress: Math.round((rider.cash_balance / rider.cashLimit) * 100) })}catch(e){res.status(500).json({})}});
@@ -240,4 +272,4 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.7.1 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.7.2 on ${PORT}`));
