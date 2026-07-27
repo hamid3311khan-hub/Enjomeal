@@ -99,11 +99,10 @@ app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'defau
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
 app.get('/api/admin/pending-riders', async (req,res)=>{ try{ res.json(await Rider.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
 
-// FIX 1: APPROVE ME 30 DIN TRIAL ADD KIYA
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{
   try{
     const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 30); // 30 din trial
+    trialEnd.setDate(trialEnd.getDate() + 30);
     await RestaurantOwner.findByIdAndUpdate(req.params.id, {
       status:"Approved",
       trial_end_date: trialEnd
@@ -112,7 +111,6 @@ app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{
   } catch(e){ res.status(500).json({success:false}) }
 });
 
-// FIX 2: REJECT API ADD KI
 app.delete('/api/admin/reject-restaurant/:id', async (req,res)=>{
   try{
     await RestaurantOwner.findByIdAndDelete(req.params.id);
@@ -122,10 +120,7 @@ app.delete('/api/admin/reject-restaurant/:id', async (req,res)=>{
 
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ try{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) } catch(e){ res.status(500).json({success:false}) }});
 app.get('/api/admin/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Approved"})) } catch(e){ res.status(500).json([]) }});
-
-// ADDED: Customer ke liye restaurant list
 app.get('/api/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Approved"})) } catch(e){ res.status(500).json([]) }});
-
 app.get('/api/admin/approved-riders', async (req,res)=>{ try{ const riders = await Rider.find({status: "Approved"}).select('name mobile'); res.json(riders) } catch(e){ res.json([]) } });
 
 app.post('/api/admin/assign-rider', async (req,res)=>{
@@ -141,7 +136,6 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
   }catch(e){ res.json({success:false, msg:e.message}) }
 });
 
-// ADDED: Admin Dashboard ke liye missing APIs
 app.get('/api/admin/graph', async (req,res)=>{ try{
   let data = [];
   for(let i=6; i>=0; i--){
@@ -191,7 +185,7 @@ app.get('/api/report', async (req,res)=>{ try{
   res.json({totalOrders: orders.length, totalRevenue: orders.reduce((a,b)=>a+Number(b.total),0)})
 }catch(e){ res.json({totalOrders:0, totalRevenue:0}) }});
 
-// ===== RESTAURANT REGISTER + LOGIN - FIXED =====
+// ===== RESTAURANT REGISTER + LOGIN =====
 app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,res)=>{
   try{
     const {restaurantName, ownerName, mobile, email, address, password, amount} = req.body;
@@ -280,7 +274,10 @@ app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart
 app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
 app.get('/rider', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider.html')));
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
-app.get('/approve-restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+
+// FIXED: YE AB admin-owners.html KHOLEGA
+app.get('/approve-restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-owners.html')));
+
 app.get('/logout', (req, res) => res.redirect('/'));
 
 app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
