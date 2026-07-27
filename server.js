@@ -32,7 +32,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.7.3'))
+.then(()=>console.log('✅ MongoDB Connected v3.7.4'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -98,7 +98,28 @@ app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'defau
 // ===== ADMIN APIs =====
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
 app.get('/api/admin/pending-riders', async (req,res)=>{ try{ res.json(await Rider.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
-app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ try{ await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Restaurant Approved"}) } catch(e){ res.status(500).json({success:false}) }});
+
+// FIX 1: APPROVE ME 30 DIN TRIAL ADD KIYA
+app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{
+  try{
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 30); // 30 din trial
+    await RestaurantOwner.findByIdAndUpdate(req.params.id, {
+      status:"Approved",
+      trial_end_date: trialEnd
+    });
+    res.json({success:true, msg:"Restaurant Approved"})
+  } catch(e){ res.status(500).json({success:false}) }
+});
+
+// FIX 2: REJECT API ADD KI
+app.delete('/api/admin/reject-restaurant/:id', async (req,res)=>{
+  try{
+    await RestaurantOwner.findByIdAndDelete(req.params.id);
+    res.json({success:true, msg:"Restaurant Rejected & Deleted"})
+  } catch(e){ res.status(500).json({success:false, msg: e.message}) }
+});
+
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ try{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) } catch(e){ res.status(500).json({success:false}) }});
 app.get('/api/admin/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Approved"})) } catch(e){ res.status(500).json([]) }});
 
@@ -175,7 +196,7 @@ app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,
   try{
     const {restaurantName, ownerName, mobile, email, address, password, amount} = req.body;
     let plan = req.body.plan;
-    if(Array.isArray(plan)) plan = plan[0]; // ADDED: Array fix
+    if(Array.isArray(plan)) plan = plan[0];
 
     const existing = await RestaurantOwner.findOne({$or: [{mobile}, {email}]});
     if(existing) return res.json({success:false, msg:"Mobile ya Email pehle se hai"});
@@ -190,7 +211,7 @@ app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,
     await new RestaurantOwner({
       restaurantId, restaurantName, ownerName, mobile, email, address, password,
       status: "Pending", payment_proof: paymentProofUrl, trial_end_date: trialEnd,
-      plan_status: plan || "Trial", // ADDED
+      plan_status: plan || "Trial",
       registration_fee_paid: Number(amount) || 200
     }).save();
     res.json({success:true, msg:"Registration ho gayi. Approval ke baad login karna"})
@@ -268,4 +289,4 @@ app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname,
 app.get('/restaurant-profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-profile.html')));
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.total}`); doc.end(); });
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.7.3 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.7.4 on ${PORT}`));
