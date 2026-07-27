@@ -102,14 +102,7 @@ async function loadBanner(){
         const res = await fetch(`${API}/promo`);
         const banner = await res.json();
         if(banner && banner.text){
-            document.getElementById('homeBanner').style.display = 'block';
-            document.getElementById('bannerImg').src = banner.image;
-            document.getElementById('bannerTextDiv').innerText = banner.text;
-            document.getElementById('bannerBox').style.background = banner.color || '#ff6600';
-        }
-    }catch(e){console.log("Banner load error", e)}
-}
-loadBanner();
+            document.getElementById('homeBanner'
 
 fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{allRestaurants = data;})
 
