@@ -24,11 +24,11 @@ a{text-decoration:none;}
 </div>
 
 <script>
-const API = ''; // Render pe khali rakho
+const API = 'https://quickbite-ymqk.onrender.com/api';
 
 async function loadRestaurants(){
     try{
-        const res = await fetch(`${API}/api/restaurants`);
+        const res = await fetch(`${API}/restaurants`);
         const shops = await res.json();
         const list = document.getElementById('restaurantList');
         list.innerHTML = '';
@@ -40,13 +40,13 @@ async function loadRestaurants(){
 
         list.innerHTML = shops.map(shop => `
             <div class="col-md-4 col-12">
-                <a href="/?shop=${shop.restaurantId}"> <!-- FIX: restaurantId -->
+                <a href="/?shop=${shop._id}">
                     <div class="card shadow-sm p-3">
-                        <img src="${shop.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${encodeURIComponent(shop.restaurantName)}`}" 
+                        <img src="${shop.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${encodeURIComponent(shop.name)}`}" 
                              class="card-img-top mb-2" 
                              style="height:180px; object-fit:cover; border-radius:8px"
                              onerror="this.src='https://via.placeholder.com/400x180/ff6600/ffffff?text=Eat4Bite'">
-                        <h5 class="fw-bold text-dark">${shop.restaurantName}</h5> <!-- FIX: restaurantName -->
+                        <h5 class="fw-bold text-dark">${shop.name}</h5>
                         <p class="text-muted small">📍 ${shop.address || 'Address not added'}</p>
                     </div>
                 </a>
@@ -54,6 +54,7 @@ async function loadRestaurants(){
         `).join('');
     }catch(err){
         document.getElementById('restaurantList').innerHTML = '<p class="text-center text-danger">Restaurants load nahi ho paaye</p>';
+        console.log(err)
     }
 }
 loadRestaurants();
