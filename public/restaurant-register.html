@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,8 +37,7 @@
                 </div>
                 <div class="plan-card" onclick="selectPlan('Annual', 2000, event)">
                     <input type="radio" name="plan" value="Annual">
-                    <b>Eat4Bite™ Annual Support Plan
-2000/Year.</b>
+                    <b>Eat4Bite™ Annual Support Plan ₹2000/Year</b>
                 </div>
             </div>
 
@@ -46,18 +45,12 @@
             <div id="planDetails" class="plan-details">
                 <h6>Annual Support Plan Benefits:</h6>
                 <ul class="mb-2">
-                    <li>Grow Your Restaurant. We Handle Tech.
-The Eat4Bite™ Annual Support Plan is designed for local restaurants to go digital without any hassle. For a small annual fee, you get a complete technology and marketing solution for 12 months.</li>
-                    <li><b>What's Included</b></li>
-                    <li>Website & Brand Listing: Get a professional
-restaurant page with photos, menu, and location. Be visible to thousands of customers on Google and the Eat4Bite™ App.</li>
-                    <li>24x7 Technical Support: Facing any issue with App, Website, or Payments? Our dedicated support team is available 24x7. Call or WhatsApp us and get it resolved within 15 minutes.</li>
-                    <li>Free Menu & Offer Management: Want to update prices or add new items? Just send us a message. We will update it for you in real-time. Absolutely Free.</li>
-<li>Secure Payments & Billing: Accept Online Payments, UPI, and get automated billing. Your earnings are transferred to your bank account every 3 days. 100% Safe & Transparent.</li>
+                    <li>Website & Brand Listing: Professional page with menu</li>
+                    <li>24x7 Technical Support: Issue resolve in 15 minutes</li>
+                    <li>Free Menu & Offer Management: Real-time updates</li>
+                    <li>Secure Payments: Payout every 3 days</li>
                 </ul>
-<div><h2 align="center">Only 2000 annual means 167 per month. One Full Year of Tension-Free Business.
-
-Note: Apart from this, we charge only 5% Commission + ₹10 Platform Fee per order. No Hidden Charges.</h2></div>
+                <h6 class="text-center">Only ₹167/month. 5% + ₹10 per order. No Hidden Charges.</h6>
             </div>
 
             <div class="mb-3 mt-2"><label class="form-label">Owner Name</label><input type="text" name="ownerName" class="form-control" required></div>
@@ -114,7 +107,7 @@ function selectPlan(plan, amount, event){
     selectedAmount = amount;
     document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
     event.currentTarget.classList.add('active');
-    document.querySelector(`input[value=${plan}]`).checked = true;
+    document.querySelector(`input[value="${plan}"]`).checked = true; // FIX: quotes added
     document.getElementById('registerBtn').innerText = `Register & Pay ₹${amount}`;
     document.getElementById('planText').innerText = plan === 'Trial'? '30 Days Trial - ₹200 Registration Fee' : 'Annual Plan - ₹2000 / Year';
     if(document.getElementById('previewWithQR').style.display === 'block'){
@@ -125,6 +118,7 @@ function selectPlan(plan, amount, event){
 
 document.getElementById('restaurant_photo').addEventListener('change', function(e){
     const file = e.target.files[0];
+    if(!file) return; // SAFETY
     const reader = new FileReader();
     reader.onload = function(event){
         document.getElementById('photoPreview').src = event.target.result;
