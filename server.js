@@ -32,7 +32,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.7.4'))
+.then(()=>console.log('✅ MongoDB Connected v3.7.5 - FIXED'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
@@ -119,8 +119,43 @@ app.delete('/api/admin/reject-restaurant/:id', async (req,res)=>{
 });
 
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ try{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) } catch(e){ res.status(500).json({success:false}) }});
-app.get('/api/admin/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Approved"})) } catch(e){ res.status(500).json([]) }});
-app.get('/api/restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Approved"})) } catch(e){ res.status(500).json([]) }});
+
+// FIX 1: ADMIN RESTAURANTS
+app.get('/api/admin/restaurants', async (req,res)=>{ 
+  try{ 
+    const restaurants = await RestaurantOwner.find({status: "Approved"});
+    const formatted = restaurants.map(r => ({
+      _id: r.restaurantId,           
+      name: r.restaurantName,        
+      address: r.address,
+      mobile: r.mobile,
+      email: r.email,
+      status: r.status,
+      plan_status: r.plan_status
+    }));
+    res.json(formatted) 
+  } catch(e){ res.status(500).json([]) }
+});
+
+// FIX 2: PUBLIC RESTAURANTS
+app.get('/api/restaurants', async (req,res)=>{ 
+  try{ 
+    const restaurants = await RestaurantOwner.find({status: "Approved"});
+    const formatted = restaurants.map(r => ({
+      _id: r.restaurantId,           
+      name: r.restaurantName,        
+      address: r.address,
+      image: r.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${encodeURIComponent(r.restaurantName)}`,
+      mobile: r.mobile,
+      email: r.email
+    }));
+    res.json(formatted) 
+  } catch(e){ 
+    console.log(e)
+    res.status(500).json([]) 
+  }
+});
+
 app.get('/api/admin/approved-riders', async (req,res)=>{ try{ const riders = await Rider.find({status: "Approved"}).select('name mobile'); res.json(riders) } catch(e){ res.json([]) } });
 
 app.post('/api/admin/assign-rider', async (req,res)=>{
@@ -163,20 +198,17 @@ app.get('/api/admin/promo', async (req,res)=>{ try{ res.json(await Banner.findOn
 
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{ try{
   const existing = await Banner.findOne({});
-
-  let imageUrl = existing?.image || ''; // purani image le lo
-  if(req.file){ // nayi image aayi to upload karo
+  let imageUrl = existing?.image || ''; 
+  if(req.file){ 
     const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {folder: 'eat4bite-banners'});
     imageUrl = result.secure_url;
   }
-
   await Banner.findOneAndUpdate({}, {
     text: req.body.text,
     image: imageUrl,
     color: req.body.color,
     updatedAt: new Date()
   }, {upsert: true});
-
   res.json({success:true})
 }catch(e){ res.json({success:false, msg:e.message}) }});
 
@@ -280,22 +312,16 @@ app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(s
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurants.html')));
-
-// ADDED: Missing Page Routes
 app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
 app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
 app.get('/rider', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider.html')));
 app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
-
-// FIXED: YE AB admin-owners.html KHOLEGA
 app.get('/approve-restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-owners.html')));
-
 app.get('/logout', (req, res) => res.redirect('/'));
-
 app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
 app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 app.get('/restaurant-profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-profile.html')));
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.total}`); doc.end(); });
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.7.4 on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.7.5 FIXED on ${PORT}`));
