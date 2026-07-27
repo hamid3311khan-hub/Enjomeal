@@ -8,7 +8,7 @@
 <style>
 .card:hover{transform: scale(1.02); transition: 0.2s;}
 .navbar-brand{color:white!important;}
-a{text-decoration:none;} /* NAYA */
+a{text-decoration:none;}
 </style>
 </head>
 <body class="bg-light">
@@ -24,7 +24,7 @@ a{text-decoration:none;} /* NAYA */
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com';
+const API = ''; // Render pe khali rakho
 
 async function loadRestaurants(){
     try{
@@ -40,13 +40,13 @@ async function loadRestaurants(){
 
         list.innerHTML = shops.map(shop => `
             <div class="col-md-4 col-12">
-                <a href="/?shop=${shop._id}"> <!-- FIX: DIRECT LINK -->
+                <a href="/?shop=${shop.restaurantId}"> <!-- FIX: restaurantId -->
                     <div class="card shadow-sm p-3">
-                        <img src="${shop.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${encodeURIComponent(shop.name)}`}" 
+                        <img src="${shop.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${encodeURIComponent(shop.restaurantName)}`}" 
                              class="card-img-top mb-2" 
                              style="height:180px; object-fit:cover; border-radius:8px"
                              onerror="this.src='https://via.placeholder.com/400x180/ff6600/ffffff?text=Eat4Bite'">
-                        <h5 class="fw-bold text-dark">${shop.name}</h5>
+                        <h5 class="fw-bold text-dark">${shop.restaurantName}</h5> <!-- FIX: restaurantName -->
                         <p class="text-muted small">📍 ${shop.address || 'Address not added'}</p>
                     </div>
                 </a>
