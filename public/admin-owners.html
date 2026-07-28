@@ -56,19 +56,6 @@
 const API = ''; 
 let allData = [];
 
-// YE 3 LINE YAHI ADD KAR DE 👇
-if(sessionStorage.getItem('adminLoggedIn') !== 'true'){
-    sessionStorage.setItem('adminLoggedIn', 'true');
-}
-
-async function loadOwners(){
-    try{
-        const res = await fetch(API + '/api/admin/all-restaurants');
-        // FIX: sabhi la rahe
-        allData = await res.json();
-        updateCount();
-        filterTable('Pending');
-        // Default Pending khule
 async function loadOwners(){
     try{
         const res = await fetch(API+'/api/admin/all-restaurants'); // FIX: sabhi la rahe
