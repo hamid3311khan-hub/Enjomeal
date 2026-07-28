@@ -10,6 +10,7 @@
    .proof-img{width:80px; height:80px; object-fit:cover; cursor:pointer; border-radius:5px; border:1px solid #ddd}
    .navbar-brand{color:#ff4d4d !important; font-weight:bold}
    .nav-link{cursor:pointer}
+   .nav-link.active{border-bottom: 2px solid #ff4d4d; color:#ff4d4d !important; font-weight:600}
 </style>
 </head>
 <body>
@@ -24,10 +25,10 @@
 
     <!-- TABS -->
     <ul class="nav nav-tabs mb-3" id="myTab">
-        <li class="nav-item"><button class="nav-link active" onclick="filterTable('All')">All</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterTable('Pending')">Pending</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterTable('Approved')">Approved</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterTable('Rejected')">Rejected</button></li>
+        <li class="nav-item"><button class="nav-link active" onclick="filterTable('All', this)">All</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="filterTable('Pending', this)">Pending</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="filterTable('Approved', this)">Approved</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="filterTable('Rejected', this)">Rejected</button></li>
     </ul>
 
     <div class="table-responsive">
@@ -37,8 +38,8 @@
                 <th>Restaurant</th>
                 <th>Owner</th>
                 <th>Mobile</th>
-                <th>Reg Date</th> <!-- NAYA -->
-                <th>Restaurant Photo</th> <!-- NAYA -->
+                <th>Reg Date</th>
+                <th>Restaurant Photo</th>
                 <th>₹200 Proof</th>
                 <th>Trial End</th>
                 <th>Status</th>
@@ -53,17 +54,19 @@
 </div>
 
 <script>
-const API = ''; 
+const API = window.location.origin; // FIX 1: Hosting ke liye
 let allData = [];
 
 async function loadOwners(){
     try{
-        const res = await fetch(API+'/api/admin/all-restaurants'); // FIX: sabhi la rahe
+        const res = await fetch(API+'/api/admin/all-restaurants');
+        if(!res.ok) throw new Error('API Error: '+res.status);
         allData = await res.json();
         updateCount();
-        filterTable('All'); // Default Pending khule
+        filterTable('All', document.querySelector('.nav-link.active')); // FIX 2: Default All
     }catch(err){
-        document.getElementById('ownersTable').innerHTML = `<tr><td colspan="9" class="text-center text-danger">Data load nahi hua</td></tr>`;
+        console.error(err);
+        document.getElementById('ownersTable').innerHTML = `<tr><td colspan="9" class="text-center text-danger">Data load nahi hua: ${err.message}</td></tr>`;
     }
 }
 
@@ -71,17 +74,18 @@ function updateCount(){
     const total = allData.length;
     const pending = allData.filter(r=>r.status=='Pending').length;
     const approved = allData.filter(r=>r.status=='Approved').length;
-    document.getElementById('countText').innerText = `Total: ${total} | Pending: ${pending} | Approved: ${approved}`;
+    const rejected = allData.filter(r=>r.status=='Rejected').length;
+    document.getElementById('countText').innerText = `Total: ${total} | Pending: ${pending} | Approved: ${approved} | Rejected: ${rejected}`;
 }
 
-function filterTable(status){
+function filterTable(status, el){ // FIX 3: el add kiya
     document.querySelectorAll('.nav-link').forEach(b=>b.classList.remove('active'));
-    event.target.classList.add('active');
+    if(el) el.classList.add('active');
 
     let data = status=='All' ? allData : allData.filter(r=>r.status==status);
     
     if(data.length === 0){
-        document.getElementById('ownersTable').innerHTML = `<tr><td colspan="9" class="text-center">Koi record nahi</td></tr>`;
+        document.getElementById('ownersTable').innerHTML = `<tr><td colspan="9" class="text-center text-muted">Koi record nahi</td></tr>`;
         return;
     }
 
@@ -94,7 +98,7 @@ function filterTable(status){
 
         let proofLink = o.payment_proof ? `<a href="${o.payment_proof}" target="_blank"><img src="${o.payment_proof}" class="proof-img"></a>` : '-';
         let restImg = o.image ? `<img src="${o.image}" class="proof-img">` : '-';
-        let regDate = new Date(o.createdAt).toLocaleDateString('hi-IN');
+        let regDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('hi-IN') : '-';
         let trialEnd = o.trial_end_date ? new Date(o.trial_end_date).toLocaleDateString('hi-IN') : '-';
         let badgeColor = o.status=='Approved'?'success':o.status=='Pending'?'warning':'danger';
 
@@ -123,8 +127,8 @@ async function approveOwner(id){
 }
 
 async function rejectOwner(id){
-    if(!confirm('Pakka Reject karna hai? Ye delete nahi hoga, sirf list se hat jayega.')) return;
-    const res = await fetch(API+`/api/admin/reject-restaurant/${id}`, {method:'PUT'}); // FIX: DELETE hata ke PUT
+    if(!confirm('Pakka Reject karna hai?')) return;
+    const res = await fetch(API+`/api/admin/reject-restaurant/${id}`, {method:'PUT'});
     const result = await res.json();
     if(result.success){ alert('Restaurant Reject kar diya'); loadOwners(); } 
     else { alert('Error: '+result.msg); }
