@@ -4,15 +4,24 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
-const { Server } = require("socket.io");
 const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
 
+// ===== FIREBASE ADD KIYA =====
+const admin = require('firebase-admin');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY); // Render me env me dalna hai
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://eat4bite-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
+const db = admin.database();
+// ==============================
+
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: {origin: "*"} });
 const PORT = process.env.PORT || 10000;
 
 cloudinary.config({
@@ -32,46 +41,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.8.0 - Fixed'))
-.catch(err => { console.log('Mongo Error:', err); process.exit(1) });
+.then(()=>console.log('✅ MongoDB Connected v3.9.0 - Firebase Added'))
+.catch(err => { console.log('Mongo Error:', err); process.env.exit(1) });
 
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
-
-const RestaurantOwner = mongoose.model('RestaurantOwner', {
-  restaurantId: {type: String, unique: true},
-  restaurantName: String,
-  ownerName: String,
-  mobile: {type: String, unique: true},
-  email: {type: String, unique: true},
-  address: String,
-  password: String,
-  status: {type: String, default: "Pending"},
-  plan_status: {type: String, default: "Trial"},
-  registration_fee_paid: {type: Number, default: 200},
-  payment_proof: {type: String, default: null},
-  image: {type: String, default: null},
-  upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},
-  trial_end_date: {type: Date},
-  payout_due: {type: Number, default: 0},
-  createdAt: {type: Date, default: Date.now}
-});
-
+const RestaurantOwner = mongoose.model('RestaurantOwner', { restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String, mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String, password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"}, registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null}, image: {type: String, default: null}, upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"}, trial_end_date: {type: Date}, payout_due: {type: Number, default: 0}, createdAt: {type: Date, default: Date.now} });
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000}});
-const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
+const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 26.123}, shopLng: {type:Number, default: 84.456},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
 const Banner = mongoose.model('Banner', {text: String, image: String, color: String, updatedAt: {type: Date, default: Date.now}});
 
 async function sendWhatsApp(to, message) {console.log(`📲 WHATSAPP TO ${to}: ${message}`);}
-
-io.on('connection', (socket) => {
-  socket.on('riderLocation', async (data) => {
-    await Rider.findOneAndUpdate({mobile: data.mobile}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
-    await Order.updateMany({riderId: data.mobile, status: "Out for Delivery"}, {riderLat: data.lat, riderLng: data.lng});
-    io.emit('locationUpdate', {riderId: data.mobile, lat: data.lat, lng: data.lng});
-  });
-});
 
 function calculateBill(item_total) {
   const commission_5 = Math.round(item_total * 0.05);
@@ -80,6 +62,17 @@ function calculateBill(item_total) {
   const grand_total = item_total + commission_5 + platform_fee + delivery_fee;
   return {item_total, commission_5, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total};
 }
+
+// ===== NEW API: RIDER LOCATION UPDATE =====
+app.post('/riderLocation', async (req,res)=>{
+  try{
+    const {mobile, lat, lng} = req.body;
+    await Rider.findOneAndUpdate({mobile}, {lat, lng, lastUpdate: new Date()});
+    await db.ref('rider_location/' + mobile).set({lat, lng, time: Date.now()}); // Firebase me bhi
+    res.json({success:true});
+  }catch(e){ res.json({success:false}) }
+});
+// ===========================================
 
 // ===== MENU API =====
 app.post('/api/menu', upload.single('image'), async (req,res)=>{
@@ -176,8 +169,11 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
     if(!order) return res.json({success:false, msg:"Order nahi mila"});
     const rider = await Rider.findOne({mobile: riderId});
     if(!rider) return res.json({success:false, msg:"Rider nahi mila"});
-    await Order.findOneAndUpdate({trackId: orderId}, { riderId: riderId, riderName: rider.name, status: 'Rider Assigned' });
-    io.emit('newOrderForRider', {riderId});
+    await Order.findOneAndUpdate({trackId: orderId}, { riderId: riderId, riderName: rider.name, status: 'Out for Delivery' });
+    
+    // FIREBASE ME BHI PUSH KARO
+    await db.ref('rider_orders/' + riderId + '/' + orderId).set(order.toObject());
+    
     res.json({success:true, msg:"Rider Assigned!"});
   }catch(e){ res.json({success:false, msg:e.message}) }
 });
@@ -321,10 +317,28 @@ app.post('/api/restaurant/offer', async (req,res)=>{ try{
   res.json({success:true, msg:"Offer Created"})
 }catch(e){ res.json({success:false}) }});
 
-app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
+// ===== ORDER PLACE API - FIREBASE ADDED =====
+app.post('/api/orders', async (req,res)=>{
+  const trackId = 'EB' + Date.now();
+  const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);
+  const bill = calculateBill(item_total);
+  const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});
+  const upi_id = shop? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";
+  const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;
+  
+  const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null, paymentMode: req.body.payment || req.body.paymentMode}).save();
+  
+  if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);
+  
+  // FIREBASE ME PUSH KARO ADMIN KE LIYE
+  await db.ref('all_orders/' + trackId).set(newOrder.toObject());
+  
+  res.json({success:true, trackId, bill, upi_link, upi_id})
+});
+// ============================================
+
 app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) } catch(e){ res.status(500).json([]) }});
 
-// ========= YE 1 ROUTE NAYA ADD KIYA HAI =========
 app.get('/api/orders/track/:id', async (req,res)=>{ 
   try{ 
     const order = await Order.findOne({trackId: req.params.id});
@@ -332,7 +346,6 @@ app.get('/api/orders/track/:id', async (req,res)=>{
     res.json(order) 
   } catch(e){ res.status(500).json(null) } 
 });
-// ===============================================
 
 // ===== PAGE ROUTES =====
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
@@ -348,6 +361,4 @@ app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 app.get('/restaurant-profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-profile.html')));
-app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.grand_total}`); doc.end(); });
-
-server.listen(PORT, ()=> console.log(`🚀 Server v3.8.0 FIXED on ${PORT}`));
+app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('---------------------------------
