@@ -55,12 +55,13 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-// ========= YE LINE FIX KI HAI =========
+// ========= CONFIG =========
 const API = 'https://quickbite-ymqk.onrender.com/api';
-// =======================================
-const socket = io();
+const SOCKET_URL = 'https://quickbite-ymqk.onrender.com';
+const socket = io(SOCKET_URL);
+// ==========================
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null; let customerMarkers = {};
 
 window.onload = () => {
@@ -71,7 +72,7 @@ window.onload = () => {
     document.getElementById('riderName').innerText = `Hello, ${riderData.name}`;
     initMap(); loadMyOrders(); loadHisab();
     updateStatusUI(riderData.status);
-    if(riderData.status === 'Online') startLocationTracking();
+    if(riderData.status === 'Approved') startLocationTracking(); // Approved = Online
   }
 }
 
@@ -85,7 +86,7 @@ function showTab(tab, btn){
 
 function updateStatusUI(status){
   document.getElementById('riderStatus').innerText = status;
-  if(status === 'Online'){
+  if(status === 'Approved'){ // Approved = Online
     document.getElementById('btnOnline').disabled = true;
     document.getElementById('btnOffline').disabled = false;
   } else {
@@ -109,19 +110,19 @@ async function riderLogin(){
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
 async function goOnline(){
-  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
-  riderData.status = 'Online';
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})}); // FIXED
+  riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
-  updateStatusUI('Online');
+  updateStatusUI('Approved');
   startLocationTracking();
 }
 
 async function goOffline(){
   clearInterval(locationInterval);
-  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
-  riderData.status = 'Approved';
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Offline'})}); // FIXED
+  riderData.status = 'Offline';
   localStorage.setItem('riderData', JSON.stringify(riderData));
-  updateStatusUI('Approved');
+  updateStatusUI('Offline');
 }
 
 function startLocationTracking(){
@@ -157,6 +158,7 @@ async function loadHisab(){
 
 socket.on('newOrderForRider', (data) => {
   if(data.riderId === riderData.mobile){
+    new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg').play();
     alert(`Naya Order Aaya!`);
     loadMyOrders();
   }
@@ -177,14 +179,14 @@ async function loadMyOrders(){
 
     return `
     <div class="order">
-      <b>${o.trackId}</b> - ₹${o.total} <br>
+      <b>${o.trackId}</b> - ₹${o.grand_total} <br> // FIXED: grand_total
       <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
       <b>Address:</b> ${o.address} <br>
       <b>Status:</b> ${o.status} <br>
       ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn-directions">📍 Get Directions</a>` : '<small>Location not shared</small>'}
       ${o.status === 'Out for Delivery' ? `
         <label><b>Cash Collected ₹:</b></label>
-        <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.total}">
+        <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.grand_total}"> // FIXED: grand_total
         <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
       ` : ''}
       <a href="/invoice?id=${o.trackId}" target="_blank">📄 Bill</a>
@@ -205,5 +207,5 @@ async function markDelivered(orderId){
   loadHisab();
 }
 </script>
+</body>
 </html>
-Mere pass hai bs update Krna hoga tujhe
