@@ -17,9 +17,13 @@
     "node-cron": "^3.0.3",
     "bcryptjs": "^2.4.3",
     "axios": "^1.7.2",
-    "cloudinary": "^2.5.1" 
+    "cloudinary": "^2.5.1",
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
