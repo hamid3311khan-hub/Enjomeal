@@ -37,7 +37,7 @@ body.dark .category-btn{background:#2a2a2a;}
 /* GRID */
 .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:15px; padding:10px;}
 .card {background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;}
-.card img{width:100%;height:220px;object-fit:cover;object-position:center 35%;border-radius:8px 8px 0 0;} /* PIC FULL COVER - 340 se 220 kiya */
+.card img{width:100%;height:220px;object-fit:cover;object-position:center 35%;border-radius:8px 8px 0 0;}
 .card-body{padding:10px 12px;}
 .card h3{font-size:16px; margin:0 0 2px 0;font-weight:600; display:flex; align-items:center; gap:6px;}
 .card .offer-tag{background:#ffe0e0; color:#ff0000; font-size:12px; padding:2px 6px; border-radius:4px; font-weight:bold;}
@@ -51,7 +51,7 @@ body.dark .card .desc{color:#aaa;}
 body.dark .card .price{color:#eee;}
 .empty-state{text-align:center; padding:60px 20px; color:#999;}
 
-/* NAYA: Banner image fix */
+/* Banner image fix */
 #bannerImg{
   width:100%;
   height:220px;
@@ -145,7 +145,7 @@ async function loadFeatured(){
                 <div class="grid">
                 ${restaurants.slice(0,6).map(r=>`
                     <div class="card" onclick="showRestaurantBanner(${JSON.stringify(r).replace(/"/g, '&quot;')}); window.location='/?shop=${r._id}'" style="cursor:pointer;">
-                        <img src="${r.image || 'https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'}" onerror="this.src='https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'">
+                        <img src="${r.image ? r.image : 'https://via.placeholder.com/300x220/ff6600/ffffff?text='+r.name}" onerror="this.src='https://via.placeholder.com/300x220/ff6600/ffffff?text='+r.name">
                         <div class="card-body">
                             <h3>${r.name}</h3>
                             <p style="font-size:12px; color:#888; margin:0;">${r.address || 'Nearby'}</p>
@@ -180,7 +180,7 @@ async function loadMenuByShop(id){
     const selected = allRestaurants.find(r=>r._id==id);
     if(selected){
         document.getElementById('search').value = selected.name;
-        showRestaurantBanner(selected); // NAYA: Banner dikhane ke liye
+        showRestaurantBanner(selected);
     }
     document.getElementById('menu').innerHTML = '<p style="text-align:center">Loading...</p>';
     let url = `${API}/menu?shop=${id}`;
@@ -212,7 +212,7 @@ function displayItems(items){
             const price = item.offer? Math.round(item.price*(1-item.offer/100)) : item.price;
             return `
             <div class="card">
-                <img src="${item.image}" onerror="this.src='https://via.placeholder.com/300x180/ff6600/ffffff?text=Food'">
+                <img src="${item.image ? item.image : 'https://via.placeholder.com/300x220/ff6600/ffffff?text='+item.name}" onerror="this.src='https://via.placeholder.com/300x220/ff6600/ffffff?text='+item.name">
                 <div class="card-body">
                     <h3>${item.name} ${item.offer?`<span class="offer-tag">-${item.offer}%</span>`:''}</h3>
                     <p class="desc">${item.desc || ''}</p>
@@ -248,11 +248,10 @@ function addToCart(item){
 function showCart(){window.location = '/cart';} 
 function updateCart(){document.getElementById('count').innerText = cart.reduce((s,i)=>s+i.qty,0);}
 
-// NAYA FUNCTION: Restaurant banner dikhane ke liye
 function showRestaurantBanner(restaurant){
     if(!restaurant) return;
     document.getElementById('homeBanner').style.display = 'block';
-    document.getElementById('bannerImg').src = restaurant.image || 'https://via.placeholder.com/800x220/ff6600/ffffff?text=Restaurant';
+    document.getElementById('bannerImg').src = restaurant.image ? restaurant.image : 'https://via.placeholder.com/800x220/ff6600/ffffff?text='+restaurant.name;
     document.getElementById('bannerTextDiv').innerText = restaurant.name;
     document.getElementById('bannerBox').style.background = '#ff6600';
 }
