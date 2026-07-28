@@ -32,12 +32,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.7.5 - FIXED'))
+.then(()=>console.log('✅ MongoDB Connected v3.7.6 - 2 Upload'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
-const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"},registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},trial_end_date: {type: Date}, payout_due: {type: Number, default: 0}, createdAt: {type: Date, default: Date.now}});
+
+// UPDATED: image field add kiya
+const RestaurantOwner = mongoose.model('RestaurantOwner', {
+  restaurantId: {type: String, unique: true},
+  restaurantName: String,
+  ownerName: String,
+  mobile: {type: String, unique: true},
+  email: {type: String, unique: true},
+  address: String,
+  password: String,
+  status: {type: String, default: "Pending"},
+  plan_status: {type: String, default: "Trial"},
+  registration_fee_paid: {type: Number, default: 200},
+  payment_proof: {type: String, default: null},
+  image: {type: String, default: null}, // YE NAYA HAI - Card ke liye
+  upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},
+  trial_end_date: {type: Date},
+  payout_due: {type: Number, default: 0},
+  createdAt: {type: Date, default: Date.now}
+});
+
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000}});
 const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
@@ -131,7 +151,9 @@ app.get('/api/admin/restaurants', async (req,res)=>{
       mobile: r.mobile,
       email: r.email,
       status: r.status,
-      plan_status: r.plan_status
+      plan_status: r.plan_status,
+      image: r.image, // Admin ko bhi photo dikh jayegi
+      payment_proof: r.payment_proof // Admin proof bhi dekhega
     }));
     res.json(formatted) 
   } catch(e){ res.status(500).json([]) }
@@ -229,8 +251,11 @@ app.get('/api/report', async (req,res)=>{ try{
   res.json({totalOrders: orders.length, totalRevenue: orders.reduce((a,b)=>a+Number(b.total),0)})
 }catch(e){ res.json({totalOrders:0, totalRevenue:0}) }});
 
-// ===== RESTAURANT REGISTER + LOGIN =====
-app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,res)=>{
+// ===== UPDATED: RESTAURANT REGISTER WITH 2 FILES =====
+app.post('/api/restaurant-register', upload.fields([
+  { name: 'restaurantImage', maxCount: 1 },
+  { name: 'paymentProof', maxCount: 1 }
+]), async (req,res)=>{
   try{
     const {restaurantName, ownerName, mobile, email, address, password, amount} = req.body;
     let plan = req.body.plan;
@@ -238,17 +263,36 @@ app.post('/api/restaurant-register', upload.single('payment_proof'), async (req,
 
     const existing = await RestaurantOwner.findOne({$or: [{mobile}, {email}]});
     if(existing) return res.json({success:false, msg:"Mobile ya Email pehle se hai"});
+
+    let restaurantImageUrl = "";
     let paymentProofUrl = "";
-    if(req.file){
-      const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {folder: 'eat4bite_proofs'});
+
+    if(req.files['restaurantImage']){
+      const result = await cloudinary.uploader.upload(
+        `data:${req.files['restaurantImage'][0].mimetype};base64,${req.files['restaurantImage'][0].buffer.toString('base64')}`,
+        {folder: 'eat4bite_restaurants'}
+      );
+      restaurantImageUrl = result.secure_url;
+    }
+
+    if(req.files['paymentProof']){
+      const result = await cloudinary.uploader.upload(
+        `data:${req.files['paymentProof'][0].mimetype};base64,${req.files['paymentProof'][0].buffer.toString('base64')}`,
+        {folder: 'eat4bite_proofs'}
+      );
       paymentProofUrl = result.secure_url;
     }
+
     const restaurantId = "shop_" + Date.now();
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 7);
+
     await new RestaurantOwner({
       restaurantId, restaurantName, ownerName, mobile, email, address, password,
-      status: "Pending", payment_proof: paymentProofUrl, trial_end_date: trialEnd,
+      status: "Pending",
+      image: restaurantImageUrl, // Card ke liye
+      payment_proof: paymentProofUrl, // Admin ke liye
+      trial_end_date: trialEnd,
       plan_status: plan || "Trial",
       registration_fee_paid: Number(amount) || 200
     }).save();
@@ -324,4 +368,4 @@ app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname,
 app.get('/restaurant-profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-profile.html')));
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.total}`); doc.end(); });
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.7.5 FIXED on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.7.6 FIXED on ${PORT}`));
