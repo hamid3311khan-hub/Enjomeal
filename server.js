@@ -89,7 +89,7 @@ app.delete('/api/admin/promo', async (req,res)=>{ try{ await Banner.deleteMany({
 app.post('/api/broadcast', async (req,res)=>{ try{ const owners = await RestaurantOwner.find({status:"Approved"}); owners.forEach(o=> sendWhatsApp(o.mobile, `📢 ADMIN NOTICE: ${req.body.message}`)); res.json({success:true, count: owners.length}) }catch(e){ res.json({success:false}) }});
 app.get('/api/report', async (req,res)=>{ try{ const {start, end, shop} = req.query; let query = {createdAt: {$gte: new Date(start), $lte: new Date(end)}}; if(shop!== 'all') query.restaurantId = shop; const orders = await Order.find(query); res.json({totalOrders: orders.length, totalRevenue: orders.reduce((a,b)=>a+Number(b.grand_total || b.total || 0),0)}) }catch(e){ res.json({totalOrders:0, totalRevenue:0}) }});
 
-// ===== RIDER API =====
+// ===== RIDER API - FIX: uploadFile naam change kiya =====
 app.post('/api/rider-register', uploadRider.fields([{name: 'aadharImg'}, {name: 'panImg'}, {name: 'photoImg'}]), async (req,res)=>{
   try{
     const {restaurantId, name, fatherName, aadhar, pan, mobile} = req.body;
@@ -120,7 +120,7 @@ app.post('/api/restaurant/cash-confirm', async (req,res)=>{ try{ const {riderId,
 app.post('/api/restaurant/offer', async (req,res)=>{ try{ await new Offer({...req.body}).save(); res.json({success:true, msg:"Offer Created"}) }catch(e){ res.json({success:false}) }});
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
 
-// FIXED: Orders API Complete - YEHI CRASH KAR RAHA THA
+// FIXED: Orders API Complete
 app.get('/api/orders', async (req,res)=>{
   try{
     const shop = req.query.shop;
