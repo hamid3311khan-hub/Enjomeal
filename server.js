@@ -127,7 +127,6 @@ app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{
   } catch(e){ res.status(500).json({success:false}) }
 });
 
-// NAYA: DELETE KI JAGAH REJECT
 app.put('/api/admin/reject-restaurant/:id', async (req,res)=>{
   try{
     await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Rejected"});
@@ -135,7 +134,6 @@ app.put('/api/admin/reject-restaurant/:id', async (req,res)=>{
   } catch(e){ res.status(500).json({success:false, msg: e.message}) }
 });
 
-// NAYA: SABHI RESTAURANT
 app.get('/api/admin/all-restaurants', async (req,res)=>{ 
   try{ 
     const restaurants = await RestaurantOwner.find({}).sort({createdAt: -1});
@@ -325,6 +323,16 @@ app.post('/api/restaurant/offer', async (req,res)=>{ try{
 
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
 app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) } catch(e){ res.status(500).json([]) }});
+
+// ========= YE 1 ROUTE NAYA ADD KIYA HAI =========
+app.get('/api/orders/track/:id', async (req,res)=>{ 
+  try{ 
+    const order = await Order.findOne({trackId: req.params.id});
+    if(!order) return res.json(null);
+    res.json(order) 
+  } catch(e){ res.status(500).json(null) } 
+});
+// ===============================================
 
 // ===== PAGE ROUTES =====
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
