@@ -21,6 +21,12 @@
     small{color:#666; font-size:12px;}
     canvas{background:white; padding:10px; border-radius:8px;}
 .error{color:red; font-size:14px; padding:10px;}
+.tab-btn{padding:10px 20px; margin-right:10px; border:none; background:#ccc; color:#000; cursor:pointer; border-radius:5px;}
+.tab-btn.active{background:#ff6600; color:white;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+table{width:100%; border-collapse:collapse; margin-top:10px;}
+table th, table td{border:1px solid #ddd; padding:8px; text-align:left; font-size:14px;}
 </style>
 </head>
 <body>
@@ -33,6 +39,12 @@
     </div>
 </div>
 
+<div>
+    <button class="tab-btn active" onclick="showTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" onclick="showTab('payout')">💰 Daily Payout</button>
+</div>
+
+<div id="dashboard" class="tab-content active">
 <div class="grid">
     <div class="card stat-card"><h3>Total Orders</h3><h2 id="totalOrders">0</h2></div>
     <div class="card stat-card" style="background:#007bff;"><h3>Total Customers</h3><h2 id="totalCustomers">0</h2></div>
@@ -54,7 +66,6 @@
     <div id="reportResult" style="margin-top:15px;"></div>
 </div>
 
-<!-- BANNER SECTION -->
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-primary text-white"><h5 class="mb-0">🎨 Banner / Promo Manage Karo</h5></div>
   <div class="card-body">
@@ -74,6 +85,21 @@
 <div class="card"><h2>🏍️ Pending Rider Approvals</h2><div id="pendingRidersList">Loading...</div></div>
 <div class="card"><h2>📦 Orders - Manual Assign</h2><div id="ordersList">Loading...</div></div>
 <div class="card"><h2>🏍️ Approved Riders List</h2><div id="riderList">Loading...</div></div>
+</div>
+
+<div id="payout" class="tab-content">
+<div class="card">
+    <h2>💰 Aaj Ka Hisab</h2>
+    <button class="btn-blue" onclick="loadPayout()">🔄 Refresh</button>
+    <div class="grid" style="margin-top:15px;">
+        <div class="card stat-card" style="background:#17a2b8;"><h3>Total Orders</h3><h2 id="payoutTotalOrders">0</h2></div>
+        <div class="card stat-card"><h3>Total Sales</h3><h2 id="payoutTotalSales">₹0</h2></div>
+        <div class="card stat-card" style="background:#dc3545;"><h3>Platform Fee 10%</h3><h2 id="payoutFee">₹0</h2></div>
+        <div class="card stat-card" style="background:#28a745;"><h3>Pay to Restaurants</h3><h2 id="payoutToPay">₹0</h2></div>
+    </div>
+    <div id="payoutList" style="margin-top:20px; overflow-x:auto;"></div>
+</div>
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -82,6 +108,14 @@ const socket = io();
 let salesChart = null;
 let allRiders = [];
 const ADMIN_PASSWORD = 'admin123';
+
+function showTab(tab){
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.target.classList.add('active');
+    if(tab=='payout') loadPayout();
+}
 
 function checkLogin(){
     if(sessionStorage.getItem('adminLoggedIn')!== 'true'){
@@ -135,7 +169,7 @@ function renderChart(orders){
 
     const salesData = last7Days.map(date => {
         const dayOrders = orders.filter(o => o.createdAt.startsWith(date));
-        return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); // FIX: grand_total
+        return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0);
     });
 
     if(salesChart) salesChart.destroy();
@@ -172,12 +206,12 @@ async function loadData(){
     if(orders){
         const today = new Date().toISOString().split('T')[0];
         const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
-        const todayRev = todayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); // FIX: grand_total
+        const todayRev = todayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0);
         document.getElementById('totalOrders').innerText = orders.length;
         document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
         document.getElementById('todayRevenue').innerText = '₹' + todayRev;
 
-        renderChart(orders); // GRAPH CALL
+        renderChart(orders);
 
         let orderHtml = '';
         for(let o of orders){
@@ -185,7 +219,7 @@ async function loadData(){
             if(o.status === 'Pending' &&!o.riderId){
                 assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`;
             } else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
-            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.grand_total || o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`; // FIX
+            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.grand_total || o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`;
         }
         document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
     }
@@ -200,7 +234,7 @@ async function assignRider(orderId, riderId){
 async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
 async function getReport(){ alert('Report feature') }
 
-// Banner Code Same as yours
+// Banner Code
 async function loadBanner(){
   const res = await fetch('/api/admin/promo');
   const data = await res.json();
@@ -244,6 +278,31 @@ document.getElementById('deleteBanner').addEventListener('click', async()=>{
     document.getElementById('bannerImage').value = '';
   }
 });
+
+// NEW PAYOUT FUNCTIONS
+async function loadPayout(){
+    const res = await fetch('/api/admin/daily-payout');
+    const data = await res.json();
+    document.getElementById('payoutTotalOrders').innerText = data.totalOrders;
+    document.getElementById('payoutTotalSales').innerText = '₹' + data.totalSales.toFixed(2);
+    document.getElementById('payoutFee').innerText = '₹' + data.platformFee.toFixed(2);
+    document.getElementById('payoutToPay').innerText = '₹' + data.toPay.toFixed(2);
+    let html = '<table><tr><th>Restaurant</th><th>Order ID</th><th>Amount</th><th>To Pay</th><th>Status</th><th>Action</th></tr>';
+    data.orders.forEach(o=>{
+        html += `<tr><td>${o.restaurant}</td><td>${o.orderId}</td><td>₹${o.amount}</td><td>₹${o.toPay.toFixed(2)}</td><td>${o.status}</td><td>${o.status=='Delivered'? `<button class="btn-green" onclick="markPaid('${o.orderId}')">Paid Karo</button>` : 'Done'}</td></tr>`;
+    });
+    html += '</table>';
+    document.getElementById('payoutList').innerHTML = html;
+}
+
+async function markPaid(id){
+    await fetch('/api/admin/mark-paid', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({orderIds:[id]})
+    });
+    loadPayout();
+}
 
 checkLogin();
 </script>
