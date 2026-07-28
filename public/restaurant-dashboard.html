@@ -5,28 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Restaurant Dashboard - Eat4Bite™</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
     body{background:#f8f9fa}
-.navbar-brand{color:#ff6600!important; font-weight:bold}
-.nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;}
-.stat-card{border-radius:15px; color:white; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1)}
-.stat-card h3{font-size:28px; margin:0;}
-.new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
+ .navbar-brand{color:#ff6600!important; font-weight:bold}
+ .nav-tabs.nav-link.active{background:#ff6600; color:white; border:none;}
+ .stat-card{border-radius:15px; color:white; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+ .stat-card h3{font-size:28px; margin:0;}
+ .new-order{animation: blink 1.5s infinite; border-left:5px solid #ff6600;}
     @keyframes blink {50%{background:#fff3cd;}}
-.trial-banner{background:#D1E7DD; border-left:5px solid #0F5132}
-.alert-info{background:#d1ecf1; border-left:5px solid #0dcaf0}
-.progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden;}
-.progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
-.map-box{border-radius:8px; overflow:hidden; margin-top:8px; height:180px;}
+ .trial-banner{background:#D1E7DD; border-left:5px solid #0F5132}
+ .alert-info{background:#d1ecf1; border-left:5px solid #0dcaf0}
+ .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden;}
+ .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
+ .map-box{border-radius:8px; overflow:hidden; margin-top:8px;}
 </style>
 </head>
 <body>
 
 <nav class="navbar bg-white shadow-sm px-3">
-    <a href="/restaurant-dashboard" class="navbar-brand">🍴 <span id="resName"></span> Dashboard</a>
+    <a href="/restaurant-dashboard" class="navbar-brand">🍴 <span id="resName"></span> Dashboard</a> <!-- FIX:.html hata -->
     <div>
-        <a href="/restaurant-profile" class="btn btn-outline-secondary btn-sm me-2">⚙️ Profile</a>
+        <a href="/restaurant-profile" class="btn btn-outline-secondary btn-sm me-2">⚙️ Profile</a> <!-- FIX:.html hata -->
         <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
     </div>
 </nav>
@@ -124,7 +123,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const API = 'https://quickbite-ymqk.onrender.com';
 
@@ -135,12 +133,11 @@ const owner = restaurantOwner;
 
 if(!restaurantId){
     alert("Login info missing. Please login again");
-    window.location.href = '/restaurant-login';
+    window.location.href = '/restaurant-login'; // FIX:.html hata
 }
 
 document.getElementById('resName').innerText = restaurantName || 'Eat4Bite™ Shop';
 let lastOrderCount = 0;
-let restaurantMaps = {}; // Leaflet maps ke liye
 
 function checkTrial(){
     if(owner.plan_status === 'Trial' && owner.trial_end_date){
@@ -151,18 +148,6 @@ function checkTrial(){
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         document.getElementById('trialDays').innerText = diffDays > 0? diffDays : 0;
     }
-}
-
-function initOrderMap(orderId, lat, lng, type){
-  setTimeout(()=>{
-    const mapId = 'map_'+orderId+'_'+type;
-    if(document.getElementById(mapId) &&!restaurantMaps[mapId]){
-      const map = L.map(mapId).setView([lat, lng], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-      L.marker([lat, lng]).addTo(map).bindPopup(type==='cust'?'Customer Location':'Rider Location');
-      restaurantMaps[mapId] = map;
-    }
-  }, 200)
 }
 
 document.getElementById('imageFile').addEventListener('change', function(e){
@@ -260,17 +245,11 @@ async function loadOrders(){
         let html = '';
         if(orders.length === 0) html = '<p class="text-center text-muted">No orders yet</p>';
         orders.forEach(o=>{
-            // Customer Map
             const hasMap = o.custLat && o.custLng?
-            `<h6>📍 Customer Location</h6><div id="map_${o._id}_cust" class="map-box"></div><script>setTimeout(()=>initOrderMap('${o._id}', ${o.custLat}, ${o.custLng}, 'cust'), 300)<\/script>`
+            `<iframe src="https://www.google.com/maps?q=${o.custLat},${o.custLng}&z=15&output=embed"
+             width="100%" height="200" style="border:0;" class="map-box" loading="lazy"></iframe>`
             : '<small class="text-muted">📍 Location not available</small>';
-
-            // Rider Map
-            const hasRiderMap = o.status === 'Out for Delivery' && o.riderLat && o.riderLng?
-            `<div style="margin-top:10px"><h6>🚴 Rider Live</h6><div id="map_${o._id}_rider" class="map-box"></div><script>setTimeout(()=>initOrderMap('${o._id}', ${o.riderLat}, ${o.riderLng}, 'rider'), 300)<\/script></div>`
-            : '';
-
-            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}"><div class="d-flex justify-content-between"><div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone} | ${o.paymentMode || 'COD'}</small></div><h5 class="text-success">₹${o.grand_total}</h5></div><p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p><p class="mb-1"><b>Address:</b> ${o.address}</p><div class="mb-2">${hasMap}</div>${hasRiderMap}<p class="mb-1"><b>Bill:</b> Item ₹${o.item_total} + Comm ₹${o.commission_5} + Fee ₹${o.platform_fee + o.delivery_fee}</p><div class="d-flex gap-2 align-items-center mb-2"><b>Status:</b><select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;"><option ${o.status=='Pending'?'selected':''}>Pending</option><option ${o.status=='Preparing'?'selected':''}>Preparing</option><option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option><option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option><option ${o.status=='Delivered'?'selected':''}>Delivered</option></select></div><a href="/invoice?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Print Bill</a></div>`;
+            html += `<div class="border p-3 mb-2 rounded ${o.status=='Pending'?'new-order':''}"><div class="d-flex justify-content-between"><div><b>${o.trackId}</b> - ${o.name} <br><small>${o.phone} | ${o.paymentMode || 'COD'}</small></div><h5 class="text-success">₹${o.total}</h5></div><p class="mb-1"><b>Items:</b> ${o.items? o.items.map(i=>i.name+' x'+i.qty).join(', ') : ''}</p><p class="mb-1"><b>Address:</b> ${o.address}</p><div class="mb-2">${hasMap}</div><p class="mb-1"><b>Bill:</b> Item ₹${o.item_total} | Your Cut: ₹${o.commission_5+o.platform_fee}</p><div class="d-flex gap-2 align-items-center mb-2"><b>Status:</b><select onchange="updateOrderStatus('${o._id}', this.value)" class="form-select form-select-sm" style="width:200px;"><option ${o.status=='Pending'?'selected':''}>Pending</option><option ${o.status=='Preparing'?'selected':''}>Preparing</option><option ${o.status=='Ready'?'selected':''}>Ready for Pickup</option><option ${o.status=='Out for Delivery'?'selected':''}>Out for Delivery</option><option ${o.status=='Delivered'?'selected':''}>Delivered</option></select></div><a href="/invoice?id=${o.trackId}" target="_blank" class="btn btn-sm btn-outline-primary">📄 Print Bill</a></div>`; // FIX: invoice
         });
         document.getElementById('ordersList').innerHTML = html;
     }catch(err){ document.getElementById('ordersList').innerHTML = '<p class="text-danger">Failed to load orders</p>'; }
@@ -332,7 +311,7 @@ async function addOffer(){
     setTimeout(()=>document.getElementById('offerMsg').innerHTML='', 3000);
 }
 
-function logout(){localStorage.clear(); window.location.href = '/restaurant-login';}
+function logout(){localStorage.clear(); window.location.href = '/restaurant-login';} // FIX:.html hata
 
 checkTrial();
 loadMenu(); loadOrders(); loadStats(); loadCashPending();
