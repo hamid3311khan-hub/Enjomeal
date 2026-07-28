@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin - Eat4Bite™ Restaurant Approval</title>
+<title>Admin - Eat4Bite™ All Restaurants</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-   .badge-pending{background:#ffc107; color:#000}
    .proof-img{width:80px; height:80px; object-fit:cover; cursor:pointer; border-radius:5px; border:1px solid #ddd}
    .navbar-brand{color:#ff4d4d !important; font-weight:bold}
+   .nav-link{cursor:pointer}
 </style>
 </head>
 <body>
@@ -19,8 +19,16 @@
 </nav>
 
 <div class="container mt-4">
-    <h3>🏪 Restaurant Approval Requests</h3>
-    <p class="text-muted">₹200 dene wale restaurant owners yahan dikhenge. Approve karne ke baad 30 din ka trial start hoga.</p>
+    <h3>🏪 Restaurant Management</h3>
+    <p class="fw-bold text-primary" id="countText">Loading...</p>
+
+    <!-- TABS -->
+    <ul class="nav nav-tabs mb-3" id="myTab">
+        <li class="nav-item"><button class="nav-link active" onclick="filterTable('All')">All</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="filterTable('Pending')">Pending</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="filterTable('Approved')">Approved</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="filterTable('Rejected')">Rejected</button></li>
+    </ul>
 
     <div class="table-responsive">
     <table class="table table-bordered bg-white shadow-sm">
@@ -28,8 +36,9 @@
             <tr>
                 <th>Restaurant</th>
                 <th>Owner</th>
-                <th>Email</th>
                 <th>Mobile</th>
+                <th>Reg Date</th> <!-- NAYA -->
+                <th>Restaurant Photo</th> <!-- NAYA -->
                 <th>₹200 Proof</th>
                 <th>Trial End</th>
                 <th>Status</th>
@@ -37,7 +46,7 @@
             </tr>
         </thead>
         <tbody id="ownersTable">
-            <tr><td colspan="8" class="text-center">Loading...</td></tr>
+            <tr><td colspan="9" class="text-center">Loading...</td></tr>
         </tbody>
     </table>
     </div>
@@ -45,46 +54,64 @@
 
 <script>
 const API = ''; 
+let allData = [];
 
 async function loadOwners(){
     try{
-        const res = await fetch(API+'/api/admin/pending-restaurants'); 
-        const owners = await res.json();
-
-        if(owners.length === 0){
-            document.getElementById('ownersTable').innerHTML = `<tr><td colspan="8" class="text-center">Koi request nahi hai</td></tr>`;
-            return;
-        }
-
-        let rows = '';
-        owners.forEach(o => {
-            let actionBtn = `<button class="btn btn-sm btn-success me-1" onclick="approveOwner('${o._id}')">✅ Approve</button> <button class="btn btn-sm btn-danger" onclick="rejectOwner('${o._id}')">❌ Reject</button>`;
-
-            // FIX: Cloudinary direct link hai. /uploads/ hata diya
-            let proofLink = o.payment_proof 
-                ? `<a href="${o.payment_proof}" target="_blank">
-                     <img src="${o.payment_proof}" class="proof-img">
-                   </a>` 
-                : '<span class="text-muted">-</span>';
-            
-            let trialEnd = o.trial_end_date ? new Date(o.trial_end_date).toLocaleDateString('hi-IN') : '-';
-
-            rows += `
-            <tr>
-                <td><b>${o.restaurantName}</b><br><small class="text-muted">${o.address || ''}</small></td>
-                <td>${o.ownerName}</td>
-                <td>${o.email}</td>
-                <td>${o.mobile}</td>
-                <td>${proofLink}</td>
-                <td>${trialEnd}</td>
-                <td><span class="badge badge-pending">${o.status}</span></td>
-                <td>${actionBtn}</td>
-            </tr>`;
-        });
-        document.getElementById('ownersTable').innerHTML = rows;
+        const res = await fetch(API+'/api/admin/all-restaurants'); // FIX: sabhi la rahe
+        allData = await res.json();
+        updateCount();
+        filterTable('Pending'); // Default Pending khule
     }catch(err){
-        document.getElementById('ownersTable').innerHTML = `<tr><td colspan="8" class="text-center text-danger">Data load nahi hua: ${err.message}</td></tr>`;
+        document.getElementById('ownersTable').innerHTML = `<tr><td colspan="9" class="text-center text-danger">Data load nahi hua</td></tr>`;
     }
+}
+
+function updateCount(){
+    const total = allData.length;
+    const pending = allData.filter(r=>r.status=='Pending').length;
+    const approved = allData.filter(r=>r.status=='Approved').length;
+    document.getElementById('countText').innerText = `Total: ${total} | Pending: ${pending} | Approved: ${approved}`;
+}
+
+function filterTable(status){
+    document.querySelectorAll('.nav-link').forEach(b=>b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    let data = status=='All' ? allData : allData.filter(r=>r.status==status);
+    
+    if(data.length === 0){
+        document.getElementById('ownersTable').innerHTML = `<tr><td colspan="9" class="text-center">Koi record nahi</td></tr>`;
+        return;
+    }
+
+    let rows = '';
+    data.forEach(o => {
+        let actionBtn = o.status=='Pending' ? `
+            <button class="btn btn-sm btn-success me-1" onclick="approveOwner('${o._id}')">✅ Approve</button> 
+            <button class="btn btn-sm btn-danger" onclick="rejectOwner('${o._id}')">❌ Reject</button>
+        ` : '-';
+
+        let proofLink = o.payment_proof ? `<a href="${o.payment_proof}" target="_blank"><img src="${o.payment_proof}" class="proof-img"></a>` : '-';
+        let restImg = o.image ? `<img src="${o.image}" class="proof-img">` : '-';
+        let regDate = new Date(o.createdAt).toLocaleDateString('hi-IN');
+        let trialEnd = o.trial_end_date ? new Date(o.trial_end_date).toLocaleDateString('hi-IN') : '-';
+        let badgeColor = o.status=='Approved'?'success':o.status=='Pending'?'warning':'danger';
+
+        rows += `
+        <tr>
+            <td><b>${o.restaurantName}</b><br><small class="text-muted">${o.address || ''}</small></td>
+            <td>${o.ownerName}</td>
+            <td>${o.mobile}</td>
+            <td>${regDate}</td>
+            <td>${restImg}</td>
+            <td>${proofLink}</td>
+            <td>${trialEnd}</td>
+            <td><span class="badge bg-${badgeColor}">${o.status}</span></td>
+            <td>${actionBtn}</td>
+        </tr>`;
+    });
+    document.getElementById('ownersTable').innerHTML = rows;
 }
 
 async function approveOwner(id){
@@ -96,8 +123,8 @@ async function approveOwner(id){
 }
 
 async function rejectOwner(id){
-    if(!confirm('Pakka Reject karna hai? Ye delete ho jayega.')) return;
-    const res = await fetch(API+`/api/admin/reject-restaurant/${id}`, {method:'DELETE'}); // FIX
+    if(!confirm('Pakka Reject karna hai? Ye delete nahi hoga, sirf list se hat jayega.')) return;
+    const res = await fetch(API+`/api/admin/reject-restaurant/${id}`, {method:'PUT'}); // FIX: DELETE hata ke PUT
     const result = await res.json();
     if(result.success){ alert('Restaurant Reject kar diya'); loadOwners(); } 
     else { alert('Error: '+result.msg); }
