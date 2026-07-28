@@ -57,7 +57,9 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const API = 'https://quickbite-ymqk.onrender.com';
+// ========= YE LINE FIX KI HAI =========
+const API = 'https://quickbite-ymqk.onrender.com/api';
+// =======================================
 const socket = io();
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null; let customerMarkers = {};
 
@@ -95,7 +97,7 @@ function updateStatusUI(status){
 async function riderLogin(){
   const mobile = document.getElementById('riderMobile').value;
   if(mobile.length!=10) return alert('Enter 10 digit mobile');
-  const res = await fetch(`${API}/api/rider-login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
+  const res = await fetch(`${API}/rider-login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
   const data = await res.json();
   if(data.success){
     riderData = data.rider;
@@ -107,7 +109,7 @@ async function riderLogin(){
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
 async function goOnline(){
-  await fetch(`${API}/api/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Online'})});
   riderData.status = 'Online';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   updateStatusUI('Online');
@@ -116,7 +118,7 @@ async function goOnline(){
 
 async function goOffline(){
   clearInterval(locationInterval);
-  await fetch(`${API}/api/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
   riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   updateStatusUI('Approved');
@@ -134,17 +136,17 @@ function updateRiderLocation(pos){
   if(!riderMarker){ riderMarker = L.marker([lat, lng]).addTo(map).bindPopup("You"); map.setView([lat, lng], 15); }
   else { riderMarker.setLatLng([lat, lng]); }
   
-  fetch(`${API}/api/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})});
+  fetch(`${API}/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})});
   socket.emit('riderLocation', {mobile: riderData.mobile, lat: lat, lng: lng});
 }
 
 async function loadHisab(){
-  const res = await fetch(`${API}/api/rider/ledger?riderId=${riderData.mobile}`);
+  const res = await fetch(`${API}/rider/ledger?riderId=${riderData.mobile}`);
   const data = await res.json();
   document.getElementById('cashInHand').innerText = data.pending_cash || 0;
   document.getElementById('cashPending').innerText = data.pending_cash || 0;
   document.getElementById('todayCollection').innerText = data.today_collected || 0;
-  document.getElementById('todayOrders').innerText = data.today_orders || 0; // FIXED
+  document.getElementById('todayOrders').innerText = data.today_orders || 0;
   
   const percent = data.progress || 0;
   document.getElementById('limitBar').style.width = percent + '%';
@@ -153,7 +155,7 @@ async function loadHisab(){
   if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; } else { document.getElementById('cashAlert').style.display = 'none'; }
 }
 
-socket.on('newOrderForRider', (data) => { // FIXED event name
+socket.on('newOrderForRider', (data) => {
   if(data.riderId === riderData.mobile){
     alert(`Naya Order Aaya!`);
     loadMyOrders();
@@ -161,7 +163,7 @@ socket.on('newOrderForRider', (data) => { // FIXED event name
 });
 
 async function loadMyOrders(){
-  const res = await fetch(`${API}/api/rider-orders/${riderData.mobile}`);
+  const res = await fetch(`${API}/rider-orders/${riderData.mobile}`);
   const orders = await res.json();
   if(orders.length === 0){ document.getElementById('myOrders').innerHTML = 'No orders yet'; return; }
   
@@ -193,7 +195,7 @@ async function markDelivered(orderId){
   const cashInput = document.getElementById(`cash_${orderId}`).value;
   if(!cashInput) return alert('Please enter cash collected amount');
   
-  await fetch(`${API}/api/order-delivered`, {
+  await fetch(`${API}/order-delivered`, {
     method:'POST', 
     headers:{'Content-Type':'application/json'}, 
     body:JSON.stringify({orderId, cashCollected: Number(cashInput)})
@@ -203,5 +205,4 @@ async function markDelivered(orderId){
   loadHisab();
 }
 </script>
-</body>
 </html>
