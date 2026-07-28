@@ -281,18 +281,64 @@ document.getElementById('deleteBanner').addEventListener('click', async()=>{
 
 // NEW PAYOUT FUNCTIONS
 async function loadPayout(){
-    const res = await fetch('/api/admin/daily-payout');
-    const data = await res.json();
-    document.getElementById('payoutTotalOrders').innerText = data.totalOrders;
-    document.getElementById('payoutTotalSales').innerText = '₹' + data.totalSales.toFixed(2);
-    document.getElementById('payoutFee').innerText = '₹' + data.platformFee.toFixed(2);
-    document.getElementById('payoutToPay').innerText = '₹' + data.toPay.toFixed(2);
-    let html = '<table><tr><th>Restaurant</th><th>Order ID</th><th>Amount</th><th>To Pay</th><th>Status</th><th>Action</th></tr>';
-    data.orders.forEach(o=>{
-        html += `<tr><td>${o.restaurant}</td><td>${o.orderId}</td><td>₹${o.amount}</td><td>₹${o.toPay.toFixed(2)}</td><td>${o.status}</td><td>${o.status=='Delivered'? `<button class="btn-green" onclick="markPaid('${o.orderId}')">Paid Karo</button>` : 'Done'}</td></tr>`;
-    });
-    html += '</table>';
-    document.getElementById('payoutList').innerHTML = html;
+  const res = await fetch('/api/admin/daily-payout');
+  const data = await res.json();
+  
+  // Yaha 0 zero nahi O alphabet hai dhyan dena
+  document.getElementById('payoutTotalOrders').innerText = data.totalOrders;
+  document.getElementById('payoutTotalSales').innerText = '₹' + data.totalSales.toFixed(2);
+  document.getElementById('payoutFee').innerText = '₹' + data.platformFee.toFixed(2);
+  document.getElementById('payoutToPay').innerText = '₹' + data.toPay.toFixed(2);
+  
+  if(data.totalOrders === 0){
+    document.getElementById('payoutList').innerHTML = '<p style="text-align:center; padding:20px;">Aaj koi pending order nahi</p>';
+    return;
+  }
+
+  let html = '<table style="width:100%; border-collapse:collapse;"><tr style="background:#f2f2f2;">';
+  html += '<th style="padding:10px; border:1px solid #ddd;">Restaurant</th>';
+  html += '<th style="padding:10px; border:1px solid #ddd;">Order ID</th>';
+  html += '<th style="padding:10px; border:1px solid #ddd;">Amount</th>';
+  html += '<th style="padding:10px; border:1px solid #ddd;">To Pay</th>';
+  html += '<th style="padding:10px; border:1px solid #ddd;">Status</th>';
+  html += '<th style="padding:10px; border:1px solid #ddd;">Action</th></tr>';
+  
+  data.orders.forEach(o=>{
+    html += `<tr>
+      <td style="padding:8px; border:1px solid #ddd;">${o.restaurant}</td>
+      <td style="padding:8px; border:1px solid #ddd;">${o.orderId}</td>
+      <td style="padding:8px; border:1px solid #ddd;">₹${o.amount}</td>
+      <td style="padding:8px; border:1px solid #ddd;">₹${o.toPay.toFixed(2)}</td>
+      <td style="padding:8px; border:1px solid #ddd;">${o.status || 'Pending'}</td>
+      <td style="padding:8px; border:1px solid #ddd;">
+        ${o.status!== 'Paid'? 
+          `<button class="btn-green" onclick="markPaid('${o.orderId}')">Paid Karo</button>` 
+          : 'Done'
+        }
+      </td>
+    </tr>`;
+  });
+  
+  html += '</table>';
+  document.getElementById('payoutList').innerHTML = html;
+}
+
+async function markPaid(id){
+  if(!confirm('Is order ko Paid mark karna hai?')) return;
+  
+  const res = await fetch('/api/admin/mark-paid', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({orderIds: [id]}) // ARRAY me bhejna hai
+  });
+  
+  const result = await res.json();
+  if(result.success){
+    alert('✅ Paid Mark ho gaya');
+    loadPayout(); // refresh
+  } else {
+    alert('Error: ' + result.message);
+  }
 }
 
 async function markPaid(id){
