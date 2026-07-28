@@ -32,13 +32,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v3.7.6 - 2 Upload'))
+.then(()=>console.log('✅ MongoDB Connected v3.8.0 - Fixed'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
 
-// UPDATED: image field add kiya
 const RestaurantOwner = mongoose.model('RestaurantOwner', {
   restaurantId: {type: String, unique: true},
   restaurantName: String,
@@ -51,7 +50,7 @@ const RestaurantOwner = mongoose.model('RestaurantOwner', {
   plan_status: {type: String, default: "Trial"},
   registration_fee_paid: {type: Number, default: 200},
   payment_proof: {type: String, default: null},
-  image: {type: String, default: null}, // YE NAYA HAI - Card ke liye
+  image: {type: String, default: null},
   upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},
   trial_end_date: {type: Date},
   payout_due: {type: Number, default: 0},
@@ -59,7 +58,7 @@ const RestaurantOwner = mongoose.model('RestaurantOwner', {
 });
 
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000}});
-const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
+const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
 const Banner = mongoose.model('Banner', {text: String, image: String, color: String, updatedAt: {type: Date, default: Date.now}});
@@ -123,59 +122,51 @@ app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{
   try{
     const trialEnd = new Date();
     trialEnd.setDate(trialEnd.getDate() + 30);
-    await RestaurantOwner.findByIdAndUpdate(req.params.id, {
-      status:"Approved",
-      trial_end_date: trialEnd
-    });
+    await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved", trial_end_date: trialEnd});
     res.json({success:true, msg:"Restaurant Approved"})
   } catch(e){ res.status(500).json({success:false}) }
 });
 
-app.delete('/api/admin/reject-restaurant/:id', async (req,res)=>{
+// NAYA: DELETE KI JAGAH REJECT
+app.put('/api/admin/reject-restaurant/:id', async (req,res)=>{
   try{
-    await RestaurantOwner.findByIdAndDelete(req.params.id);
-    res.json({success:true, msg:"Restaurant Rejected & Deleted"})
+    await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Rejected"});
+    res.json({success:true, msg:"Restaurant Rejected"})
   } catch(e){ res.status(500).json({success:false, msg: e.message}) }
+});
+
+// NAYA: SABHI RESTAURANT
+app.get('/api/admin/all-restaurants', async (req,res)=>{ 
+  try{ 
+    const restaurants = await RestaurantOwner.find({}).sort({createdAt: -1});
+    res.json(restaurants) 
+  } catch(e){ res.status(500).json([]) }
 });
 
 app.put('/api/admin/approve-rider/:id', async (req,res)=>{ try{ await Rider.findByIdAndUpdate(req.params.id, {status:"Approved"}); res.json({success:true, msg:"Rider Approved"}) } catch(e){ res.status(500).json({success:false}) }});
 
-// FIX 1: ADMIN RESTAURANTS
 app.get('/api/admin/restaurants', async (req,res)=>{ 
   try{ 
     const restaurants = await RestaurantOwner.find({status: "Approved"});
     const formatted = restaurants.map(r => ({
-      _id: r.restaurantId,           
-      name: r.restaurantName,        
-      address: r.address,
-      mobile: r.mobile,
-      email: r.email,
-      status: r.status,
-      plan_status: r.plan_status,
-      image: r.image, // Admin ko bhi photo dikh jayegi
-      payment_proof: r.payment_proof // Admin proof bhi dekhega
+      _id: r.restaurantId, name: r.restaurantName, address: r.address,
+      mobile: r.mobile, email: r.email, status: r.status, plan_status: r.plan_status,
+      image: r.image, payment_proof: r.payment_proof
     }));
     res.json(formatted) 
   } catch(e){ res.status(500).json([]) }
 });
 
-// FIX 2: PUBLIC RESTAURANTS
 app.get('/api/restaurants', async (req,res)=>{ 
   try{ 
     const restaurants = await RestaurantOwner.find({status: "Approved"});
     const formatted = restaurants.map(r => ({
-      _id: r.restaurantId,           
-      name: r.restaurantName,        
-      address: r.address,
+      _id: r.restaurantId, name: r.restaurantName, address: r.address,
       image: r.image || `https://via.placeholder.com/400x180/ff6600/ffffff?text=${encodeURIComponent(r.restaurantName)}`,
-      mobile: r.mobile,
-      email: r.email
+      mobile: r.mobile, email: r.email
     }));
     res.json(formatted) 
-  } catch(e){ 
-    console.log(e)
-    res.status(500).json([]) 
-  }
+  } catch(e){ res.status(500).json([]) }
 });
 
 app.get('/api/admin/approved-riders', async (req,res)=>{ try{ const riders = await Rider.find({status: "Approved"}).select('name mobile'); res.json(riders) } catch(e){ res.json([]) } });
@@ -193,6 +184,7 @@ app.post('/api/admin/assign-rider', async (req,res)=>{
   }catch(e){ res.json({success:false, msg:e.message}) }
 });
 
+// FIX: grand_total use kiya
 app.get('/api/admin/graph', async (req,res)=>{ try{
   let data = [];
   for(let i=6; i>=0; i--){
@@ -200,7 +192,8 @@ app.get('/api/admin/graph', async (req,res)=>{ try{
     let start = new Date(d); start.setHours(0,0,0,0);
     let end = new Date(d); end.setHours(23,59,59,999);
     const orders = await Order.find({createdAt: {$gte: start, $lte: end}});
-    data.push({date: d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'}), revenue: orders.reduce((a,b)=>a+Number(b.total),0), orders: orders.length});
+    const revenue = orders.reduce((a,b)=>a+Number(b.grand_total || b.total || 0),0);
+    data.push({date: d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'}), revenue: revenue, orders: orders.length});
   }
   res.json(data)
 }catch(e){ res.json([]) }});
@@ -215,7 +208,6 @@ app.post('/api/admin/rider-deposit', async (req,res)=>{ try{
   res.json({success:true})
 }catch(e){ res.json({success:false}) }});
 
-// ===== FIXED BANNER ROUTE =====
 app.get('/api/admin/promo', async (req,res)=>{ try{ res.json(await Banner.findOne().sort({updatedAt:-1}) || {}) }catch(e){ res.json({}) }});
 
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{ try{
@@ -225,17 +217,11 @@ app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{ tr
     const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {folder: 'eat4bite-banners'});
     imageUrl = result.secure_url;
   }
-  await Banner.findOneAndUpdate({}, {
-    text: req.body.text,
-    image: imageUrl,
-    color: req.body.color,
-    updatedAt: new Date()
-  }, {upsert: true});
+  await Banner.findOneAndUpdate({}, {text: req.body.text, image: imageUrl, color: req.body.color, updatedAt: new Date()}, {upsert: true});
   res.json({success:true})
 }catch(e){ res.json({success:false, msg:e.message}) }});
 
 app.delete('/api/admin/promo', async (req,res)=>{ try{ await Banner.deleteMany({}); res.json({success:true}) }catch(e){ res.json({success:false}) }});
-// ===== BANNER ROUTE END =====
 
 app.post('/api/broadcast', async (req,res)=>{ try{
   const owners = await RestaurantOwner.find({status:"Approved"});
@@ -243,15 +229,15 @@ app.post('/api/broadcast', async (req,res)=>{ try{
   res.json({success:true, count: owners.length})
 }catch(e){ res.json({success:false}) }});
 
+// FIX: grand_total use kiya
 app.get('/api/report', async (req,res)=>{ try{
   const {start, end, shop} = req.query;
   let query = {createdAt: {$gte: new Date(start), $lte: new Date(end)}};
   if(shop!== 'all') query.restaurantId = shop;
   const orders = await Order.find(query);
-  res.json({totalOrders: orders.length, totalRevenue: orders.reduce((a,b)=>a+Number(b.total),0)})
+  res.json({totalOrders: orders.length, totalRevenue: orders.reduce((a,b)=>a+Number(b.grand_total || b.total || 0),0)})
 }catch(e){ res.json({totalOrders:0, totalRevenue:0}) }});
 
-// ===== UPDATED: RESTAURANT REGISTER WITH 2 FILES =====
 app.post('/api/restaurant-register', upload.fields([
   { name: 'restaurantImage', maxCount: 1 },
   { name: 'paymentProof', maxCount: 1 }
@@ -268,18 +254,11 @@ app.post('/api/restaurant-register', upload.fields([
     let paymentProofUrl = "";
 
     if(req.files['restaurantImage']){
-      const result = await cloudinary.uploader.upload(
-        `data:${req.files['restaurantImage'][0].mimetype};base64,${req.files['restaurantImage'][0].buffer.toString('base64')}`,
-        {folder: 'eat4bite_restaurants'}
-      );
+      const result = await cloudinary.uploader.upload(`data:${req.files['restaurantImage'][0].mimetype};base64,${req.files['restaurantImage'][0].buffer.toString('base64')}`, {folder: 'eat4bite_restaurants'});
       restaurantImageUrl = result.secure_url;
     }
-
     if(req.files['paymentProof']){
-      const result = await cloudinary.uploader.upload(
-        `data:${req.files['paymentProof'][0].mimetype};base64,${req.files['paymentProof'][0].buffer.toString('base64')}`,
-        {folder: 'eat4bite_proofs'}
-      );
+      const result = await cloudinary.uploader.upload(`data:${req.files['paymentProof'][0].mimetype};base64,${req.files['paymentProof'][0].buffer.toString('base64')}`, {folder: 'eat4bite_proofs'});
       paymentProofUrl = result.secure_url;
     }
 
@@ -289,12 +268,8 @@ app.post('/api/restaurant-register', upload.fields([
 
     await new RestaurantOwner({
       restaurantId, restaurantName, ownerName, mobile, email, address, password,
-      status: "Pending",
-      image: restaurantImageUrl, // Card ke liye
-      payment_proof: paymentProofUrl, // Admin ke liye
-      trial_end_date: trialEnd,
-      plan_status: plan || "Trial",
-      registration_fee_paid: Number(amount) || 200
+      status: "Pending", image: restaurantImageUrl, payment_proof: paymentProofUrl,
+      trial_end_date: trialEnd, plan_status: plan || "Trial", registration_fee_paid: Number(amount) || 200
     }).save();
     res.json({success:true, msg:"Registration ho gayi. Approval ke baad login karna"})
   }catch(e){ console.log(e); res.json({success:false, msg:e.message}) }
@@ -311,7 +286,6 @@ app.post('/api/restaurant-login', async (req,res)=>{
   }catch(e){ res.status(500).json({success:false, msg:"Server Error"}) }
 });
 
-// ===== RESTAURANT DASHBOARD APIs =====
 app.get('/api/restaurant/ledger', async (req,res)=>{ try{
   const shop = req.query.shop;
   const today = new Date(); today.setHours(0,0,0,0);
@@ -366,6 +340,6 @@ app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 app.get('/restaurant-profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-profile.html')));
-app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.total}`); doc.end(); });
+app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.grand_total}`); doc.end(); });
 
-server.listen(PORT, ()=> console.log(`🚀 Server v3.7.6 FIXED on ${PORT}`));
+server.listen(PORT, ()=> console.log(`🚀 Server v3.8.0 FIXED on ${PORT}`));
