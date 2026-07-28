@@ -28,7 +28,6 @@
 <div class="top-bar">
     <h1>🍴 Eat4Bite™ Admin Panel</h1>
     <div class="top-buttons">
-        <!-- YAHAN LINK CHANGE KIYA HAI 👇 -->
         <a href="/approve-restaurants" class="btn-warning">🏪 Approve Restaurants</a>
         <button class="logout-btn" onclick="logout()">🚪 Logout</button>
     </div>
@@ -54,108 +53,27 @@
     <button class="btn-blue" onclick="getReport()">Get Report</button>
     <div id="reportResult" style="margin-top:15px;"></div>
 </div>
-<!-- BANNER SECTION START -->
+
+<!-- BANNER SECTION -->
 <div class="card shadow-sm mb-4">
-  <div class="card-header bg-primary text-white">
-    <h5 class="mb-0">🎨 Banner / Promo Manage Karo</h5>
-  </div>
+  <div class="card-header bg-primary text-white"><h5 class="mb-0">🎨 Banner / Promo Manage Karo</h5></div>
   <div class="card-body">
     <form id="bannerForm">
       <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Banner Text</label>
-          <input type="text" id="bannerText" class="form-control" placeholder="Free Delivery on 299+">
-        </div>
-        <div class="col-md-3 mb-3">
-          <label class="form-label">Banner Color</label>
-          <input type="color" id="bannerColor" class="form-control form-control-color" value="#ff5722">
-        </div>
-        <div class="col-md-5 mb-3">
-          <label class="form-label">Banner Image</label>
-          <input type="file" id="bannerImage" class="form-control" accept="image/*">
-        </div>
+        <div class="col-md-4 mb-3"><label class="form-label">Banner Text</label><input type="text" id="bannerText" class="form-control" placeholder="Free Delivery on 299+"></div>
+        <div class="col-md-3 mb-3"><label class="form-label">Banner Color</label><input type="color" id="bannerColor" class="form-control form-control-color" value="#ff5722"></div>
+        <div class="col-md-5 mb-3"><label class="form-label">Banner Image</label><input type="file" id="bannerImage" class="form-control" accept="image/*"></div>
       </div>
-
-      <!-- YE NAYA PREVIEW BOX HAI -->
-      <div id="bannerPreview" class="mt-3 p-3 border rounded" style="display:none; background:#f8f9fa;">
-        <p class="fw-bold">📸 Preview:</p>
-        <img id="previewImg" src="" class="img-fluid rounded" style="max-height:200px">
-      </div>
-
+      <div id="bannerPreview" class="mt-3 p-3 border rounded" style="display:none; background:#f8f9fa;"><p class="fw-bold">📸 Preview:</p><img id="previewImg" src="" class="img-fluid rounded" style="max-height:200px"></div>
       <button type="submit" class="btn btn-success mt-3">💾 Banner Save Karo</button>
       <button type="button" id="deleteBanner" class="btn btn-danger mt-3">🗑️ Banner Hatao</button>
     </form>
   </div>
 </div>
 
-<script>
-// Banner Load
-async function loadBanner(){
-  const res = await fetch('/api/admin/promo');
-  const data = await res.json();
-  if(data.text){
-    document.getElementById('bannerText').value = data.text;
-    document.getElementById('bannerColor').value = data.color;
-    document.getElementById('previewImg').src = data.image;
-    document.getElementById('bannerPreview').style.display = 'block';
-  }
-}
-loadBanner();
-
-// YE NAYA HAI - IMAGE SELECT KARTE HI PREVIEW
-document.getElementById('bannerImage').addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if(file){
-    const reader = new FileReader();
-    reader.onload = function(event){
-      document.getElementById('previewImg').src = event.target.result;
-      document.getElementById('bannerPreview').style.display = 'block';
-    }
-    reader.readAsDataURL(file);
-  }
-});
-
-// Banner Save
-document.getElementById('bannerForm').addEventListener('submit', async(e)=>{
-  e.preventDefault();
-  const fd = new FormData();
-  fd.append('text', document.getElementById('bannerText').value);
-  fd.append('color', document.getElementById('bannerColor').value);
-  const file = document.getElementById('bannerImage').files[0];
-  if(file) fd.append('bannerImage', file);
-
-  const res = await fetch('/api/admin/promo', {method:'POST', body:fd});
-  const data = await res.json();
-  alert(data.success? '✅ Banner Save ho gaya!' : 'Error');
-  loadBanner();
-});
-
-// Banner Delete
-document.getElementById('deleteBanner').addEventListener('click', async()=>{
-  if(confirm('Banner delete kare?')){
-    const res = await fetch('/api/admin/promo', {method:'DELETE'});
-    const data = await res.json();
-    alert(data.success? '✅ Banner Delete ho gaya!' : 'Error');
-    document.getElementById('bannerPreview').style.display = 'none';
-    document.getElementById('bannerImage').value = '';
-  }
-});
-</script>
-<!-- BANNER SECTION END -->
-<div class="card">
-    <h2>🏍️ Pending Rider Approvals</h2>
-    <div id="pendingRidersList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>📦 Orders - Manual Assign</h2>
-    <div id="ordersList">Loading...</div>
-</div>
-
-<div class="card">
-    <h2>🏍️ Approved Riders List</h2>
-    <div id="riderList">Loading...</div>
-</div>
+<div class="card"><h2>🏍️ Pending Rider Approvals</h2><div id="pendingRidersList">Loading...</div></div>
+<div class="card"><h2>📦 Orders - Manual Assign</h2><div id="ordersList">Loading...</div></div>
+<div class="card"><h2>🏍️ Approved Riders List</h2><div id="riderList">Loading...</div></div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -207,6 +125,37 @@ async function loadShopDropdown(){
     shops.forEach(s => { select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`; });
 }
 
+function renderChart(orders){
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const last7Days = Array.from({length:7}, (_,i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return d.toISOString().split('T')[0];
+    }).reverse();
+
+    const salesData = last7Days.map(date => {
+        const dayOrders = orders.filter(o => o.createdAt.startsWith(date));
+        return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); // FIX: grand_total
+    });
+
+    if(salesChart) salesChart.destroy();
+    salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: last7Days.map(d => new Date(d).toLocaleDateString('hi-IN', {day:'2-digit', month:'short'})),
+            datasets: [{
+                label: 'Revenue ₹',
+                data: salesData,
+                borderColor: '#ff6600',
+                backgroundColor: 'rgba(255,102,0,0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {responsive: true, plugins: {legend: {display: false}}}
+    });
+}
+
 async function loadData(){
     await loadShopDropdown();
 
@@ -223,10 +172,12 @@ async function loadData(){
     if(orders){
         const today = new Date().toISOString().split('T')[0];
         const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
-        const todayRev = todayOrders.reduce((a,b) => a + Number(b.item_total || 0), 0);
+        const todayRev = todayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); // FIX: grand_total
         document.getElementById('totalOrders').innerText = orders.length;
         document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
         document.getElementById('todayRevenue').innerText = '₹' + todayRev;
+
+        renderChart(orders); // GRAPH CALL
 
         let orderHtml = '';
         for(let o of orders){
@@ -234,7 +185,7 @@ async function loadData(){
             if(o.status === 'Pending' &&!o.riderId){
                 assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`;
             } else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
-            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`;
+            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.grand_total || o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`; // FIX
         }
         document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
     }
@@ -248,6 +199,51 @@ async function assignRider(orderId, riderId){
 }
 async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
 async function getReport(){ alert('Report feature') }
+
+// Banner Code Same as yours
+async function loadBanner(){
+  const res = await fetch('/api/admin/promo');
+  const data = await res.json();
+  if(data.text){
+    document.getElementById('bannerText').value = data.text;
+    document.getElementById('bannerColor').value = data.color;
+    document.getElementById('previewImg').src = data.image;
+    document.getElementById('bannerPreview').style.display = 'block';
+  }
+}
+loadBanner();
+document.getElementById('bannerImage').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = function(event){
+      document.getElementById('previewImg').src = event.target.result;
+      document.getElementById('bannerPreview').style.display = 'block';
+    }
+    reader.readAsDataURL(file);
+  }
+});
+document.getElementById('bannerForm').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('text', document.getElementById('bannerText').value);
+  fd.append('color', document.getElementById('bannerColor').value);
+  const file = document.getElementById('bannerImage').files[0];
+  if(file) fd.append('bannerImage', file);
+  const res = await fetch('/api/admin/promo', {method:'POST', body:fd});
+  const data = await res.json();
+  alert(data.success? '✅ Banner Save ho gaya!' : 'Error');
+  loadBanner();
+});
+document.getElementById('deleteBanner').addEventListener('click', async()=>{
+  if(confirm('Banner delete kare?')){
+    const res = await fetch('/api/admin/promo', {method:'DELETE'});
+    const data = await res.json();
+    alert(data.success? '✅ Banner Delete ho gaya!' : 'Error');
+    document.getElementById('bannerPreview').style.display = 'none';
+    document.getElementById('bannerImage').value = '';
+  }
+});
 
 checkLogin();
 </script>
