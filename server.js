@@ -37,16 +37,7 @@ mongoose.connect(process.env.MONGO_URL)
 
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
-
-const RestaurantOwner = mongoose.model('RestaurantOwner', {
-  restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String,
-  mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String,
-  password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"},
-  registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null},
-  image: {type: String, default: null}, upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},
-  trial_end_date: {type: Date}, payout_due: {type: Number, default: 0}, createdAt: {type: Date, default: Date.now}
-});
-
+const RestaurantOwner = mongoose.model('RestaurantOwner', {restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String, mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String, password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"}, registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null}, image: {type: String, default: null}, upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"}, trial_end_date: {type: Date}, payout_due: {type: Number, default: 0}, createdAt: {type: Date, default: Date.now}});
 const Rider = mongoose.model('Rider', {name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000}});
 const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
@@ -90,7 +81,6 @@ app.post('/api/admin/assign-rider', async (req,res)=>{ try{ const {orderId, ride
 app.get('/api/admin/graph', async (req,res)=>{ try{ let data = []; for(let i=6; i>=0; i--){ let d = new Date(); d.setDate(d.getDate()-i); let start = new Date(d); start.setHours(0,0,0,0); let end = new Date(d); end.setHours(23,59,59,999); const orders = await Order.find({createdAt: {$gte: start, $lte: end}}); const revenue = orders.reduce((a,b)=>a+Number(b.grand_total || b.total || 0),0); data.push({date: d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'}), revenue: revenue, orders: orders.length}); } res.json(data) }catch(e){ res.json([]) }});
 app.get('/api/admin/rider-cash', async (req,res)=>{ try{ const riders = await Rider.find({status: "Approved"}); res.json(riders.map(r=>({name:r.name, mobile:r.mobile, pending_cash:r.cash_balance}))) }catch(e){ res.json([]) }});
 app.post('/api/admin/rider-deposit', async (req,res)=>{ try{ await Rider.updateOne({mobile: req.body.mobile}, {$set: {cash_balance: 0}}); res.json({success:true}) }catch(e){ res.json({success:false}) }});
-
 // ===== BANNER API - 3 =====
 app.get('/api/admin/promo', async (req,res)=>{ try{ res.json(await Banner.findOne().sort({updatedAt:-1}) || {}) }catch(e){ res.json({}) }});
 app.post('/api/admin/promo', upload.single('bannerImage'), async (req,res)=>{ try{ const existing = await Banner.findOne({}); let imageUrl = existing?.image || ''; if(req.file){ const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {folder: 'eat4bite-banners'}); imageUrl = result.secure_url; } await Banner.findOneAndUpdate({}, {text: req.body.text, image: imageUrl, color: req.body.color, updatedAt: new Date()}, {upsert: true}); res.json({success:true}) }catch(e){ res.json({success:false, msg:e.message}) }});
@@ -120,4 +110,31 @@ app.post('/api/restaurant/offer', async (req,res)=>{ try{ await new Offer({...re
 
 // ===== ORDER API - 3 =====
 app.post('/api/orders', async (req,res)=>{const trackId = 'EB' + Date.now();const item_total = req.body.items.reduce((a,b)=>a+(b.price*b.qty), 0);const bill = calculateBill(item_total);const shop = await RestaurantOwner.findOne({restaurantId: req.body.restaurantId});const upi_id = shop? shop.upi_id : "tanbalkhi2014-3@okhdfcbank";const upi_link = `upi://pay?pa=${upi_id}&pn=${shop.restaurantName}&am=${bill.grand_total}&cu=INR&tn=Order${trackId}`;const newOrder = await new Order({...req.body, trackId,...bill, total: bill.grand_total, custLat: req.body.custLat || null, custLng: req.body.custLng || null,paymentMode: req.body.payment || req.body.paymentMode}).save();if(shop && shop.mobile) sendWhatsApp(shop.mobile, `🔔 New Order ${trackId}\nTotal: ₹${bill.grand_total}`);io.emit('newOrder', newOrder);res.json({success:true, trackId, bill, upi_link, upi_id})});
-app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort(
+app.get('/api/orders', async (req,res)=>{ try{ const shop = req.query.shop; if(shop) return res.json(await Order.find({restaurantId: shop}).sort({createdAt:-1})); res.json(await Order.find().sort({createdAt:-1})) } catch(e){ res.status(500).json([]) }});
+app.get('/api/orders/track/:id', async (req,res)=>{ try{ const order = await Order.findOne({trackId: req.params.id}); if(!order) return res.json(null); res.json(order) } catch(e){ res.status(500).json(null) } });
+// ===== 18 PAGE ROUTES MATCHED WITH YOUR PUBLIC FOLDER =====
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurants.html')));
+app.get('/cart', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cart.html')));
+app.get('/track', (req, res) => res.sendFile(path.join(__dirname, 'public', 'track.html')));
+app.get('/rider', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider.html')));
+app.get('/rider-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
+app.get('/approve-restaurants', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin-owners.html')));
+app.get('/logout', (req, res) => res.redirect('/'));
+app.get('/restaurant-register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
+app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
+app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
+app.get('/restaurant-profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-profile.html')));
+
+// YE 5 NAYE ADD KIYE
+app.get('/myorder', (req, res) => res.sendFile(path.join(__dirname, 'public', 'myorder.html')));
+app.get('/order-details', (req, res) => res.sendFile(path.join(__dirname, 'public', 'order-details.html')));
+app.get('/payment', (req, res) => res.sendFile(path.join(__dirname, 'public', 'payment.html')));
+app.get('/bill-template', (req, res) => res.sendFile(path.join(__dirname, 'public', 'bill-template.html')));
+app.get('/index', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+// ===== INVOICE API =====
+app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.grand_total}`); doc.end(); });
+
+server.listen(PORT, ()=> console.log(`🚀 Server v3.9.0 FIXED 42 API + 18 PAGES on ${PORT}`));
