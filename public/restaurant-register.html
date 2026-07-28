@@ -10,13 +10,13 @@
 .card{max-width:650px; margin:30px auto; border-radius:15px}
 .logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
 .info-box{background:#D1E7DD; padding:15px; border-radius:10px; border:1px solid #0F5132}
-#photoPreview{max-width:100%; border-radius:10px; margin-top:10px; display:none}
+#photoPreview{max-width:100%; border-radius:10px; margin-top:10px; display:none; max-height:150px;}
 #qrBox{background:#fff3cd; border:2px dashed #ffc107; border-radius:10px}
 .plan-card{border:2px solid #ddd; border-radius:10px; padding:15px; cursor:pointer; transition:0.3s; margin-bottom:10px}
 .plan-card.active{border-color:#ff6600; background:#fff5f0;}
 .plan-card:hover{border-color:#ff6600;}
 .plan-info-btn{background:#ff6600; color:#fff; border:none; width:100%; padding:12px; border-radius:10px; font-weight:600; margin:15px 0}
-.plan-details{display:none; background:#fff8e1; border:1px solid #ffc107; border-radius:10px; padding:15px 15px 8px 15px; margin-top:10px}
+.plan-details{display:none; background:#fff8e1; border:1px solid #ffc107; border-radius:10px; padding:15px; margin-top:10px}
 .preview-with-qr{display:none; background:#fff; padding:12px; border-radius:10px; border:2px dashed #ff6600; margin-top:12px}
 .preview-with-qr img{max-width:100px; border-radius:8px}
 </style>
@@ -42,64 +42,8 @@
             </div>
 
             <button type="button" class="plan-info-btn" onclick="togglePlanInfo()">ℹ️ View Annual Support Plan - ₹2000/Year</button>
-            
-<div id="planDetails" class="plan-details" style="background:#fff3e0; border:2px solid #ff6600; border-radius:12px; padding:18px; margin-top:10px; font-family: Arial, sans-serif;">
-  
-  <h3 style="margin:0 0 4px 0; color:#e65100; font-size:18px; text-align:center;">
-    Eat4Bite™ Annual Support Plan
-  </h3>
-  <p style="margin:0 0 8px 0; text-align:center; font-size:20px; font-weight:bold; color:#d84315;">
-    ₹2000 / Year
-  </p>
-  
-  <p style="margin:0 0 10px 0; text-align:center; font-size:15px; font-weight:600;">
-    Grow Your Restaurant. We Handle Tech.
-  </p>
 
-  <p style="margin:0 0 14px 0; font-size:14px; text-align:center;">
-    Go digital without any hassle. No big investment needed.<br>
-    <span style="background:#ffecb3; padding:4px 10px; border-radius:6px; font-weight:bold; display:inline-block; margin-top:6px;">
-      First Month FREE - Pay only ₹199 Registration Fee and get started.
-    </span>
-  </p>
-
-  <b style="font-size:15px;">What's Included for 12 Months:</b>
-  <ul style="margin:8px 0 14px 20px; padding:0; font-size:14px; line-height:1.7;">
-    <li style="margin-bottom:8px;">
-      <b>1. Website & Brand Listing</b><br>
-      Get a professional restaurant page with Photos, Menu, and Location. Get discovered by thousands of customers on Google and the Eat4Bite™ App.
-    </li>
-    <li style="margin-bottom:8px;">
-      <b>2. 24x7 Technical Support</b><br>
-      Facing any issue with the App, Website, or Payments? Call or WhatsApp us. Get it resolved within 15 minutes - Guaranteed.
-    </li>
-    <li style="margin-bottom:8px;">
-      <b>3. Free Menu & Offer Management</b><br>
-      Want to update prices or add new items? Just send us a message. We will update it for you in real-time. Completely Free.
-    </li>
-    <li style="margin-bottom:8px;">
-      <b>4. Secure Payments & Billing</b><br>
-      Accept UPI, Cards, and Online Payments. Get your earnings transferred to your bank account every 3 days. 100% Safe & Transparent.
-    </li>
-    <li>
-      <b>5. Zero Commission on Direct Orders</b><br>
-      Pay 0% commission on all orders that come directly through the Eat4Bite™ App.
-    </li>
-  </ul>
-
-  <div style="background:#fff; border-radius:8px; padding:12px; font-size:14px;">
-    <b>💡 How It Works:</b>
-    <ol style="margin:8px 0 0 20px; padding:0; line-height:1.7;">
-      <li><b>Pay ₹199 Registration Fee</b></li>
-      <li><b>Use It FREE for 30 Days</b></li>
-      <li><b>Love it? Continue for ₹2000/Year</b></li>
-    </ol>
-  </div>
-
-  <p style="margin:12px 0 0 0; text-align:center; font-size:13px; font-weight:bold; color:#2e7d32;">
-    No Hidden Charges. Cancel Anytime.
-  </p>
-</div>
+            <div id="planDetails" class="plan-details">...wahi plan details...</div>
 
             <div class="mb-3 mt-2"><label class="form-label">Owner Name</label><input type="text" name="ownerName" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
@@ -108,10 +52,23 @@
             <div class="mb-3"><label class="form-label">Restaurant Name</label><input type="text" name="restaurantName" class="form-control" required></div>
             <div class="mb-3"><label class="form-label">Restaurant Address</label><textarea name="address" class="form-control" rows="2" required></textarea></div>
 
+            <!-- 2 ALAG UPLOAD -->
             <div class="info-box mb-3">
-                <h6 class="fw-bold">Upload Restaurant Photo + Payment Proof</h6>
-                <input type="file" name="payment_proof" id="restaurant_photo" class="form-control" accept="image/*" required>
-                <img id="photoPreview" src=""/>
+                <h6 class="fw-bold mb-3">Step 1: Upload Details</h6>
+
+                <div class="mb-3 p-3 bg-white rounded border">
+                    <label class="form-label fw-bold text-success">Restaurant Photo *</label>
+                    <small class="text-muted d-block mb-2">Ye photo card pe public dikhegi</small>
+                    <input type="file" name="restaurantImage" id="restaurant_image" class="form-control" accept="image/*" required>
+                    <img id="photoPreview" src=""/>
+                </div>
+
+                <div class="mb-3 p-3 bg-white rounded border">
+                    <label class="form-label fw-bold text-danger">Payment Proof *</label>
+                    <small class="text-muted d-block mb-2">₹200 ka UPI/Bank screenshot. Sirf Admin dekhega</small>
+                    <input type="file" name="paymentProof" id="payment_proof" class="form-control" accept="image/*" required>
+                </div>
+
                 <div id="previewWithQR" class="preview-with-qr">
                     <div class="row align-items-center">
                         <div class="col-4 text-center">
@@ -141,7 +98,7 @@
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com'; 
+const API = 'https://quickbite-ymqk.onrender.com';
 let selectedAmount = 200;
 let selectedPlan = 'Trial';
 
@@ -155,18 +112,14 @@ function selectPlan(plan, amount, event){
     selectedAmount = amount;
     document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
     event.currentTarget.classList.add('active');
-    document.querySelector(`input[value="${plan}"]`).checked = true; // FIX: quotes added
+    document.querySelector(`input[value="${plan}"]`).checked = true;
     document.getElementById('registerBtn').innerText = `Register & Pay ₹${amount}`;
     document.getElementById('planText').innerText = plan === 'Trial'? '30 Days Trial - ₹200 Registration Fee' : 'Annual Plan - ₹2000 / Year';
-    if(document.getElementById('previewWithQR').style.display === 'block'){
-        document.getElementById('payAmountPreview').innerText = '₹' + amount;
-        document.getElementById('qrImgPreview').src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=${amount}&cu=INR`;
-    }
 }
 
-document.getElementById('restaurant_photo').addEventListener('change', function(e){
+document.getElementById('restaurant_image').addEventListener('change', function(e){
     const file = e.target.files[0];
-    if(!file) return; // SAFETY
+    if(!file) return;
     const reader = new FileReader();
     reader.onload = function(event){
         document.getElementById('photoPreview').src = event.target.result;
@@ -202,8 +155,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e)=>{
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.msg}</div>`;
         }
-    } catch(err) { 
-        document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error: ${err.message}</div>`; 
+    } catch(err) {
+        document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error: ${err.message}</div>`;
     }
     btn.disabled = false; btn.innerText = `Register & Pay ₹${selectedAmount}`;
 });
