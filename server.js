@@ -9,35 +9,28 @@ const PDFDocument = require('pdfkit');
 const multer = require('multer');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: {origin: "*"} });
 const PORT = process.env.PORT || 10000;
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
 const upload = multer({ storage: multer.memoryStorage() });
 const uploadRider = multer({ storage: multer.memoryStorage() });
 if (!fs.existsSync('./uploads')){ fs.mkdirSync('./uploads'); }
-
 app.use(cors({origin: "*"}));
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb', extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
-
 mongoose.connect(process.env.MONGO_URL)
 .then(()=>console.log('✅ MongoDB Connected v3.9.1 - Daily Payout Added'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
-
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', {name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}});
-
 const RestaurantOwner = mongoose.model('RestaurantOwner', {
   restaurantId: {type: String, unique: true},
   restaurantName: String, ownerName: String, mobile: {type: String, unique: true},
@@ -47,22 +40,18 @@ const RestaurantOwner = mongoose.model('RestaurantOwner', {
   image: {type: String, default: null}, upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"},
   trial_end_date: {type: Date}, payout_due: {type: Number, default: 0}, createdAt: {type: Date, default: Date.now}
 });
-
 const Rider = mongoose.model('Rider', {
   name:String, fatherName:String, aadhar:String, pan:String, mobile:{type:String, unique:true},
   aadharImg: String, panImg: String, photoImg: String, lat:Number, lng:Number, lastUpdate:Date,
   status:{type:String, default:"Pending"}, restaurantId: {type: String},
   cash_balance: {type: Number, default: 0}, cashLimit: {type: Number, default: 1000}
 });
-
 // SIRF YE 1 LINE ADD HUI HAI: payout_status
 const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},payout_status: {type: String, default: "Pending"},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', {code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}});
 const Banner = mongoose.model('Banner', {text: String, image: String, color: String, updatedAt: {type: Date, default: Date.now}});
-
 async function sendWhatsApp(to, message) {console.log(`📲 WHATSAPP TO ${to}: ${message}`);}
-
 io.on('connection', (socket) => {
   socket.on('riderLocation', async (data) => {
     await Rider.findOneAndUpdate({mobile: data.mobile}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
@@ -70,7 +59,6 @@ io.on('connection', (socket) => {
     io.emit('locationUpdate', {riderId: data.mobile, lat: data.lat, lng: data.lng});
   });
 });
-
 function calculateBill(item_total) {
   const commission_5 = Math.round(item_total * 0.05);
   const platform_fee = 10; const delivery_fee = 30;
@@ -83,7 +71,6 @@ app.put('/api/menu/:id', upload.single('image'), async (req,res)=>{ try{ let upd
 app.put('/api/menu/:id/stock', async (req,res)=>{ try{ const item = await MenuItem.findById(req.params.id); item.inStock =!item.inStock; await item.save(); res.json({success:true}); } catch(e){ res.json({success:false, msg:e.message}) }});
 app.delete('/api/menu/:id', async (req,res)=>{ try{ await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true, msg:"Item Deleted"}); } catch(e){ res.json({success:false, msg:e.message}) }});
 app.get('/api/menu', async (req,res)=> { const shopId = req.query.shop || 'default-shop'; res.json(await MenuItem.find({restaurantId: shopId})); });
-
 // ===== ADMIN APIs =====
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
 app.get('/api/admin/pending-riders', async (req,res)=>{ try{ res.json(await Rider.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
