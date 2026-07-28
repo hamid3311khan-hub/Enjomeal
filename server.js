@@ -1,4 +1,5 @@
 require('dotenv').config();
+const Order = require('./models/Order'); // agar nahi hai to
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -313,5 +314,69 @@ app.get('/restaurant-login', (req, res) => res.sendFile(path.join(__dirname, 'pu
 app.get('/restaurant-dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 app.get('/restaurant-profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'restaurant-profile.html')));
 app.get('/invoice', async (req,res)=>{ const { id } = req.query; const order = await Order.findOne({trackId:id}); if(!order) return res.status(404).send("Order not found"); const doc = new PDFDocument({margin: 40}); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename=Eat4Bite-${id}.pdf`); doc.pipe(res); doc.fontSize(22).text('EAT4BITE™', {align: 'center'}); doc.fontSize(10).text(`Order ID: ${order.trackId}`, {align: 'center'}); doc.moveDown(); doc.text('-------------------------------------------'); order.items.forEach(i=>{ doc.text(`${i.name} x ${i.qty} ₹${i.price*i.qty}`); }); doc.text('-------------------------------------------'); doc.text(`Sub Total: ₹${order.item_total}`); doc.text(`Grand Total: ₹${order.grand_total}`); doc.end(); });
+// DAILY PAYOUT GET
+app.get('/api/admin/daily-payout', requireAdmin, async (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const startOfDay = new Date(today + 'T00:00:00.000Z');
+        const endOfDay = new Date(today + 'T23:59:59.999Z');
+
+        const orders = await Order.find({
+            createdAt: { $gte: startOfDay, $lte: endOfDay },
+            status: { $in: ['Delivered', 'Paid'] }
+        }).populate('restaurant');
+
+        let totalSales = 0;
+        let platformFee = 0;
+        let toPay = 0;
+        let result = [];
+
+        orders.forEach(o => {
+            if(o.restaurant){
+                const sale = Number(o.grand_total || o.total || 0);
+                const fee = sale * 0.10; // 10% commission
+                const pay = sale - fee;
+
+                totalSales += sale;
+                platformFee += fee;
+                toPay += pay;
+
+                result.push({
+                    orderId: o.trackId,
+                    restaurant: o.restaurant.restaurantName,
+                    amount: sale,
+                    fee: fee,
+                    toPay: pay,
+                    status: o.status
+                });
+            }
+        });
+
+        res.json({
+            date: today,
+            totalOrders: orders.length,
+            totalSales,
+            platformFee,
+            toPay,
+            orders: result
+        });
+
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+});
+// MARK PAID POST
+app.post('/api/admin/mark-paid', requireAdmin, async (req, res) => {
+    try {
+        const { orderIds } = req.body; // ["trackId1", "trackId2"]
+        await Order.updateMany(
+            { trackId: { $in: orderIds } },
+            { $set: { status: 'Paid' } }
+        );
+        res.json({ success: true, message: 'Marked as Paid' });
+    } catch (e) {
+        res.status(500).json({ message: e.message });
+    }
+});
 
 server.listen(PORT, ()=> console.log(`🚀 Server v3.9.0 RIDER ADDED on ${PORT}`));
