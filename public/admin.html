@@ -54,21 +54,15 @@
     <div id="reportResult" style="margin-top:15px;"></div>
 </div>
 
-<!-- BANNER SECTION -->
-<div class="card shadow-sm mb-4">
-  <div class="card-header bg-primary text-white"><h5 class="mb-0">🎨 Banner / Promo Manage Karo</h5></div>
-  <div class="card-body">
-    <form id="bannerForm">
-      <div class="row">
-        <div class="col-md-4 mb-3"><label class="form-label">Banner Text</label><input type="text" id="bannerText" class="form-control" placeholder="Free Delivery on 299+"></div>
-        <div class="col-md-3 mb-3"><label class="form-label">Banner Color</label><input type="color" id="bannerColor" class="form-control form-control-color" value="#ff5722"></div>
-        <div class="col-md-5 mb-3"><label class="form-label">Banner Image</label><input type="file" id="bannerImage" class="form-control" accept="image/*"></div>
-      </div>
-      <div id="bannerPreview" class="mt-3 p-3 border rounded" style="display:none; background:#f8f9fa;"><p class="fw-bold">📸 Preview:</p><img id="previewImg" src="" class="img-fluid rounded" style="max-height:200px"></div>
-      <button type="submit" class="btn btn-success mt-3">💾 Banner Save Karo</button>
-      <button type="button" id="deleteBanner" class="btn btn-danger mt-3">🗑️ Banner Hatao</button>
-    </form>
-  </div>
+<div class="card">
+  <h2>🎨 Banner / Promo Manage Karo</h2>
+  <form id="bannerForm">
+    <label>Banner Text</label><input type="text" id="bannerText" placeholder="Free Delivery on 299+">
+    <div style="display:flex; gap:10px;"><div style="flex:1;"><label>Banner Color</label><input type="color" id="bannerColor" value="#ff5722"></div><div style="flex:2;"><label>Banner Image</label><input type="file" id="bannerImage" accept="image/*"></div></div>
+    <div id="bannerPreview" style="display:none; margin-top:10px;"><p><b>📸 Preview:</b></p><img id="previewImg" src="" style="max-height:200px; border-radius:8px;"></div>
+    <button type="submit">💾 Banner Save Karo</button>
+    <button type="button" id="deleteBanner" class="btn-red">🗑️ Banner Hatao</button>
+  </form>
 </div>
 
 <div class="card"><h2>🏍️ Pending Rider Approvals</h2><div id="pendingRidersList">Loading...</div></div>
@@ -122,7 +116,7 @@ async function loadShopDropdown(){
     if(!shops) return;
     const select = document.getElementById('reportShop');
     select.innerHTML = `<option value="all">All Restaurants</option>`;
-    shops.forEach(s => { select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`; });
+    shops.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name}</option>`; }); // FIX KIYA
 }
 
 function renderChart(orders){
@@ -135,7 +129,7 @@ function renderChart(orders){
 
     const salesData = last7Days.map(date => {
         const dayOrders = orders.filter(o => o.createdAt.startsWith(date));
-        return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); // FIX: grand_total
+        return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0);
     });
 
     if(salesChart) salesChart.destroy();
@@ -172,12 +166,12 @@ async function loadData(){
     if(orders){
         const today = new Date().toISOString().split('T')[0];
         const todayOrders = orders.filter(o => o.createdAt.startsWith(today));
-        const todayRev = todayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); // FIX: grand_total
+        const todayRev = todayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0);
         document.getElementById('totalOrders').innerText = orders.length;
         document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
         document.getElementById('todayRevenue').innerText = '₹' + todayRev;
 
-        renderChart(orders); // GRAPH CALL
+        renderChart(orders);
 
         let orderHtml = '';
         for(let o of orders){
@@ -185,7 +179,7 @@ async function loadData(){
             if(o.status === 'Pending' &&!o.riderId){
                 assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`;
             } else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
-            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.grand_total || o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`; // FIX
+            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.grand_total || o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`;
         }
         document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
     }
@@ -198,9 +192,9 @@ async function assignRider(orderId, riderId){
     alert(data.msg || 'Rider Assigned!'); loadData();
 }
 async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
-async function getReport(){ alert('Report feature') }
+async function getReport(){ alert('Report feature coming soon') }
 
-// Banner Code Same as yours
+// Banner Code
 async function loadBanner(){
   const res = await fetch('/api/admin/promo');
   const data = await res.json();
