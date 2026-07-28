@@ -44,11 +44,25 @@ nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:20px
 <a id="waBtn" href="#" target="_blank" class="btn" style="background:#25D366;">📞 Contact Us on WhatsApp</a>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/socket.io/socket.io.js"></script> <!-- ✅ Render pe /socket.io use karo -->
-<script>
-const API = ''; // ✅ SAME DOMAIN
-const socket = io(); // ✅ SAME DOMAIN SOCKET
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+import "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAKROA-L-VckdWj5_lqDpj_HUIjzOIHDKo",
+    authDomain: "eat4bite.firebaseapp.com",
+    databaseURL: "https://eat4bite-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "eat4bite",
+    storageBucket: "eat4bite.firebasestorage.app",
+    messagingSenderId: "544422285835",
+    appId: "1:544422285835:web:fecb23720927bebf3aad0e",
+    measurementId: "G-QF5RVQ33FQ"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const API = ''; 
 const urlParams = new URLSearchParams(window.location.search);
 const trackId = urlParams.get('id');
 
@@ -59,8 +73,8 @@ let custMarker = null;
 let currentOrder = null;
 
 function initMap(){
-    document.getElementById('map').innerText = ''; // "Map Loading..." hatao
-    map = L.map('map').setView([25.5941, 85.1376], 12); // Patna default
+    document.getElementById('map').innerText = '';
+    map = L.map('map').setView([26.123, 84.456], 13); // Areraj default
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 }
 
@@ -73,7 +87,7 @@ async function loadOrder(){
         
         currentOrder = o;
 
-        document.getElementById('orderBox').innerHTML = `<h2>Order: ${o.trackId}</h2><p><b>Name:</b> ${o.name}</p><p><b>Phone:</b> ${o.phone}</p><p><b>Address:</b> ${o.address}</p><p><b>Total Paid:</b> ₹${o.total}</p><hr style="margin:10px 0"><p><b>Items:</b><br> ${o.items ? o.items.map(i=>`• ${i.name} x${i.qty} - ₹${i.price*i.qty}`).join('<br>') : 'N/A'}</p>`;
+        document.getElementById('orderBox').innerHTML = `<h2>Order: ${o.trackId}</h2><p><b>Name:</b> ${o.name}</p><p><b>Phone:</b> ${o.phone}</p><p><b>Address:</b> ${o.address}</p><p><b>Total Paid:</b> ₹${o.grand_total || o.total}</p><hr style="margin:10px 0"><p><b>Items:</b><br> ${o.items ? o.items.map(i=>`• ${i.name} x${i.qty} - ₹${i.price*i.qty}`).join('<br>') : 'N/A'}</p>`;
 
         document.getElementById('currentStatus').innerText = o.status;
         const steps = ['Pending', 'Preparing', 'Out for Delivery', 'Delivered'];
@@ -85,6 +99,19 @@ async function loadOrder(){
         document.getElementById('waBtn').href = `https://wa.me/91${o.phone}?text=Hi Eat4Bite™, mera Order ID: ${o.trackId} - Status: ${o.status}`;
 
         updateMap(o);
+        
+        // FIREBASE SE LIVE RIDER LOCATION SUNNA
+        if(o.riderId){
+            const riderLocRef = ref(db, 'rider_location/' + o.riderId);
+            onValue(riderLocRef, (snapshot) => {
+                const loc = snapshot.val();
+                if(loc && currentOrder.status === 'Out for Delivery'){
+                    currentOrder.riderLat = loc.lat;
+                    currentOrder.riderLng = loc.lng;
+                    updateMap(currentOrder);
+                }
+            });
+        }
 
     } catch(e){
         document.getElementById('orderBox').innerHTML="<div class='error'><h3>Server Error. Refresh karo</h3></div>";
@@ -92,27 +119,14 @@ async function loadOrder(){
     }
 }
 
-socket.on('locationUpdate', (data) => {
-    if(currentOrder && currentOrder.riderId === data.riderId && currentOrder.status === 'Out for Delivery'){
-        currentOrder.riderLat = data.lat; // order update karo
-        currentOrder.riderLng = data.lng;
-        updateMap(currentOrder);
-    }
-});
-
 function updateMap(order){
     if(!map) return;
-    // 1. Shop ka pin
     if(order.shopLat && order.shopLng && !shopMarker){
         shopMarker = L.marker([order.shopLat, order.shopLng]).addTo(map).bindPopup("🏪 Restaurant");
     }
-
-    // 2. Customer ka pin
     if(order.custLat && order.custLng && !custMarker){
         custMarker = L.marker([order.custLat, order.custLng]).addTo(map).bindPopup("📍 Delivery Address");
     }
-
-    // 3. Rider ka pin
     if(order.status === 'Out for Delivery' && order.riderLat && order.riderLng){
         if(!riderMarker){
             riderMarker = L.marker([order.riderLat, order.riderLng]).addTo(map).bindPopup("🏍️ Rider");
@@ -120,7 +134,7 @@ function updateMap(order){
             map.fitBounds(group.getBounds().pad(0.3));
         } else {
             riderMarker.setLatLng([order.riderLat, order.riderLng]);
-            map.panTo([order.riderLat, order.riderLng]); // map rider ke saath hilega
+            map.panTo([order.riderLat, order.riderLng]);
         }
     }
 }
@@ -128,7 +142,6 @@ function updateMap(order){
 window.onload = () => {
     initMap();
     loadOrder();
-    // setInterval hata diya kyunki socket hi kaafi hai
 }
 </script>
 </body>
