@@ -54,6 +54,7 @@
     <div id="reportResult" style="margin-top:15px;"></div>
 </div>
 
+<!-- BANNER SECTION -->
 <div class="card">
   <h2>🎨 Banner / Promo Manage Karo</h2>
   <form id="bannerForm">
@@ -80,36 +81,14 @@ const ADMIN_PASSWORD = 'admin123';
 function checkLogin(){
     if(sessionStorage.getItem('adminLoggedIn')!== 'true'){
         let pass = prompt("🔒 Admin Login\nPassword daalo:");
-        if(pass === ADMIN_PASSWORD){
-            sessionStorage.setItem('adminLoggedIn', 'true');
-            location.reload();
-        }
-        else {
-            alert("Galat Password!");
-            window.location.href = '/';
-        }
-    } else {
-        loadData();
-    }
+        if(pass === ADMIN_PASSWORD){ sessionStorage.setItem('adminLoggedIn', 'true'); location.reload(); }
+        else { alert("Galat Password!"); window.location.href = '/'; }
+    } else { loadData(); }
 }
 
-function logout(){
-    sessionStorage.clear();
-    alert("Logout ho gaye");
-    window.location.href = '/';
-}
+function logout(){ sessionStorage.clear(); alert("Logout ho gaye"); window.location.href = '/'; }
 
-async function safeFetch(url, targetId){
-    try{
-        const res = await fetch(url);
-        if(!res.ok) throw new Error(res.status);
-        return await res.json();
-    }catch(e){
-        console.log("API Fail:", url, e);
-        if(targetId) document.getElementById(targetId).innerHTML = `<p class="error">API Error: ${url}</p>`;
-        return null;
-    }
-}
+async function safeFetch(url, targetId){ try{ const res = await fetch(url); if(!res.ok) throw new Error(res.status); return await res.json(); }catch(e){ console.log("API Fail:", url, e); if(targetId) document.getElementById(targetId).innerHTML = `<p class="error">API Error: ${url}</p>`; return null; } }
 
 async function loadShopDropdown(){
     const shops = await safeFetch(`${API}/api/admin/restaurants`);
@@ -121,47 +100,18 @@ async function loadShopDropdown(){
 
 function renderChart(orders){
     const ctx = document.getElementById('salesChart').getContext('2d');
-    const last7Days = Array.from({length:7}, (_,i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        return d.toISOString().split('T')[0];
-    }).reverse();
-
-    const salesData = last7Days.map(date => {
-        const dayOrders = orders.filter(o => o.createdAt.startsWith(date));
-        return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0);
-    });
-
+    const last7Days = Array.from({length:7}, (_,i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
+    const salesData = last7Days.map(date => { const dayOrders = orders.filter(o => o.createdAt.startsWith(date)); return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); });
     if(salesChart) salesChart.destroy();
-    salesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: last7Days.map(d => new Date(d).toLocaleDateString('hi-IN', {day:'2-digit', month:'short'})),
-            datasets: [{
-                label: 'Revenue ₹',
-                data: salesData,
-                borderColor: '#ff6600',
-                backgroundColor: 'rgba(255,102,0,0.2)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {responsive: true, plugins: {legend: {display: false}}}
-    });
+    salesChart = new Chart(ctx, { type: 'line', data: { labels: last7Days.map(d => new Date(d).toLocaleDateString('hi-IN', {day:'2-digit', month:'short'})), datasets: [{ label: 'Revenue ₹', data: salesData, borderColor: '#ff6600', backgroundColor: 'rgba(255,102,0,0.2)', tension: 0.4, fill: true }] }, options: {responsive: true, plugins: {legend: {display: false}}} });
 }
 
 async function loadData(){
     await loadShopDropdown();
-
     const ridersRes = await safeFetch(`${API}/api/admin/approved-riders`);
-    if(ridersRes){
-        allRiders = ridersRes;
-        document.getElementById('riderList').innerHTML = allRiders.length === 0? 'Koi approved rider nahi' : allRiders.map(r => `<div class="rider-item"><b>${r.name}</b> - ${r.mobile}</div>`).join('');
-    }
-
+    if(ridersRes){ allRiders = ridersRes; document.getElementById('riderList').innerHTML = allRiders.length === 0? 'Koi approved rider nahi' : allRiders.map(r => `<div class="rider-item"><b>${r.name}</b> - ${r.mobile}</div>`).join(''); }
     const pendingRiders = await safeFetch(`${API}/api/admin/pending-riders`);
     if(pendingRiders) document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' : pendingRiders.map(r => `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile}</div><button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve</button></div>`).join('');
-
     const orders = await safeFetch(`${API}/api/orders`);
     if(orders){
         const today = new Date().toISOString().split('T')[0];
@@ -170,74 +120,28 @@ async function loadData(){
         document.getElementById('totalOrders').innerText = orders.length;
         document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
         document.getElementById('todayRevenue').innerText = '₹' + todayRev;
-
         renderChart(orders);
-
         let orderHtml = '';
         for(let o of orders){
             let assignDropdown = '';
-            if(o.status === 'Pending' &&!o.riderId){
-                assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`;
-            } else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
+            if(o.status === 'Pending' &&!o.riderId){ assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`; }
+            else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
             orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.grand_total || o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`;
         }
         document.getElementById('ordersList').innerHTML = orderHtml || 'No orders yet';
     }
 }
 
-async function assignRider(orderId, riderId){
-    if(!riderId) return;
-    const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) });
-    const data = await res.json();
-    alert(data.msg || 'Rider Assigned!'); loadData();
-}
+async function assignRider(orderId, riderId){ if(!riderId) return; const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) }); const data = await res.json(); alert(data.msg || 'Rider Assigned!'); loadData(); }
 async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
 async function getReport(){ alert('Report feature coming soon') }
 
 // Banner Code
-async function loadBanner(){
-  const res = await fetch('/api/admin/promo');
-  const data = await res.json();
-  if(data.text){
-    document.getElementById('bannerText').value = data.text;
-    document.getElementById('bannerColor').value = data.color;
-    document.getElementById('previewImg').src = data.image;
-    document.getElementById('bannerPreview').style.display = 'block';
-  }
-}
+async function loadBanner(){ const res = await fetch('/api/admin/promo'); const data = await res.json(); if(data.text){ document.getElementById('bannerText').value = data.text; document.getElementById('bannerColor').value = data.color; document.getElementById('previewImg').src = data.image; document.getElementById('bannerPreview').style.display = 'block'; } }
 loadBanner();
-document.getElementById('bannerImage').addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if(file){
-    const reader = new FileReader();
-    reader.onload = function(event){
-      document.getElementById('previewImg').src = event.target.result;
-      document.getElementById('bannerPreview').style.display = 'block';
-    }
-    reader.readAsDataURL(file);
-  }
-});
-document.getElementById('bannerForm').addEventListener('submit', async(e)=>{
-  e.preventDefault();
-  const fd = new FormData();
-  fd.append('text', document.getElementById('bannerText').value);
-  fd.append('color', document.getElementById('bannerColor').value);
-  const file = document.getElementById('bannerImage').files[0];
-  if(file) fd.append('bannerImage', file);
-  const res = await fetch('/api/admin/promo', {method:'POST', body:fd});
-  const data = await res.json();
-  alert(data.success? '✅ Banner Save ho gaya!' : 'Error');
-  loadBanner();
-});
-document.getElementById('deleteBanner').addEventListener('click', async()=>{
-  if(confirm('Banner delete kare?')){
-    const res = await fetch('/api/admin/promo', {method:'DELETE'});
-    const data = await res.json();
-    alert(data.success? '✅ Banner Delete ho gaya!' : 'Error');
-    document.getElementById('bannerPreview').style.display = 'none';
-    document.getElementById('bannerImage').value = '';
-  }
-});
+document.getElementById('bannerImage').addEventListener('change', function(e){ const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = function(event){ document.getElementById('previewImg').src = event.target.result; document.getElementById('bannerPreview').style.display = 'block'; } reader.readAsDataURL(file); } });
+document.getElementById('bannerForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const fd = new FormData(); fd.append('text', document.getElementById('bannerText').value); fd.append('color', document.getElementById('bannerColor').value); const file = document.getElementById('bannerImage').files[0]; if(file) fd.append('bannerImage', file); const res = await fetch('/api/admin/promo', {method:'POST', body:fd}); const data = await res.json(); alert(data.success? '✅ Banner Save ho gaya!' : 'Error'); loadBanner(); });
+document.getElementById('deleteBanner').addEventListener('click', async()=>{ if(confirm('Banner delete kare?')){ const res = await fetch('/api/admin/promo', {method:'DELETE'}); const data = await res.json(); alert(data.success? '✅ Banner Delete ho gaya!' : 'Error'); document.getElementById('bannerPreview').style.display = 'none'; document.getElementById('bannerImage').value = ''; } });
 
 checkLogin();
 </script>
