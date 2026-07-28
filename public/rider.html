@@ -3,97 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rider Dashboard - Eat4Bite</title>
+<title>Rider - Eat4Bite</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   body { font-family: Arial; margin: 0; padding: 10px; background: #f5f5f5; }
+  #loginBox, #dashboard { background: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: 50px auto; }
   #map { height: 250px; border-radius: 10px; margin-bottom: 10px; }
-  #orders { background: white; padding: 10px; border-radius: 10px; }
   .order-card { border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 8px; background: #fff9e6; }
   .btn { background: #ff5722; color: white; padding: 8px 12px; border: none; border-radius: 5px; margin: 5px; }
+  input { width: 100%; padding: 10px; margin: 8px 0; }
 </style>
 </head>
 <body>
 
-<h2>🚴 Rider Dashboard</h2>
-<div id="map"></div>
-<div id="orders">
-  <h3>New Orders <span id="orderCount">0</span></h3>
-  <div id="orderList">Waiting for orders...</div>
+<!-- LOGIN PAGE -->
+<div id="loginBox">
+  <h2>🚴 Rider Login</h2>
+  <input id="mobile" placeholder="Mobile Number">
+  <input id="password" type="password" placeholder="Password">
+  <button class="btn" onclick="login()">Login</button>
+  <p id="loginMsg" style="color:red"></p>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div id="dashboard" style="display:none; max-width:100%">
+  <h2>🚴 Rider Dashboard <button class="btn" onclick="logout()" style="float:right">Logout</button></h2>
+  <div id="map"></div>
+  <div id="orders">
+    <h3>New Orders <span id="orderCount">0</span></h3>
+    <div id="orderList">Waiting for orders...</div>
+  </div>
 </div>
 
 <audio id="dingSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-  import { getDatabase, ref, onChildAdded, set } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+  import { getDatabase, ref, onChildAdded } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAKROA-L-VckdWj5_lqDpj_HUIjzOIHDKo",
-    authDomain: "eat4bite.firebaseapp.com",
-    databaseURL: "https://eat4bite-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "eat4bite",
-    storageBucket: "eat4bite.firebasestorage.app",
-    messagingSenderId: "544422285835",
-    appId: "1:544422285835:web:fecb23720927bebf3aad0e",
-    measurementId: "G-QF5RVQ33FQ"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  
-  const riderData = JSON.parse(localStorage.getItem('riderData') || '{}');
-  const riderMobile = riderData.mobile;
   const API = "https://eat4bite.onrender.com";
+  let riderData = JSON.parse(localStorage.getItem('riderData') || '{}');
 
-  // 1. MAP
-  const map = L.map('map').setView([26.123, 84.456], 13); // Areraj ka lat lng daal de
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  let riderMarker;
+  // AGAR PEHLE SE LOGIN HAI TO DIRECT DASHBOARD
+  if(riderData.mobile) showDashboard();
 
-  // 2. LIVE LOCATION UPDATE
-  function sendLocation(lat, lng) {
-    fetch(`${API}/riderLocation`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({mobile: riderMobile, lat, lng})
+  async function login(){
+    const res = await fetch(`${API}/rider_login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mobile:mobile.value, password:password.value})
     });
-    if(riderMarker) riderMarker.setLatLng([lat,lng]);
-    else riderMarker = L.marker([lat,lng]).addTo(map).bindPopup("You");
-    map.setView([lat,lng]);
+    const data = await res.json();
+    if(data.success){
+      localStorage.setItem('riderData', JSON.stringify(data.rider));
+      riderData = data.rider;
+      showDashboard();
+    } else loginMsg.innerText = data.message;
   }
-  navigator.geolocation.watchPosition(p => sendLocation(p.coords.latitude, p.coords.longitude), null, {enableHighAccuracy: true});
+  window.login = login;
 
-  // 3. NEW ORDER SUNNA - FIREBASE
-  const ordersRef = ref(db, 'rider_orders/' + riderMobile);
-  let orderCount = 0;
-  
-  onChildAdded(ordersRef, (snapshot) => {
-    const order = snapshot.val();
-    order.id = snapshot.key;
-    document.getElementById('dingSound').play(); // TING SOUND
-    
-    orderCount++;
-    document.getElementById('orderCount').innerText = orderCount;
-    
-    const div = document.createElement('div');
-    div.className = 'order-card';
-    div.innerHTML = `
-      <b>Order #${order.id}</b><br>
-      Customer: ${order.customerName}<br>
-      Address: ${order.address}<br>
-      Amount: ₹${order.total}<br>
-      <button class="btn" onclick="acceptOrder('${order.id}')">Accept</button>
-      <button class="btn" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${order.custLat},${order.custLng}')">Get Directions</button>
-    `;
-    document.getElementById('orderList').prepend(div);
-  });
-
-  function acceptOrder(orderId) {
-    alert('Order Accepted: ' + orderId);
-    // Yaha API call karke status update karna hai
+  function logout(){
+    localStorage.removeItem('riderData');
+    location.reload();
   }
+  window.logout = logout;
+
+  function showDashboard(){
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    startRiderStuff();
+  }
+
+  // YE TERA WALA CODE HAI
+  function startRiderStuff(){
+    const firebaseConfig = { apiKey: "AIzaSyAKROA-L-VckdWj5_lqDpj_HUIjzOIHDKo", authDomain: "eat4bite.firebaseapp.com", databaseURL: "https://eat4bite-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "eat4bite", storageBucket: "eat4bite.firebasestorage.app", messagingSenderId: "544422285835", appId: "1:544422285835:web:fecb23720927bebf3aad0e" };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    
+    const map = L.map('map').setView([26.123, 84.456], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    let riderMarker;
+
+    function sendLocation(lat, lng) {
+      fetch(`${API}/riderLocation`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({mobile: riderData.mobile, lat, lng}) });
+      if(riderMarker) riderMarker.setLatLng([lat,lng]); else riderMarker = L.marker([lat,lng]).addTo(map).bindPopup("You");
+      map.setView([lat,lng]);
+    }
+    navigator.geolocation.watchPosition(p => sendLocation(p.coords.latitude, p.coords.longitude), null, {enableHighAccuracy: true});
+
+    const ordersRef = ref(db, 'rider_orders/' + riderData.mobile);
+    let orderCount = 0;
+    onChildAdded(ordersRef, (snapshot) => {
+      const order = snapshot.val(); order.id = snapshot.key;
+      document.getElementById('dingSound').play();
+      orderCount++; document.getElementById('orderCount').innerText = orderCount;
+      const div = document.createElement('div'); div.className = 'order-card';
+      div.innerHTML = `<b>Order #${order.id}</b><br>Customer: ${order.customerName}<br>Address: ${order.address}<br>Amount: ₹${order.total}<br><button class="btn" onclick="acceptOrder('${order.id}')">Accept</button><button class="btn" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${order.custLat},${order.custLng}')">Get Directions</button>`;
+      document.getElementById('orderList').prepend(div);
+    });
+  }
+
+  function acceptOrder(orderId) { alert('Order Accepted: ' + orderId); }
   window.acceptOrder = acceptOrder;
 
 </script>
