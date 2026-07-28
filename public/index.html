@@ -1,229 +1,241 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-<meta charset="UTF-8">
+<title>Eat4Bite™</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eat4Bite™ - Food Delivery</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-body{background:#f8f9fa}
-.navbar-brand{color:#ff6600!important; font-weight:bold; font-size:24px}
-.hero{background:linear-gradient(135deg, #ff6600, #ff9966); color:white; padding:40px 0; border-radius:15px; margin-bottom:30px}
-.food-card{border:none; border-radius:15px; box-shadow:0 2px 10px rgba(0,0,0,0.1); transition:0.3s; cursor:pointer}
-.food-card:hover{transform:translateY(-5px); box-shadow:0 5px 20px rgba(0,0,0,0.2)}
-.food-img{height:180px; object-fit:cover; border-radius:15px 15px 0 0}
-.price-tag{font-size:20px; font-weight:bold; color:#ff6600}
-.btn-add{background:#ff6600; border:none; color:white}
-.btn-add:hover{background:#e55a00}
-.cart-badge{position:absolute; top:-5px; right:-5px}
-#map{height:200px; border-radius:10px}
-.outofstock{opacity:0.5; pointer-events:none}
+*{margin:0;font-family:Arial} 
+body.dark{background:#121212;color:#eee}
+body.dark .card, body.dark .search-bar{background:#1e1e1e;color:#eee}
+nav{background:#ff6600;color:white;padding:15px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:100;align-items:center;}
+nav a{color:white;text-decoration:none;margin:0 10px;font-weight:bold} 
+nav button{background:none; border:none; color:white; cursor:pointer; font-size:16px;}
+.banner{margin:10px;border-radius:10px;display:none} 
+.banner img{width:100%; border-radius:10px; display:block;}
+.search-bar{padding:15px;background:white;position:sticky;top:60px;z-index:99;position:relative;}
+body.dark .search-bar{background:#1e1e1e;}
+.search-bar input{width:95%;padding:12px;border-radius:20px;border:1px solid #ddd;font-size:16px;}
+#restaurantList{display:none; position:absolute; top:55px; left:15px; right:15px; background:white; border:1px solid #ddd; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); max-height:300px; overflow-y:auto; z-index:1000;}
+#restaurantList a{display:block; padding:12px 15px; color:#333; text-decoration:none; border-bottom:1px solid #f0f0f0;}
+#restaurantList a:hover{background:#fff3e0;}
+body.dark #restaurantList{background:#2a2a2a; border-color:#444;}
+body.dark #restaurantList a{color:#eee; border-color:#333;}
+#sysMenu{display:none; position:absolute; right:10px; top:50px; background:white; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.2); min-width:220px; z-index:9999; overflow:hidden;}
+#sysMenu a{display:block; padding:12px 15px; color:#333; text-decoration:none; border-bottom:1px solid #eee;}
+#sysMenu a:hover{background:#f5f5f5;}
+body.dark #sysMenu{background:#2a2a2a;}
+body.dark #sysMenu a{color:#eee; border-color:#444;}
+
+/* CATEGORY BAR */
+.categories{display:flex; gap:8px; padding:10px 15px; overflow-x:auto; background:white;}
+body.dark .categories{background:#1e1e1e;}
+.category-btn{padding:8px 16px; border:1px solid #ff6600; border-radius:20px; background:white; color:#ff6600; white-space:nowrap; cursor:pointer; font-size:14px;}
+.category-btn.active{background:#ff6600; color:white;}
+body.dark .category-btn{background:#2a2a2a;}
+
+/* GRID */
+.grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:15px; padding:10px;}
+.card {background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;}
+.card img{width:100%;height:340px;object-fit:cover;object-position:center 35%;border-radius:8px 8px 0 0;} /* PIC FULL COVER */
+.card-body{padding:10px 12px;}
+.card h3{font-size:16px; margin:0 0 2px 0;font-weight:600; display:flex; align-items:center; gap:6px;}
+.card .offer-tag{background:#ffe0e0; color:#ff0000; font-size:12px; padding:2px 6px; border-radius:4px; font-weight:bold;}
+.card .desc{font-size:13px; color:#666; margin:0 0 2px 0;}
+.card .category{font-size:12px; color:#888; margin-bottom:8px;}
+.card .price{font-weight:bold; font-size:18px; color:#000;}
+.card-footer{display:flex; justify-content:space-between; align-items:center;}
+.add-btn{background:#ff6600;color:white;border:none;padding:8px 20px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:14px;}
+body.dark .card{background:#1e1e1e;}
+body.dark .card .desc{color:#aaa;}
+body.dark .card .price{color:#eee;}
+.empty-state{text-align:center; padding:60px 20px; color:#999;}
 </style>
 </head>
 <body>
 
-<!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg bg-white shadow-sm">
-<div class="container">
-    <a class="navbar-brand" href="/">🍴 Eat4Bite™</a>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#cartModal">
-            🛒 Cart <span class="badge bg-danger cart-badge" id="cartCount">0</span>
-        </button>
-        <button class="btn btn-outline-primary" id="loginBtn" onclick="showLogin()">Login</button>
-        <span id="userInfo" class="d-none"></span>
+<nav>
+    <div><a href="/">🍴 Eat4Bite™ Home</a> <a href="/track">📦 Track</a></div>
+    <div style="display:flex; gap:15px; align-items:center; position:relative;">
+        <button onclick="showCart()" style="background:white;color:#ff6600;border-radius:20px;padding:8px 15px;font-weight:bold;">Cart (<span id="count">0</span>)</button>
+        <div style="position:relative;">
+            <button onclick="toggleSysMenu()" style="font-size:24px; padding:0 10px;">⋮</button>
+            <div id="sysMenu">
+                <a href="/restaurant-login">🏪 Restaurant Login</a>
+                <a href="/restaurant-register">+ Add New Restaurant</a>
+                <a href="/rider-register">🚴 Rider Register</a>
+                <a href="/rider">🚴 Rider Login</a>
+                <a href="/admin" style="color:red;">👑 Admin Panel</a>
+            </div>
+        </div>
     </div>
-</div>
 </nav>
 
-<div class="container mt-4">
-    <!-- HERO -->
-    <div class="hero text-center">
-        <h1>Apka Khana, 30 Min Me 🔥</h1>
-        <p>Areraj ke best restaurants se order kare</p>
-    </div>
-
-    <!-- FILTER -->
-    <div class="mb-3">
-        <input id="searchBox" class="form-control" placeholder="🔍 Search Food or Restaurant...">
-    </div>
-
-    <!-- MENU -->
-    <div class="row" id="menuList">
-        Loading...
-    </div>
+<div id="homeBanner" class="container-fluid p-0 mb-3" style="display:none;">
+  <div id="bannerBox" class="text-center fw-bold text-white">
+    <img id="bannerImg" src="" class="img-fluid w-100" style="max-height:220px; object-fit:cover; display:block;">
+    <div id="bannerTextDiv" class="p-3" style="font-size:18px;"></div>
+  </div>
 </div>
 
-<!-- CART MODAL -->
-<div class="modal fade" id="cartModal">
-<div class="modal-dialog">
-<div class="modal-content">
-    <div class="modal-header"><h5>🛒 Your Cart</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body" id="cartItems">Cart is empty</div>
-    <div class="modal-footer">
-        <h5>Total: ₹<span id="cartTotal">0</span></h5>
-        <button class="btn btn-success w-100" onclick="checkout()">Place Order</button>
-    </div>
-</div>
-</div>
+<div class="container mt-3 mb-2">
+  <a href="/restaurants" class="btn btn-warning w-100 fw-bold shadow-lg py-3 fs-5">🍽️ Switch Restaurant / More Restaurants</a>
 </div>
 
-<!-- LOGIN MODAL -->
-<div class="modal fade" id="loginModal">
-<div class="modal-dialog">
-<div class="modal-content">
-    <div class="modal-header"><h5>Login / Signup</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body">
-        <input id="custMobile" class="form-control mb-2" placeholder="Enter 10 digit Mobile" maxlength="10">
-        <input id="custName" class="form-control mb-2" placeholder="Your Name">
-        <button class="btn btn-primary w-100" onclick="customerLogin()">Continue</button>
-    </div>
-</div>
-</div>
+<div class="search-bar">
+    <input id="search" placeholder="🔍 Search Restaurant Name..." onkeyup="searchRestaurant()" autocomplete="off">
+    <div id="restaurantList"></div>
 </div>
 
-<!-- CHECKOUT MODAL -->
-<div class="modal fade" id="checkoutModal">
-<div class="modal-dialog">
-<div class="modal-content">
-    <div class="modal-header"><h5>📍 Delivery Address</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body">
-        <input id="custAddress" class="form-control mb-2" placeholder="Full Address">
-        <div id="map"></div>
-        <select id="paymentMode" class="form-select mt-2">
-            <option value="COD">Cash on Delivery</option>
-            <option value="Online">Online Payment</option>
-        </select>
-    </div>
-    <div class="modal-footer">
-        <button class="btn btn-success w-100" onclick="placeOrder()">Confirm Order</button>
-    </div>
-</div>
-</div>
+<div class="categories" id="categoryBar">
+    <button class="category-btn active" onclick="filterCategory('All')">All</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div class="grid" id="menu">
+    <div class="empty-state">
+        <h4>👆 Upar se Restaurant Search karein</h4>
+        <p>Ya "More Restaurants" button pe click karein</p>
+    </div>
+</div>
+
 <script>
-const API = 'https://quickbite-ymqk.onrender.com';
-let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-let customer = JSON.parse(localStorage.getItem('customer') || '{}');
-let lat = 25.5941, lng = 85.1376;
-let map;
+const API = 'https://quickbite-ymqk.onrender.com/api';
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let allRestaurants = [];
+let allItems = [];
+let currentCategory = 'All';
+const shopId = new URLSearchParams(window.location.search).get('shop');
 
-window.onload = () => {
-    loadMenu();
-    updateCartUI();
-    if(customer.mobile){
-        document.getElementById('loginBtn').classList.add('d-none');
-        document.getElementById('userInfo').innerText = `Hi, ${customer.name}`;
-        document.getElementById('userInfo').classList.remove('d-none');
+if(localStorage.getItem('dark')=='true') document.body.classList.add('dark');
+
+function toggleSysMenu(){const menu = document.getElementById('sysMenu');menu.style.display = menu.style.display === 'block' ? 'none' : 'block';}
+document.addEventListener('click', function(e){if(!e.target.closest('#sysMenu') && !e.target.closest('button[onclick="toggleSysMenu()"]')){document.getElementById('sysMenu').style.display = 'none';}if(!e.target.closest('.search-bar')){document.getElementById('restaurantList').style.display = 'none';}})
+
+async function loadBanner(){
+    try{
+        const res = await fetch(`${API}/admin/promo?v=` + Date.now());
+        const banner = await res.json();
+        if(banner && banner.image){
+            document.getElementById('homeBanner').style.display = 'block';
+            document.getElementById('bannerImg').src = banner.image + '?v=' + Date.now();
+            document.getElementById('bannerTextDiv').innerText = banner.text;
+            document.getElementById('bannerBox').style.background = banner.color || '#ff6600';
+        }
+    }catch(e){console.log("Banner load error", e)}
+}
+
+async function loadFeatured(){
+    if(shopId) return;
+    try{
+        const res = await fetch(`${API}/restaurants`);
+        const restaurants = await res.json();
+        allRestaurants = restaurants;
+        if(restaurants.length > 0){
+            document.getElementById('menu').innerHTML = `
+                <h3 style="padding:10px 15px; margin:0;">🔥 Featured Restaurants</h3>
+                <div class="grid">
+                ${restaurants.slice(0,6).map(r=>`
+                    <div class="card" onclick="window.location='/?shop=${r._id}'" style="cursor:pointer;">
+                        <img src="${r.image || 'https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'}" onerror="this.src='https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'">
+                        <div class="card-body">
+                            <h3>${r.name}</h3>
+                            <p style="font-size:12px; color:#888; margin:0;">${r.address || 'Nearby'}</p>
+                            <div class="card-footer">
+                                <span style="color:#00a000; font-weight:bold;">View Menu →</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+                </div>
+            `;
+        }
+    }catch(e){console.log("Featured load error", e)}
+}
+
+function searchRestaurant(){
+    const query = document.getElementById('search').value.toLowerCase();
+    const listDiv = document.getElementById('restaurantList');
+    if(query.length < 1){ listDiv.style.display = 'none'; return; }
+    const filtered = allRestaurants.filter(r => r.name.toLowerCase().includes(query));
+    if(filtered.length > 0){
+        listDiv.innerHTML = filtered.map(r => `<a href="/?shop=${r._id}"><b>${r.name}</b><br><small style="color:#888">${r.address||''}</small></a>`).join('');
+        listDiv.style.display = 'block';
+    } else {
+        listDiv.innerHTML = `<a style="color:#999">Koi restaurant nahi mila</a>`;
+        listDiv.style.display = 'block';
     }
-    initMap();
 }
 
-function initMap(){
-    map = L.map('map').setView([lat, lng], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    navigator.geolocation.getCurrentPosition(pos => {
-        lat = pos.coords.latitude; lng = pos.coords.longitude;
-        L.marker([lat,lng]).addTo(map).bindPopup("Your Location");
-        map.setView([lat,lng], 15);
-    });
-}
-
-async function loadMenu(){
-    const res = await fetch(`${API}/api/menu`);
+async function loadMenuByShop(id){
+    document.getElementById('restaurantList').style.display = 'none';
+    const selected = allRestaurants.find(r=>r._id==id);
+    if(selected) document.getElementById('search').value = selected.name;
+    document.getElementById('menu').innerHTML = '<p style="text-align:center">Loading...</p>';
+    let url = `${API}/menu?shop=${id}`;
+    const res = await fetch(url);
     const items = await res.json();
-    let html = '';
-    items.forEach(i=>{
-        html += `<div class="col-md-3 col-6 mb-4">
-            <div class="card food-card ${i.inStock? '' : 'outofstock'}">
-                <img src="${i.image || 'https://via.placeholder.com/300'}" class="food-img">
+    displayItems(items);
+}
+
+if(shopId){
+    fetch(`${API}/restaurants`).then(res=>res.json()).then(data=>{
+        allRestaurants = data;
+        loadMenuByShop(shopId);
+    });
+} else {
+    loadBanner();
+    loadFeatured();
+}
+
+function displayItems(items){
+    allItems = items;
+    const categories = ['All', ...new Set(items.map(i=>i.category).filter(Boolean))];
+    document.getElementById('categoryBar').innerHTML = categories.map(c=> 
+        `<button class="category-btn ${c=='All'?'active':''}" onclick="filterCategory('${c}')">${c}</button>`
+    ).join('');
+
+    if(items.length==0) document.getElementById('menu').innerHTML = "<p style='text-align:center'>Is restaurant me koi item nahi hai</p>";
+    else {
+        document.getElementById('menu').innerHTML = items.map(item=>{
+            const price = item.offer? Math.round(item.price*(1-item.offer/100)) : item.price;
+            return `
+            <div class="card">
+                <img src="${item.image}" onerror="this.src='https://via.placeholder.com/300x180/ff6600/ffffff?text=Food'">
                 <div class="card-body">
-                    <h6>${i.name}</h6>
-                    <small class="text-muted">${i.category}</small>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <span class="price-tag">₹${i.price}</span>
-                        ${i.inStock? `<button class="btn btn-sm btn-add" onclick="addToCart('${i._id}', '${i.name}', ${i.price})">Add</button>` : `<span class="text-danger">Sold Out</span>`}
+                    <h3>${item.name} ${item.offer?`<span class="offer-tag">-${item.offer}%</span>`:''}</h3>
+                    <p class="desc">${item.desc || ''}</p>
+                    <p class="category">${item.category || ''}</p>
+                    <div class="card-footer">
+                        <span class="price">₹${price}</span>
+                        <button class="add-btn" onclick='addToCart(${JSON.stringify(item)})'>Add +</button>
                     </div>
                 </div>
-            </div>
-        </div>`;
-    });
-    document.getElementById('menuList').innerHTML = html;
+            </div>`
+        }).join('');
+    }
 }
 
-function addToCart(id, name, price){
-    let item = cart.find(c=>c.id==id);
-    if(item) item.qty++;
-    else cart.push({id, name, price, qty:1});
-    localStorage.setItem('cart', JSON.stringify(cart));
-    updateCartUI();
+function filterCategory(cat){
+    currentCategory = cat;
+    document.querySelectorAll('.category-btn').forEach(b=>b.classList.remove('active'));
+    event.target.classList.add('active');
+    const filtered = cat=='All' ? allItems : allItems.filter(i=>i.category==cat);
+    displayItems(filtered);
 }
 
-function updateCartUI(){
-    document.getElementById('cartCount').innerText = cart.reduce((a,b)=>a+b.qty,0);
-    let total = cart.reduce((a,b)=>a+b.price*b.qty,0);
-    document.getElementById('cartTotal').innerText = total;
-    let html = cart.length==0? 'Cart is empty' : cart.map(c=>`
-        <div class="d-flex justify-content-between mb-2">
-            <span>${c.name} x ${c.qty}</span>
-            <span>₹${c.price*c.qty}</span>
-        </div>
-    `).join('');
-    document.getElementById('cartItems').innerHTML = html;
+function addToCart(item){
+    let cart=JSON.parse(localStorage.getItem('cart')||'[]'); 
+    const ex = cart.find(i=>i._id==item._id); 
+    if(ex) ex.qty++; 
+    else cart.push({...item, qty:1}); 
+    localStorage.setItem('cart',JSON.stringify(cart)); 
+    updateCart(); 
+    alert(item.name + " added to cart!")
 }
 
-function showLogin(){
-    new bootstrap.Modal(document.getElementById('loginModal')).show();
-}
-
-async function customerLogin(){
-    const mobile = document.getElementById('custMobile').value;
-    const name = document.getElementById('custName').value;
-    if(mobile.length!=10) return alert('Enter 10 digit mobile');
-    customer = {mobile, name};
-    localStorage.setItem('customer', JSON.stringify(customer));
-    bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-    location.reload();
-}
-
-function checkout(){
-    if(!customer.mobile) return showLogin();
-    if(cart.length==0) return alert('Cart is empty');
-    new bootstrap.Modal(document.getElementById('checkoutModal')).show();
-}
-
-async function placeOrder(){
-    const address = document.getElementById('custAddress').value;
-    const paymentMode = document.getElementById('paymentMode').value;
-    if(!address) return alert('Enter address');
-    
-    const orderData = {
-        customerName: customer.name,
-        mobile: customer.mobile,
-        address,
-        lat, lng,
-        items: cart,
-        total: cart.reduce((a,b)=>a+b.price*b.qty,0),
-        paymentMode
-    };
-
-    const res = await fetch(`${API}/api/place_order`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(orderData)
-    });
-    const data = await res.json();
-    if(data.success){
-        alert('Order Placed! Track ID: ' + data.orderId);
-        cart = []; localStorage.removeItem('cart');
-        bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
-        updateCartUI();
-    } else alert(data.msg);
-}
+function showCart(){window.location = '/cart';} 
+function updateCart(){document.getElementById('count').innerText = cart.reduce((s,i)=>s+i.qty,0);}
+updateCart();
 </script>
 </body>
 </html>
