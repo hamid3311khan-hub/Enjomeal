@@ -143,9 +143,15 @@ async function loadFeatured(){
             document.getElementById('menu').innerHTML = `
                 <h3 style="padding:10px 15px; margin:0;">🔥 Featured Restaurants</h3>
                 <div class="grid">
-                ${restaurants.slice(0,6).map(r=>`
+                ${restaurants.slice(0,6).map(r=>{
+                    // YEHI NAYA LOGIC HAI
+                    let imgUrl = 'https://via.placeholder.com/300x220/ff6600/ffffff?text=' + encodeURIComponent(r.name);
+                    if(r.image && r.image.startsWith('http')){
+                        imgUrl = r.image;
+                    }
+                    return `
                     <div class="card" onclick="showRestaurantBanner(${JSON.stringify(r).replace(/"/g, '&quot;')}); window.location='/?shop=${r._id}'" style="cursor:pointer;">
-                        <img src="${r.image ? r.image : 'https://via.placeholder.com/300x220/ff6600/ffffff?text='+r.name}" onerror="this.src='https://via.placeholder.com/300x220/ff6600/ffffff?text='+r.name">
+                        <img src="${imgUrl}" onerror="this.src='https://via.placeholder.com/300x220/ff6600/ffffff?text='+encodeURIComponent(r.name)">
                         <div class="card-body">
                             <h3>${r.name}</h3>
                             <p style="font-size:12px; color:#888; margin:0;">${r.address || 'Nearby'}</p>
@@ -154,7 +160,8 @@ async function loadFeatured(){
                             </div>
                         </div>
                     </div>
-                `).join('')}
+                    `
+                }).join('')}
                 </div>
             `;
         }
