@@ -164,4 +164,25 @@ app.get('/admin-restaurants', (req,res)=> res.sendFile(path.join(__dirname, 'pub
 app.get('/restaurants', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurants.html')));
 app.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
+// ===== COUPON API =====
+app.post('/api/coupon/validate', async (req,res)=>{
+  try{
+    const {code} = req.body;
+    const coupons = {
+      "FIRST30": {discount: 30, type: "FLAT"},      // 30rs flat off
+      "WELCOME50": {discount: 50, type: "FLAT"},    // 50rs flat off  
+      "SAVE10": {discount: 10, type: "PERCENT"}     // 10% off
+    }
+    
+    const coupon = coupons[code.toUpperCase()];
+    if(coupon){
+      return res.json({success: true, ...coupon})
+    } else {
+      return res.json({success: false, msg: "Invalid Coupon Code"})
+    }
+  }catch(e){
+    res.json({success:false, msg: e.message})
+  }
+})
+
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
