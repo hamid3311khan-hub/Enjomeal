@@ -12,7 +12,7 @@ body{font-family:Arial; background:#f4f4f4; padding:10px}
 #map{width:100%; height:400px; border-radius:8px; margin-top:10px}
 .status{padding:8px; border-radius:5px; font-weight:bold}
 .pending{background:#ffc107} .accepted{background:#2196f3; color:#fff} 
-.ready{background:#ff9800; color:#fff} .out{background:#3f51b5; color:#fff}
+.ready{background:#ff9800; color:#fff} .outfordelivery{background:#3f51b5; color:#fff}
 .delivered{background:#4caf50; color:#fff}
 </style>
 </head>
@@ -42,20 +42,24 @@ const urlParams = new URLSearchParams(window.location.search);
 const trackId = urlParams.get('trackId');
 document.getElementById('trackId').innerText = trackId;
 
-// MAP INIT
-let map = L.map('map').setView([25.9625, 85.7948], 13); // Madhubani default
+// MAP INIT - Madhubani
+let map = L.map('map').setView([26.3547, 86.0841], 13); 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let riderMarker;
 
-loadOrder();
+// PAGE LOAD HOTE HI ROOM JOIN KAR LO
+socket.emit('joinOrderRoom', trackId); // FIX 1: Hamesha join karo
 
-// 2. RIDER LOCATION LIVE UPDATE
+loadOrder();
+setInterval(loadOrder, 10000); // 10 sec me status refresh
+
+// RIDER LOCATION LIVE UPDATE
 socket.on('riderLocationUpdate', (data) => {
   if(data.trackId === trackId){
     if(riderMarker){
       riderMarker.setLatLng([data.lat, data.lng]);
     } else {
-      riderMarker = L.marker([data.lat, data.lng]).addTo(map).bindPopup("Rider");
+      riderMarker = L.marker([data.lat, data.lng]).addTo(map).bindPopup("🚚 Rider");
       map.setView([data.lat, data.lng], 15);
     }
   }
@@ -66,16 +70,24 @@ async function loadOrder(){
   let o = await res.json();
   if(!o) return alert("Order not found");
 
+  let statusClass = o.status.toLowerCase().replace(' ','');
   document.getElementById('status').innerText = o.status;
-  document.getElementById('status').className = `status ${o.status.toLowerCase().replace(' ','')}`;
-  document.getElementById('restaurant').innerText = o.restaurantId;
+  document.getElementById('status').className = `status ${statusClass}`;
   document.getElementById('address').innerText = o.address;
   document.getElementById('total').innerText = o.grand_total;
   document.getElementById('rider').innerText = o.riderName || "Finding rider...";
 
-  // Agar order out for delivery hai to socket room join karo
-  if(o.status === 'Out for Delivery'){
-    socket.emit('joinOrderRoom', trackId);
+  // RESTAURANT NAME LANE KE LIYE
+  let shopRes = await fetch(`${API}/restaurant-profile?restaurantId=${o.restaurantId}`);
+  let shop = await shopRes.json();
+  document.getElementById('restaurant').innerText = shop.restaurantName;
+
+  // AGAR ORDER ME PEHLE SE LOCATION HAI TO MAP PE DAAL DO
+  if(o.riderLat && o.riderLng){
+    if(!riderMarker){
+      riderMarker = L.marker([o.riderLat, o.riderLng]).addTo(map).bindPopup("🚚 Rider");
+      map.setView([o.riderLat, o.riderLng], 15);
+    }
   }
 }
 </script>
