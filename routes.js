@@ -122,3 +122,10 @@ module.exports = (io) => {
   });
   return router;
 }
+// Home page ke liye approved restaurants dikhane ke liye
+router.get('/api/restaurants/approved', async (req,res)=>{
+  try{
+    const restaurants = await RestaurantOwner.find({status: "Approved"});
+    res.json({success: true, restaurants})
+  }catch(e){ res.status(500).json({success: false, error: e.message}) }
+});
