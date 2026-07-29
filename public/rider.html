@@ -8,24 +8,28 @@
 <style>
 body{font-family:Arial; background:#f4f4f4; margin:0; padding:20px;}
 .login-box,.dashboard{background:white; padding:20px; border-radius:12px; max-width:500px; margin:auto; box-shadow:0 2px 10px #ccc;}
-h2{text-align:center; color:#ff6600;} input{width:100%; padding:12px; margin:8px 0; border-radius:6px; border:1px solid #ccc;}
+h2{text-align:center; color:#ff6600;} input{width:100%; padding:12px; margin:8px 0; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;}
 button{width:100%; padding:14px; background:#ff6600; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; margin:5px 0;}
 button:disabled{background:#ccc; cursor:not-allowed;}
-.order{border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:8px;}.top-bar{display:flex; justify-content:space-between;}
-.logout-btn{background:#dc3545; width:auto; padding:8px 15px;} #map{height:250px; background:#eee; border-radius:8px; margin:10px 0;}
+.order{border:1px solid #ddd; padding:15px; margin:10px 0; border-radius:8px; background:#fafafa}.top-bar{display:flex; justify-content:space-between; align-items:center;}
+.logout-btn{background:#dc3545; width:auto; padding:8px 15px;} #map{height:250px; background:#eee; border-radius:8px; margin:10px 0; z-index:1;}
 .tabs{display:flex; gap:10px; margin:15px 0;}.tab-btn{flex:1; background:#eee; color:#333;}.tab-btn.active{background:#ff6600; color:white;}
 .alert{background:#ffcccc; color:#a00; padding:12px; border-radius:8px; font-weight:bold; margin-bottom:10px; text-align:center;}
 .hisab-box{background:#e8f5e9; padding:15px; border-radius:8px; margin:10px 0;}
 .progress-bar{height:20px; background:#ddd; border-radius:10px; overflow:hidden; margin:10px 0;}
 .progress-fill{height:100%; background:#28a745; text-align:center; color:white; font-size:12px; line-height:20px;}
-.cash-input{border:2px solid #ff6600 !important}
-.btn-directions{background:#007bff; margin-top:8px; color:white; text-decoration:none; padding:8px; border-radius:6px; display:inline-block;}
+.cash-input{border:2px solid #ff6600 !important; margin:8px 0;}
+.btn-directions{background:#007bff; margin-top:8px; color:white; text-decoration:none; padding:10px; border-radius:6px; display:block; text-align:center; font-weight:bold;}
+.error{color:red; text-align:center; margin-top:10px;}
 </style>
 </head>
 <body>
-<div class="login-box" id="loginBox"><h2>🏍️ Eat4Bite™ Rider Login</h2>
-<input id="riderMobile" placeholder="Registered Mobile Number" maxlength="10">
-<button id="loginBtn" onclick="riderLogin()">Login</button></div>
+<div class="login-box" id="loginBox">
+  <h2>🏍️ Eat4Bite™ Rider Login</h2>
+  <input id="riderMobile" type="tel" placeholder="Registered Mobile Number" maxlength="10">
+  <button id="loginBtn" onclick="riderLogin()">Login</button>
+  <p class="error" id="loginError"></p>
+</div>
 
 <div class="dashboard" id="dashboard" style="display:none;">
 <div class="top-bar"><h2 id="riderName">Rider Panel</h2><button class="logout-btn" onclick="riderLogout()">🚪 Logout</button></div>
@@ -37,7 +41,7 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 
 <div class="hisab-box">
   <b>Cash in Hand:</b> ₹<span id="cashInHand">0</span> / ₹1000
-  <div class="progress-bar"><div class="progress-fill" id="limitBar">0%</div></div>
+  <div class="progress-bar"><div class="progress-fill" id="limitBar" style="width:0%">0%</div></div>
 </div>
 
 <div class="tabs">
@@ -58,8 +62,8 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 // ========= CONFIG =========
-const API = 'https://quickbite-ymqk.onrender.com/api'; // <-- FIX 1: HARDCODED URL
-const SOCKET_URL = 'https://quickbite-ymqk.onrender.com'; // <-- FIX 1
+const API = 'https://quickbite-ymqk.onrender.com/api';
+const SOCKET_URL = 'https://quickbite-ymqk.onrender.com';
 const socket = io(SOCKET_URL);
 // ==========================
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null; let customerMarkers = {};
@@ -76,12 +80,18 @@ window.onload = () => {
   }
 }
 
-function initMap(){ document.getElementById('map').innerText=''; map = L.map('map').setView([25.5941, 85.1376], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);}
+function initMap(){ 
+  document.getElementById('map').innerHTML=''; 
+  map = L.map('map').setView([25.5941, 85.1376], 13); 
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+}
+
 function showTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); 
   btn.classList.add('active'); 
   ['orders','hisab'].forEach(t=>document.getElementById('tab-'+t).style.display='none'); 
   document.getElementById('tab-'+tab).style.display='block';
+  if(tab === 'orders' && map) setTimeout(()=>map.invalidateSize(), 100); // map fix
 }
 
 function updateStatusUI(status){
@@ -93,9 +103,10 @@ function updateStatusUI(status){
 async function riderLogin(){
   const mobile = document.getElementById('riderMobile').value;
   const btn = document.getElementById('loginBtn');
-  if(mobile.length!=10) return alert('Enter 10 digit mobile');
+  const err = document.getElementById('loginError');
+  if(mobile.length!=10) return err.innerText = 'Enter 10 digit mobile';
   
-  btn.disabled = true; btn.innerText = "Logging in..."; // <-- LOADING FIX
+  btn.disabled = true; btn.innerText = "Logging in..."; err.innerText = "";
   
   try{
     const res = await fetch(`${API}/rider-login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
@@ -105,34 +116,38 @@ async function riderLogin(){
       localStorage.setItem('riderData', JSON.stringify(riderData));
       location.reload();
     } else { 
-      alert(data.msg); 
-      btn.disabled = false; btn.innerText = "Login"; // <-- ERROR PE WAPAS
+      err.innerText = data.msg; 
+      btn.disabled = false; btn.innerText = "Login";
     }
   }catch(e){
-    alert("Server slow hai. Dobara try karo");
-    btn.disabled = false; btn.innerText = "Login"; // <-- ERROR PE WAPAS
+    err.innerText = "Server slow hai. Dobara try karo";
+    btn.disabled = false; btn.innerText = "Login";
   }
 }
 
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
-// FIX 2: STATUS UPDATE KE LIYE NAYA API BANANA HOGA SERVER ME
-// Abhi ke liye ye button hata dete hain kyunki route nahi hai
 async function goOnline(){
-  alert("Go Online feature ke liye server me API add karna padega");
-  // riderData.status = 'Approved'; startLocationTracking();
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
+  riderData.status = 'Approved';
+  localStorage.setItem('riderData', JSON.stringify(riderData));
+  updateStatusUI('Approved');
+  startLocationTracking();
 }
 
 async function goOffline(){
-  alert("Go Offline feature ke liye server me API add karna padega");
-  // clearInterval(locationInterval);
+  clearInterval(locationInterval);
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Offline'})});
+  riderData.status = 'Offline';
+  localStorage.setItem('riderData', JSON.stringify(riderData));
+  updateStatusUI('Offline');
 }
 
 function startLocationTracking(){
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(updateRiderLocation);
     locationInterval = setInterval(() => { navigator.geolocation.getCurrentPosition(updateRiderLocation); }, 5000);
-  }
+  } else { alert("Location not supported") }
 }
 
 function updateRiderLocation(pos){
@@ -173,14 +188,14 @@ async function loadMyOrders(){
   try{
     const res = await fetch(`${API}/rider-orders/${riderData.mobile}`);
     const orders = await res.json();
-    if(orders.length === 0){ document.getElementById('myOrders').innerHTML = 'No orders yet'; return; }
+    if(orders.length === 0){ document.getElementById('myOrders').innerHTML = '<p>No orders yet</p>'; return; }
     
     document.getElementById('myOrders').innerHTML = orders.map(o => {
       const hasLocation = o.custLat && o.custLng;
       const directionsLink = hasLocation ? `https://www.google.com/maps/search/?api=1&query=${o.custLat},${o.custLng}` : '#';
       
       if(hasLocation && !customerMarkers[o._id]){
-        customerMarkers[o._id] = L.marker([o.custLat, o.custLng]).addTo(map).bindPopup(`${o.name}<br>${o.address}`);
+        customerMarkers[o._id] = L.marker([o.custLat, o.custLng]).addTo(map).bindPopup(`<b>${o.name}</b><br>${o.address}`);
       }
 
       return `
@@ -188,25 +203,29 @@ async function loadMyOrders(){
         <b>${o.trackId}</b> - ₹${o.grand_total} <br> 
         <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
         <b>Address:</b> ${o.address} <br>
-        <b>Status:</b> ${o.status} <br>
+        <b>Status:</b> <span style="color:orange">${o.status}</span> <br>
         ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn-directions">📍 Get Directions</a>` : '<small>Location not shared</small>'}
         ${o.status === 'Out for Delivery' ? `
           <label><b>Cash Collected ₹:</b></label>
-          <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.grand_total}">
-          <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
+          <input type="number" id="cash_${o.trackId}" class="cash-input" placeholder="Enter amount taken" value="${o.grand_total}">
+          <button onclick="markDelivered('${o.trackId}')">Mark Delivered</button>
         ` : ''}
       </div>`}).join('');
-  }catch(e){ document.getElementById('myOrders').innerHTML = 'Error loading orders'; }
+  }catch(e){ document.getElementById('myOrders').innerHTML = '<p>Error loading orders</p>'; }
 }
 
-async function markDelivered(orderId){
-  const cashInput = document.getElementById(`cash_${orderId}`).value;
+async function markDelivered(trackId){
+  const cashInput = document.getElementById(`cash_${trackId}`).value;
   if(!cashInput) return alert('Please enter cash collected amount');
   
-  await fetch(`${API}/order-delivered`, {
-    method:'POST', 
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerText = "Updating...";
+  
+  await fetch(`${API}/orders/track/${trackId}/status`, {
+    method:'PUT', 
     headers:{'Content-Type':'application/json'}, 
-    body:JSON.stringify({orderId, cashCollected: Number(cashInput)})
+    body:JSON.stringify({status: "Delivered", cashCollected: Number(cashInput)})
   });
   alert('Order Delivered!'); 
   loadMyOrders(); 
