@@ -47,15 +47,31 @@ router.post('/api/order-delivered', async (req,res)=>{const {orderId}=req.body; 
 
 router.post('/api/rider/accept-order', async (req,res)=>{ await Order.findByIdAndUpdate(req.body.orderId, {status:"Out for Delivery", riderId: req.body.riderId, riderName: req.body.riderName}); res.json({success:true}) });
 
-// RIDER LOGIN API - NAYA
+// ===== AUTH APIs =====
+// RIDER LOGIN
 router.post('/api/rider/login', async (req,res)=>{
-  const {mobile, password} = req.body;
-  const rider = await Rider.findOne({mobile});
-  if(!rider) return res.status(400).json({error: "Rider not found"});
-  if(rider.status !== 'Approved') return res.status(400).json({error: "Admin se approval pending hai"});
-  const match = await bcrypt.compare(password, rider.password);
-  if(!match) return res.status(400).json({error: "Invalid password"});
-  res.json({success:true, riderId: rider.mobile, name: rider.name});
+  try{
+    const {mobile, password} = req.body;
+    const rider = await Rider.findOne({mobile});
+    if(!rider) return res.status(400).json({error: "Rider not found"});
+    if(rider.status !== 'Approved') return res.status(400).json({error: "Admin se approval pending hai"});
+    const match = await bcrypt.compare(password, rider.password);
+    if(!match) return res.status(400).json({error: "Invalid password"});
+    res.json({success:true, riderId: rider.mobile, name: rider.name});
+  }catch(e){ res.status(500).json({error: e.message}) }
+});
+
+// RESTAURANT LOGIN - NAYA ADD KIYA
+router.post('/api/restaurant/login', async (req,res)=>{
+  try{
+    const {mobile, password} = req.body;
+    const restaurant = await RestaurantOwner.findOne({mobile});
+    if(!restaurant) return res.status(400).json({error: "Restaurant not found"});
+    if(restaurant.status !== 'Approved') return res.status(400).json({error: "Admin se approval pending hai"});
+    const match = await bcrypt.compare(password, restaurant.password);
+    if(!match) return res.status(400).json({error: "Invalid password"});
+    res.json({success:true, restaurantId: restaurant.restaurantId, name: restaurant.restaurantName});
+  }catch(e){ res.status(500).json({error: e.message}) }
 });
 
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
@@ -78,7 +94,7 @@ router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'ad
 router.get('/track', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'track.html')));
 router.get('/rider', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider.html')));
 router.get('/rider-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
-router.get('/rider-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-login.html'))); // NAYA
+router.get('/rider-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-login.html')));
 router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 router.get('/restaurant-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
 router.get('/restaurant-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
