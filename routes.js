@@ -76,6 +76,8 @@ router.get('/api/orders/track/:id', async (req,res)=>{res.json(await Order.findO
 router.get('/api/orders/history/:phone', async (req,res)=>{res.json(await Order.find({phone:req.params.phone}).sort({createdAt:-1}))}); // FIX 5 NEW
 router.put('/api/orders/:id/status', async (req,res)=>{const {status,riderId,riderName}=req.body; const update={status}; if(riderId){update.riderId=riderId; update.riderName=riderName;} await Order.findByIdAndUpdate(req.params.id,update); res.json({success:true})});
 router.post('/api/order-delivered', async (req,res)=>{const {orderId}=req.body; const order=await Order.findById(orderId); if(order.paymentMode==="Cash"){await Rider.findOneAndUpdate({mobile:order.riderId},{$inc:{cash_balance:order.grand_total}});} order.status="Delivered"; await order.save(); res.json({success:true});});
+const io = req.app.get('io');
+io.emit('newOrder', order); // sab restaurant ko broadcast
 
 // ===== API ROUTES - ADMIN =====
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
@@ -123,4 +125,8 @@ router.post('/api/admin/pay-payout', async (req,res)=>{
     {$inc: {payout_due: -amount}} // paise kam kar do
   );
   res.json({success:true})
+});
+router.get('/api/restaurant-profile', async (req,res)=>{
+  const {restaurantId} = req.query;
+  res.json(await RestaurantOwner.findOne({restaurantId}))
 });
