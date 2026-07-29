@@ -11,9 +11,9 @@ body{font-family:Arial; background:#e3f2fd; padding:10px}
 .btn{padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-size:16px; margin:5px}
 .btn-green{background:#4caf50; color:#fff}
 .btn-orange{background:#ff9800; color:#fff}
+.btn-red{background:#f44336; color:#fff}
 .new-order{animation: blink 0.8s infinite}
 @keyframes blink {50% {background:#fff9c4}}
-#map{width:100%; height:300px; background:#ddd; border-radius:8px; margin-top:10px}
 </style>
 </head>
 <body>
@@ -43,18 +43,18 @@ const API = "/api";
 const socket = io();
 let riderId = localStorage.getItem('riderMobile');
 let riderName = localStorage.getItem('riderName');
+let locationWatchId;
 
 // LOGIN CHECK
 if(!riderId) window.location = '/rider-register.html';
 
 loadData();
-startLocationTracking();
 
 // 1. NAYA ORDER AAYE TO TING TING
 socket.on('assignOrder', (order) => {
   if(order.status === 'Accepted' &&!order.riderId){
-    document.getElementById('tingSound').play(); // TING TING
-    document.getElementById('tingSound').play(); // 2 baar
+    document.getElementById('tingSound').play();
+    setTimeout(()=>document.getElementById('tingSound').play(), 500); // 2 baar
     alert("🔔 Naya Delivery Order: " + order.trackId);
     loadData();
   }
@@ -91,6 +91,10 @@ async function loadData(){
       Address: ${o.address}<br>
       Amount to Collect: ₹${o.grand_total}
     `;
+    startLocationTracking(o.trackId); // FIX: trackId ke sath start karo
+  } else {
+    document.getElementById('myOrder').style.display = 'none';
+    stopLocationTracking(); // order nahi hai to location band
   }
 }
 
@@ -113,22 +117,33 @@ async function markDelivered(){
     body: JSON.stringify({orderId: o._id})
   });
   alert("Marked as Delivered");
-  document.getElementById('myOrder').style.display = 'none';
+  stopLocationTracking();
   loadData();
 }
 
-// 2. LIVE LOCATION HAR 5 SEC ME BHEJO
-function startLocationTracking(){
-  navigator.geolocation.watchPosition((pos) => {
+// 2. LIVE LOCATION TRACKID KE SATH BHEJO
+function startLocationTracking(trackId){
+  if(locationWatchId) return; // pehle se chal raha hai to dobara mat chala
+
+  locationWatchId = navigator.geolocation.watchPosition((pos) => {
     socket.emit('riderLocation', {
       riderId: riderId,
+      trackId: trackId, // YE SABSE IMPORTANT HAI
       lat: pos.coords.latitude,
       lng: pos.coords.longitude
     });
-  }, null, {enableHighAccuracy: true});
+  }, null, {enableHighAccuracy: true, maximumAge: 0, timeout: 5000});
+}
+
+function stopLocationTracking(){
+  if(locationWatchId){
+    navigator.geolocation.clearWatch(locationWatchId);
+    locationWatchId = null;
+  }
 }
 
 function logout(){
+  stopLocationTracking();
   localStorage.clear();
   window.location = '/';
 }
