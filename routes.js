@@ -5,6 +5,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const PDFDocument = require('pdfkit');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs'); // FIX 2
 
 const upload = multer({ storage: multer.memoryStorage() });
 const uploadRider = multer({ storage: multer.memoryStorage() });
@@ -28,7 +29,7 @@ function calculateBill(item_total) {
 // ===== MODELS =====
 const MenuItem = mongoose.model('MenuItem', new mongoose.Schema({name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true}));
 const RestaurantOwner = mongoose.model('RestaurantOwner', new mongoose.Schema({restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String, mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String, password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"}, registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null}, image: {type: String, default: null}, upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"}, trial_end_date: {type: Date}, payout_due: {type: Number, default: 0}, createdAt: {type: Date, default: Date.now}}));
-const Rider = mongoose.model('Rider', new mongoose.Schema({name:String, fatherName:String, aadhar:String, pan:String,mobile:{type:String, unique:true}, aadharImg: String, panImg: String, photoImg: String,lat:Number, lng:Number, lastUpdate:Date, status:{type:String, default:"Pending"},restaurantId: {type: String}, cash_balance: {type: Number, default: 0},cashLimit: {type: Number, default: 1000}}));
+const Rider = mongoose.model('Rider', new mongoose.Schema({name:String, mobile:{type:String, unique:true}, email:String, password:String, address:String, vehicleNo:String, aadharImg: String, dlProof: String, status:{type:String, default:"Pending"}, lat:Number, lng:Number, lastUpdate:Date, restaurantId: {type: String}, cash_balance: {type: Number, default: 0}, cashLimit: {type: Number, default: 1000}})); // FIX 4
 const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_5: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 30},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
 const Offer = mongoose.model('Offer', new mongoose.Schema({code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}}));
@@ -36,55 +37,52 @@ const Banner = mongoose.model('Banner', new mongoose.Schema({text: String, image
 
 // ===== API ROUTES - MENU =====
 router.post('/api/menu', upload.single('image'), async (req,res)=>{try{let imageUrl=null; if(req.file){const result=await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,{folder:"quickbite"}); imageUrl=result.secure_url;} const {name,price,category,desc,veg,offer,restaurantId}=req.body; const item=new MenuItem({name,price,category,desc,image:imageUrl,veg:veg==="true",offer,restaurantId}); await item.save(); res.json({success:true});}catch(e){res.status(500).json({error:e.message})}});
-router.put('/api/menu/:id', upload.single('image'), async (req,res)=>{try{let updateData={...req.body}; if(req.file){const result=await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,{folder:"quickbite"}); updateData.image=result.secure_url;} updateData.veg=req.body.veg==="true"; await MenuItem.findByIdAndUpdate(req.params.id,updateData); res.json({success:true});}catch(e){res.status(500).json({error:e.message})}});
-router.delete('/api/menu/:id', async (req,res)=>{await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true})});
 router.get('/api/menu', async (req,res)=>{const shopId=req.query.shop||'default-shop'; res.json(await MenuItem.find({restaurantId:shopId}))});
-router.put('/api/menu/:id/stock', async (req,res)=>{const {inStock}=req.body; await MenuItem.findByIdAndUpdate(req.params.id,{inStock}); res.json({success:true})});
+router.get('/api/menu/:restaurantId', async (req,res)=>{res.json(await MenuItem.find({restaurantId:req.params.restaurantId}))}); // FIX 3
+router.post('/api/menu-add', upload.single('image'), async (req,res)=>{try{let imageUrl=null; if(req.file){const result=await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,{folder:"quickbite"}); imageUrl=result.secure_url;} const item = new MenuItem({...req.body, image:imageUrl}); await item.save(); res.json({success:true})}catch(e){res.status(500).json({error:e.message})}}); // FIX 3
+router.delete('/api/menu-delete/:id', async (req,res)=>{await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true})}); // FIX 3
 
 // ===== API ROUTES - RESTAURANT =====
-router.post('/api/restaurant-register', upload.single('image'), async (req,res)=>{try{let imageUrl=null; if(req.file){const result=await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,{folder:"quickbite_restaurants"}); imageUrl=result.secure_url;} const {restaurantId,restaurantName,ownerName,mobile,email,address,password,upi_id}=req.body; const trialEnd=new Date(); trialEnd.setDate(trialEnd.getDate()+7); const restaurant=new RestaurantOwner({restaurantId,restaurantName,ownerName,mobile,email,address,password,upi_id,image:imageUrl,trial_end_date:trialEnd}); await restaurant.save(); res.json({success:true});}catch(e){res.status(500).json({error:e.message})}});
-router.post('/api/restaurant-login', async (req,res)=>{const {restaurantId,password}=req.body; const restaurant=await RestaurantOwner.findOne({restaurantId,password}); if(!restaurant)return res.status(401).json({error:"Invalid"}); if(restaurant.status!=="Approved")return res.status(403).json({error:`Status: ${restaurant.status}`}); res.json({success:true,restaurant});});
-router.get('/api/restaurant/ledger', async (req,res)=>{const {restaurantId}=req.query; const restaurant=await RestaurantOwner.findOne({restaurantId}); const orders=await Order.find({restaurantId,status:"Delivered"}); const totalSales=orders.reduce((sum,o)=>sum+o.item_total,0); const totalCommission=orders.reduce((sum,o)=>sum+o.commission_5,0); res.json({restaurant,payout_due:restaurant.payout_due,totalSales,totalCommission});});
-router.post('/api/restaurant/payout', async (req,res)=>{const {restaurantId,amount}=req.body; await RestaurantOwner.findOneAndUpdate({restaurantId},{$inc:{payout_due:-amount}}); res.json({success:true});});
-router.post('/api/restaurant/cash-confirm', async (req,res)=>{const {orderId}=req.body; const order=await Order.findById(orderId); await RestaurantOwner.findOneAndUpdate({restaurantId:order.restaurantId},{$inc:{payout_due:order.item_total}}); order.cashCollected=order.grand_total; await order.save(); res.json({success:true});});
-router.post('/api/restaurant/offer', async (req,res)=>{const offer=new Offer(req.body); await offer.save(); res.json({success:true})});
-router.get('/api/restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Approved"}))});
+router.post('/api/restaurant-register', upload.single('image'), async (req,res)=>{try{let imageUrl=null; if(req.file){const result=await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,{folder:"quickbite_restaurants"}); imageUrl=result.secure_url;} const {restaurantId,restaurantName,ownerName,mobile,email,address,password,plan_status,registration_fee_paid}=req.body; const hashedPassword = await bcrypt.hash(password, 10); // FIX 6
+const trialEnd=new Date(); trialEnd.setDate(trialEnd.getDate()+30); 
+const restaurant=new RestaurantOwner({restaurantId,restaurantName,ownerName,mobile,email,address,password:hashedPassword,plan_status,registration_fee_paid,image:imageUrl,trial_end_date:trialEnd}); 
+await restaurant.save(); res.json({success:true});}catch(e){res.status(500).json({error:e.message})}});
+router.post('/api/restaurant-login', async (req,res)=>{const {restaurantId,password}=req.body; const restaurant=await RestaurantOwner.findOne({restaurantId}); if(!restaurant)return res.status(401).json({error:"Invalid"}); const match = await bcrypt.compare(password, restaurant.password); if(!match)return res.status(401).json({error:"Invalid Password"}); // FIX 6
+if(restaurant.status!=="Approved")return res.status(403).json({error:`Status: ${restaurant.status}`}); res.json({success:true,restaurant});});
+router.post('/api/restaurant-update', upload.single('image'), async (req,res)=>{try{let update = {...req.body}; if(req.file){const result=await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,{folder:"quickbite_restaurants"}); update.image = result.secure_url;} const owner = await RestaurantOwner.findOneAndUpdate({restaurantId:req.body.restaurantId}, update, {new:true}); res.json({success:true, owner})}catch(e){res.status(500).json({error:e.message})}}); // FIX 3
 
 // ===== API ROUTES - RIDER =====
-router.post('/api/rider-register', uploadRider.fields([{name:'aadhar'},{name:'pan'},{name:'photo'}]), async (req,res)=>{try{const files=req.files; const aadharUrl=(await cloudinary.uploader.upload(`data:image/jpeg;base64,${files.aadhar[0].buffer.toString('base64')}`,{folder:"quickbite_riders"})).secure_url; const panUrl=(await cloudinary.uploader.upload(`data:image/jpeg;base64,${files.pan[0].buffer.toString('base64')}`,{folder:"quickbite_riders"})).secure_url; const photoUrl=(await cloudinary.uploader.upload(`data:image/jpeg;base64,${files.photo[0].buffer.toString('base64')}`,{folder:"quickbite_riders"})).secure_url; const rider=new Rider({...req.body,aadharImg:aadharUrl,panImg:panUrl,photoImg:photoUrl}); await rider.save(); res.json({success:true});}catch(e){res.status(500).json({error:e.message})}});
-router.post('/api/rider-login', async (req,res)=>{const {mobile}=req.body; const rider=await Rider.findOne({mobile}); if(!rider||rider.status!=="Approved")return res.status(401).json({error:"Not Approved"}); res.json({success:true,rider});});
-router.get('/api/riders', async (req,res)=>{res.json(await Rider.find())});
-router.get('/api/rider-orders/:mobile', async (req,res)=>{res.json(await Order.find({riderId:req.params.mobile}))});
-router.get('/api/rider/ledger', async (req,res)=>{const {mobile}=req.query; const rider=await Rider.findOne({mobile}); res.json({cash_balance:rider.cash_balance,cashLimit:rider.cashLimit});});
+router.post('/api/rider-register', uploadRider.fields([{name:'dlProof'},{name:'aadhaarProof'}]), async (req,res)=>{try{ // FIX 4
+    let dlUrl=null, aadhaarUrl=null;
+    if(req.files.dlProof){const result=await cloudinary.uploader.upload(`data:image/jpeg;base64,${req.files.dlProof[0].buffer.toString('base64')}`,{folder:"quickbite_riders"}); dlUrl=result.secure_url;}
+    if(req.files.aadhaarProof){const result=await cloudinary.uploader.upload(`data:image/jpeg;base64,${req.files.aadhaarProof[0].buffer.toString('base64')}`,{folder:"quickbite_riders"}); aadhaarUrl=result.secure_url;}
+    const {name,mobile,email,password,address,vehicleNo} = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newRider = new Rider({name,mobile,email,password:hashedPassword,address,vehicleNo,dlProof:dlUrl,aadharImg:aadhaarUrl,status:'Pending',cash_balance:0}); // FIX 4
+    await newRider.save(); res.json({success:true});
+}catch(e){res.status(500).json({error:e.message})}});
+router.post('/api/rider-login', async (req,res)=>{const {mobile,password}=req.body; const rider=await Rider.findOne({mobile}); if(!rider) return res.json({error:'Rider not found'}); if(rider.status!=="Approved")return res.json({error:"Not Approved"}); const match = await bcrypt.compare(password, rider.password); if(!match) return res.json({error:'Invalid Password'}); res.json({success:true,rider});}); // FIX 6
+router.post('/api/rider/accept-order', async (req,res)=>{ // NEW
+    const {orderId, riderId, riderName} = req.body;
+    await Order.findByIdAndUpdate(orderId, {status:"Out for Delivery", riderId, riderName});
+    res.json({success:true})
+});
+router.post('/api/rider/deposit-cash', async (req,res)=>{const {riderId,amount}=req.body; await Rider.findOneAndUpdate({mobile:riderId},{$inc:{cash_balance:-amount}}); res.json({success:true, msg:"Deposit Request Sent"})});
 
 // ===== API ROUTES - ORDER =====
 router.post('/api/orders', async (req,res)=>{try{const bill=calculateBill(req.body.item_total); const order=new Order({...req.body,...bill}); await order.save(); sendWhatsApp(order.phone,`Order ${order.trackId} received. Total: ₹${order.grand_total}`); res.json(order);}catch(e){res.status(500).json({error:e.message})}});
 router.get('/api/orders', async (req,res)=>{const {restaurantId}=req.query; res.json(await Order.find({restaurantId}).sort({createdAt:-1}))});
+router.get('/api/orders/track/:id', async (req,res)=>{res.json(await Order.findOne({trackId:req.params.id}))}); // FIX 5 NEW
+router.get('/api/orders/history/:phone', async (req,res)=>{res.json(await Order.find({phone:req.params.phone}).sort({createdAt:-1}))}); // FIX 5 NEW
 router.put('/api/orders/:id/status', async (req,res)=>{const {status,riderId,riderName}=req.body; const update={status}; if(riderId){update.riderId=riderId; update.riderName=riderName;} await Order.findByIdAndUpdate(req.params.id,update); res.json({success:true})});
 router.post('/api/order-delivered', async (req,res)=>{const {orderId}=req.body; const order=await Order.findById(orderId); if(order.paymentMode==="Cash"){await Rider.findOneAndUpdate({mobile:order.riderId},{$inc:{cash_balance:order.grand_total}});} order.status="Delivered"; await order.save(); res.json({success:true});});
-router.get('/api/report', async (req,res)=>{const {restaurantId,startDate,endDate}=req.query; res.json(await Order.find({restaurantId,status:"Delivered",createdAt:{$gte:new Date(startDate),$lte:new Date(endDate)}}))});
 
 // ===== API ROUTES - ADMIN =====
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
-router.get('/api/admin/pending-riders', async (req,res)=>{res.json(await Rider.find({status:"Pending"}))});
 router.put('/api/admin/approve-restaurant/:id', async (req,res)=>{await RestaurantOwner.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
-router.put('/api/admin/reject-restaurant/:id', async (req,res)=>{await RestaurantOwner.findByIdAndUpdate(req.params.id,{status:"Rejected"}); res.json({success:true})});
-router.get('/api/admin/all-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find())});
+router.get('/api/admin/pending-riders', async (req,res)=>{res.json(await Rider.find({status:"Pending"}))});
 router.put('/api/admin/approve-rider/:id', async (req,res)=>{await Rider.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
 router.get('/api/admin/restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Approved"}))});
-router.get('/api/admin/approved-riders', async (req,res)=>{res.json(await Rider.find({status:"Approved"}))});
-router.post('/api/admin/assign-rider', async (req,res)=>{const {orderId,riderId}=req.body; const rider=await Rider.findOne({mobile:riderId}); await Order.findByIdAndUpdate(orderId,{riderId,status:"Out for Delivery",riderName:rider.name}); res.json({success:true})});
-router.get('/api/admin/graph', async (req,res)=>{const orders=await Order.find({status:"Delivered"}); res.json(orders)});
-router.get('/api/admin/rider-cash', async (req,res)=>{res.json(await Rider.find())});
-router.post('/api/admin/rider-deposit', async (req,res)=>{const {riderId,amount}=req.body; await Rider.findOneAndUpdate({mobile:riderId},{$inc:{cash_balance:-amount}}); res.json({success:true})});
-
-// ===== API ROUTES - BANNER/COUPON =====
-router.get('/api/admin/promo', async (req,res)=>{res.json(await Banner.findOne().sort({updatedAt:-1}))});
-router.post('/api/admin/promo', upload.single('image'), async (req,res)=>{try{let imageUrl=null; if(req.file){const result=await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,{folder:"quickbite_banners"}); imageUrl=result.secure_url;} await Banner.findOneAndUpdate({},{text:req.body.text,image:imageUrl,color:req.body.color},{upsert:true}); res.json({success:true});}catch(e){res.status(500).json({error:e.message})}});
-router.delete('/api/admin/promo', async (req,res)=>{await Banner.deleteMany(); res.json({success:true})});
-router.get('/api/coupon/validate', async (req,res)=>{res.json({valid:true,discount:10})});
-router.post('/api/coupon/validate', async (req,res)=>{res.json({valid:true,discount:10})});
-router.post('/api/broadcast', async (req,res)=>{res.json({success:true})});
 
 // ===== PAGE ROUTES =====
 router.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'home.html')));
@@ -104,57 +102,17 @@ router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'ad
 router.get('/admin-restaurants', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'admin-restaurants.html')));
 
 // ===== INVOICE PDF =====
-router.get('/invoice/:id', async (req,res)=>{const order=await Order.findById(req.params.id); const doc=new PDFDocument(); res.setHeader('Content-disposition',`attachment; filename=invoice-${order.trackId}.pdf`); res.setHeader('Content-type','application/pdf'); doc.pipe(res); doc.fontSize(20).text('QuickBite Invoice',100,100); doc.text(`Order: ${order.trackId}`,100,130); doc.text(`Total: ₹${order.grand_total}`,100,150); doc.end();});
+router.get('/invoice/:id', async (req,res)=>{const order=await Order.findOne({trackId:req.params.id}); if(!order) return res.status(404).send("Order not found"); // FIX 7
+const doc=new PDFDocument(); res.setHeader('Content-disposition',`attachment; filename=invoice-${order.trackId}.pdf`); res.setHeader('Content-type','application/pdf'); doc.pipe(res); doc.fontSize(20).text('Eat4Bite Invoice',100,100); doc.text(`Order: ${order.trackId}`,100,130); doc.text(`Total: ₹${order.grand_total}`,100,150); doc.end();});
 
 // ===== SOCKET IO =====
 module.exports = (io) => {
   io.on('connection', (socket) => {
-    socket.on('riderLocation', async (data) => {
-      await Rider.findOneAndUpdate({mobile: data.mobile}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
-      await Order.updateMany({riderId: data.mobile, status: "Out for Delivery"}, {riderLat: data.lat, riderLng: data.lng});
-      io.emit('locationUpdate', {riderId: data.mobile, lat: data.lat, lng: data.lng});
+    socket.on('riderLocation', async (data) => { // FIX 8
+      await Rider.findOneAndUpdate({mobile: data.riderId}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
+      await Order.updateMany({riderId: data.riderId, status: "Out for Delivery"}, {riderLat: data.lat, riderLng: data.lng});
+      io.emit('locationUpdate', {riderId: data.riderId, lat: data.lat, lng: data.lng});
     });
   });
   return router;
 }
-// RIDER REGISTER
-router.post('/api/rider-register', upload.fields([{name:'dlProof'}, {name:'aadhaarProof'}]), async (req,res)=>{
-    try{
-        const {name,mobile,email,password,address,vehicleNo} = req.body;
-        const dlProof = req.files.dlProof? req.files.dlProof[0].path : '';
-        const aadhaarProof = req.files.aadhaarProof? req.files.aadhaarProof[0].path : '';
-        const newRider = new Rider({name,mobile,email,password:await bcrypt.hash(password,10),address,vehicleNo,dlProof,aadhaarProof,status:'Pending',cash_balance:0});
-        await newRider.save();
-        res.json({success:true});
-    }catch(e){res.status(500).json({error:e.message})}
-});
-
-// RIDER LOGIN
-router.post('/api/rider-login', async (req,res)=>{
-    const {mobile,password} = req.body;
-    const rider = await Rider.findOne({mobile});
-    if(!rider) return res.json({error:'Rider not found'});
-    if(rider.status!== 'Approved') return res.json({error:'Your account is not approved yet'});
-    const match = await bcrypt.compare(password, rider.password);
-    if(!match) return res.json({error:'Invalid Password'});
-    res.json({success:true, rider});
-// GET MENU
-router.get('/api/menu/:restaurantId', async (req,res)=>{res.json(await Menu.find({restaurantId:req.params.restaurantId}))});
-
-// ADD MENU
-router.post('/api/menu-add', upload.single('image'), async (req,res)=>{
-    const item = new Menu({...req.body, image:req.file.path});
-    await item.save();
-    res.json({success:true})
-});
-
-// DELETE MENU
-router.delete('/api/menu-delete/:id', async (req,res)=>{await Menu.findByIdAndDelete(req.params.id); res.json({success:true})});
-
-// UPDATE RESTAURANT
-router.post('/api/restaurant-update', upload.single('image'), async (req,res)=>{
-    const update = {...req.body};
-    if(req.file) update.image = req.file.path;
-    const owner = await Restaurant.findOneAndUpdate({restaurantId:req.body.restaurantId}, update, {new:true});
-    res.json({success:true, owner})
-});
