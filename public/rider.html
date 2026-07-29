@@ -1,151 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Rider Panel - Eat4Bite</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rider Login - EatBite</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:Arial; background:#e3f2fd; padding:10px}
-.header{background:#2196f3; color:#fff; padding:15px; border-radius:8px; display:flex; justify-content:space-between}
-.box{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc; border-left:5px solid #2196f3}
-.btn{padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-size:16px; margin:5px}
-.btn-green{background:#4caf50; color:#fff}
-.btn-orange{background:#ff9800; color:#fff}
-.btn-red{background:#f44336; color:#fff}
-.new-order{animation: blink 0.8s infinite}
-@keyframes blink {50% {background:#fff9c4}}
+body{font-family:Arial;background:#FF5722;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+.card{background:white;padding:30px;border-radius:15px;box-shadow:0 5px 20px rgba(0,0,0,0.2);width:90%;max-width:400px}
+h2{text-align:center;color:#FF5722;margin-bottom:20px}
+input{width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-size:15px}
+button{width:100%;padding:14px;background:#FF5722;color:white;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:10px}
+button:hover{background:#E64A19}
+a{color:#FF5722;text-decoration:none;font-weight:bold}
+.center{text-align:center;margin-top:15px}
 </style>
 </head>
 <body>
-
-<div class="header">
-  <div>
-    <h2 id="riderName">Rider Panel</h2>
-    <p>Cash Balance: ₹<span id="cash">0</span> / ₹1000</p>
-  </div>
-  <button onclick="logout()" class="btn btn-orange">Logout</button>
+<div class="card">
+  <h2>🏍️ Rider Login</h2>
+  <input id="mobile" placeholder="Mobile Number" type="tel" required>
+  <input id="password" placeholder="Password" type="password" required>
+  <button onclick="riderLogin()">Login</button>
+  <div class="center">Account nahi hai? <a href="/rider-register">Register Kare</a></div>
 </div>
 
-<audio id="tingSound" src="/sound.mp3" preload="auto"></audio>
-
-<h3>🔔 Available Orders</h3>
-<div id="orders">Waiting for orders...</div>
-
-<div id="myOrder" style="display:none">
-  <h3>🚚 My Current Delivery</h3>
-  <div class="box" id="currentOrder"></div>
-  <button class="btn btn-green" onclick="markDelivered()">Delivered</button>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
 <script>
-const API = "/api";
-const socket = io();
-let riderId = localStorage.getItem('riderMobile');
-let riderName = localStorage.getItem('riderName');
-let locationWatchId;
-
-// LOGIN CHECK
-if(!riderId) window.location = '/rider-register.html';
-
-loadData();
-
-// 1. NAYA ORDER AAYE TO TING TING
-socket.on('assignOrder', (order) => {
-  if(order.status === 'Accepted' &&!order.riderId){
-    document.getElementById('tingSound').play();
-    setTimeout(()=>document.getElementById('tingSound').play(), 500); // 2 baar
-    alert("🔔 Naya Delivery Order: " + order.trackId);
-    loadData();
-  }
-});
-
-async function loadData(){
-  // Rider info
-  let res = await fetch(`${API}/rider-profile?mobile=${riderId}`);
-  let rider = await res.json();
-  document.getElementById('riderName').innerText = rider.name;
-  document.getElementById('cash').innerText = rider.cash_balance;
-
-  // Available Orders
-  res = await fetch(`${API}/orders?status=Accepted`);
-  let orders = await res.json();
-  document.getElementById('orders').innerHTML = orders.length===0? "No new orders" : orders.map(o => `
-    <div class="box new-order">
-      <b>Order: ${o.trackId}</b> | ₹${o.grand_total} - ${o.paymentMode}<br>
-      Pickup: ${o.restaurantId}<br>
-      Drop: ${o.name} - ${o.address}<br>
-      <button class="btn btn-green" onclick="acceptOrder('${o._id}')">Accept Order</button>
-    </div>
-  `).join('');
-
-  // My Current Order
-  res = await fetch(`${API}/orders?riderId=${riderId}&status=Out for Delivery`);
-  let myOrders = await res.json();
-  if(myOrders.length > 0){
-    let o = myOrders[0];
-    document.getElementById('myOrder').style.display = 'block';
-    document.getElementById('currentOrder').innerHTML = `
-      <b>${o.trackId}</b><br>
-      Customer: ${o.name} - ${o.phone}<br>
-      Address: ${o.address}<br>
-      Amount to Collect: ₹${o.grand_total}
-    `;
-    startLocationTracking(o.trackId); // FIX: trackId ke sath start karo
+async function riderLogin(){
+  const mobile = document.getElementById('mobile').value;
+  const password = document.getElementById('password').value;
+  
+  if(!mobile || !password) return alert('Sab bharo');
+  
+  const res = await fetch('/api/rider/login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({mobile, password})
+  });
+  const data = await res.json();
+  
+  if(data.success){
+    localStorage.setItem('riderMobile', mobile);
+    localStorage.setItem('riderName', data.name);
+    alert('Login Success!');
+    window.location.href = '/rider';
   } else {
-    document.getElementById('myOrder').style.display = 'none';
-    stopLocationTracking(); // order nahi hai to location band
+    alert(data.error || 'Login Failed');
   }
-}
-
-async function acceptOrder(orderId){
-  await fetch(`${API}/rider/accept-order`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({orderId, riderId, riderName})
-  });
-  alert("Order Accepted");
-  loadData();
-}
-
-async function markDelivered(){
-  let res = await fetch(`${API}/orders?riderId=${riderId}&status=Out for Delivery`);
-  let o = (await res.json())[0];
-  await fetch(`${API}/order-delivered`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({orderId: o._id})
-  });
-  alert("Marked as Delivered");
-  stopLocationTracking();
-  loadData();
-}
-
-// 2. LIVE LOCATION TRACKID KE SATH BHEJO
-function startLocationTracking(trackId){
-  if(locationWatchId) return; // pehle se chal raha hai to dobara mat chala
-
-  locationWatchId = navigator.geolocation.watchPosition((pos) => {
-    socket.emit('riderLocation', {
-      riderId: riderId,
-      trackId: trackId, // YE SABSE IMPORTANT HAI
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude
-    });
-  }, null, {enableHighAccuracy: true, maximumAge: 0, timeout: 5000});
-}
-
-function stopLocationTracking(){
-  if(locationWatchId){
-    navigator.geolocation.clearWatch(locationWatchId);
-    locationWatchId = null;
-  }
-}
-
-function logout(){
-  stopLocationTracking();
-  localStorage.clear();
-  window.location = '/';
 }
 </script>
 </body>
