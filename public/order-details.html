@@ -10,7 +10,7 @@ nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:18px
 .container{max-width:700px;margin:20px auto;padding:15px}
 .card{border:2px solid #ff6600;padding:20px;border-radius:10px;margin-bottom:20px;background:white} 
 .wabtn{background:#25D366;color:white;padding:15px;width:100%;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:10px;font-weight:bold}
-#map{height:300px;border-radius:10px;margin-top:15px;border:2px solid #ddd}
+#map{height:300px;border-radius:10px;margin-top:15px;border:2px solid #ddd; background:#f5f5f5}
 .steps{display:flex;justify-content:space-between;margin:20px 0}
 .step{text-align:center;flex:1}
 .step .circle{width:30px;height:30px;border-radius:50%;background:#ddd;margin:0 auto 5px;line-height:30px;color:white}
@@ -39,6 +39,7 @@ const trackId = urlParams.get('id');
 let orderData;
 let map, riderMarker;
 let lastStatus = "";
+let refreshInterval;
 
 async function loadOrder(){
     if(!trackId) {
@@ -86,25 +87,33 @@ async function loadOrder(){
             </div>
         `;
         
-        // MAP - Rider location priority, nahi to customer
-        let lat = orderData.riderLat || orderData.custLat || 25.5941; // Patna default
-        let lng = orderData.riderLng || orderData.custLng || 85.1376;
+        // FIX 1: MAP SIRF TAB JAB LOCATION HO
+        let lat = orderData.riderLat || orderData.custLat;
+        let lng = orderData.riderLng || orderData.custLng;
         
-        if(!map){
-            map = L.map('map').setView([lat, lng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        if(lat && lng){
+            if(!map){
+                map = L.map('map').setView([lat, lng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            }
+            if(riderMarker) map.removeLayer(riderMarker);
+            let popupText = orderData.riderLat ? `🏍️ Rider Live` : `📍 Order Location`;
+            riderMarker = L.marker([lat, lng]).addTo(map).bindPopup(popupText).openPopup();
+            map.setView([lat, lng], 14);
+        } else {
+            document.getElementById('map').innerHTML = "<p style='text-align:center;padding:50px;color:#666'>📍 Location jald hi update hogi</p>"
         }
         
-        if(riderMarker) map.removeLayer(riderMarker);
-        let popupText = orderData.riderLat ? `Rider Live` : `Order Location`;
-        riderMarker = L.marker([lat, lng]).addTo(map).bindPopup(popupText).openPopup();
-        map.setView([lat, lng], 14);
-        
-        // WHATSAPP BUTTON - Restaurant ko
+        // WHATSAPP BUTTON
         const waNumber = orderData.restaurantPhone || '91XXXXXXXXXX';
         const waLink = `https://wa.me/${waNumber}?text=Order ${orderData.trackId} ke baare me baat karni hai. Status: ${orderData.status}`;
         document.getElementById('waBtn').style.display = 'block';
         document.getElementById('waBtn').onclick = ()=> window.open(waLink, '_blank');
+
+        // FIX 2: SMART REFRESH - Out for Delivery me 5sec, baaki 30sec
+        clearInterval(refreshInterval);
+        let refreshTime = orderData.status === 'Out for Delivery' ? 5000 : 30000;
+        refreshInterval = setInterval(loadOrder, refreshTime);
         
     } catch(e){
         document.getElementById('orderBox').innerHTML = `<div class="error">Server Error. Refresh karo</div>`;
@@ -112,6 +121,7 @@ async function loadOrder(){
     }
 }
 
-loadOrder();
-setInterval(loadOrder, 5000); // 5 sec me auto refresh. 3 sec se server load kam hoga
-</script></body></html>
+loadOrder(); // pehli baar load
+</script>
+</body>
+</html>
