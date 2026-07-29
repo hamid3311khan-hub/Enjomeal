@@ -3,12 +3,10 @@ const router = express.Router();
 const path = require('path');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
-const PDFDocument = require('pdfkit');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const upload = multer({ storage: multer.memoryStorage() });
-const uploadRider = multer({ storage: multer.memoryStorage() });
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -27,88 +25,100 @@ function calculateBill(item_total) {
 }
 
 // ===== MODELS =====
-const MenuItem = mongoose.model('MenuItem', new mongoose.Schema({name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true}));
+const MenuItem = mongoose.model('MenuItem', new mongoose.Schema({name: String, price: Number, category: String, desc: String,image: String, veg: Boolean, inStock: {type:Boolean, default:true}, offer: Number,restaurantId: {type: String}}, {timestamps: true}));
 const RestaurantOwner = mongoose.model('RestaurantOwner', new mongoose.Schema({restaurantId: {type: String, unique: true}, restaurantName: String, ownerName: String, mobile: {type: String, unique: true}, email: {type: String, unique: true}, address: String, password: String, status: {type: String, default: "Pending"}, plan_status: {type: String, default: "Trial"}, registration_fee_paid: {type: Number, default: 200}, payment_proof: {type: String, default: null}, image: {type: String, default: null}, upi_id: {type: String, default: "tanbalkhi2014-3@okhdfcbank"}, trial_end_date: {type: Date}, payout_due: {type: Number, default: 0}, createdAt: {type: Date, default: Date.now}}));
 const Rider = mongoose.model('Rider', new mongoose.Schema({name:String, mobile:{type:String, unique:true}, email:String, password:String, address:String, vehicleNo:String, aadharImg: String, dlProof: String, status:{type:String, default:"Pending"}, lat:Number, lng:Number, lastUpdate:Date, restaurantId: {type: String}, cash_balance: {type: Number, default: 0}, cashLimit: {type: Number, default: 1000}}));
-const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_10: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 40},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String, default: 'default-shop'}}, {timestamps: true});
+const OrderSchema = new mongoose.Schema({trackId: String, name:String, phone:String, address:String, items:[],item_total: {type: Number, default: 0}, commission_10: {type: Number, default: 0},platform_fee: {type: Number, default: 10}, delivery_fee: {type: Number, default: 40},grand_total: {type: Number, default: 0}, total:Number, paymentMode:String, cashCollected: {type: Number, default: 0},status:{type:String, default:'Pending'},riderLat:Number, riderLng:Number,shopLat: {type:Number, default: 25.5941}, shopLng: {type:Number, default: 85.1376},custLat: Number, custLng: Number, riderId: String, riderName: String, restaurantId: {type: String}}, {timestamps: true});
 const Order = mongoose.model('Order', OrderSchema);
-const Offer = mongoose.model('Offer', new mongoose.Schema({code:String, discount:Number, type:{type:String, default:"PERCENT"}, restaurantId:String, createdAt:{type:Date, default:Date.now}}));
-const Banner = mongoose.model('Banner', new mongoose.Schema({text: String, image: String, color: String, updatedAt: {type: Date, default: Date.now}}));
 
-// ===== API ROUTES =====
+// ===== CUSTOMER + ADMIN APIs =====
 router.get('/api/menu', async (req,res)=>{ const {restaurantId} = req.query; let filter = {inStock: true}; if(restaurantId) filter.restaurantId = restaurantId; res.json(await MenuItem.find(filter)) });
-router.post('/api/menu', async (req,res)=>{ const item = new MenuItem(req.body); await item.save(); res.json(item); });
-
-router.post('/api/orders', async (req,res)=>{ try{ const io = req.app.get('io'); const bill=calculateBill(req.body.item_total); const trackId = 'EB' + Date.now(); const order=new Order({...req.body, trackId, ...bill}); await order.save(); sendWhatsApp(order.phone,`Order ${order.trackId} received. Total: ₹${order.grand_total}`); io.emit('newOrder', order); io.emit('assignOrder', order); res.json(order); }catch(e){res.status(500).json({error:e.message})} });
+router.post('/api/orders', async (req,res)=>{ try{ const io = req.app.get('io'); const bill=calculateBill(req.body.item_total); const trackId = 'EB' + Date.now(); const order=new Order({...req.body, trackId, ...bill}); await order.save(); sendWhatsApp(order.phone,`Order ${order.trackId} received. Total: ₹${order.grand_total}`); io.emit('newOrder', order); res.json(order); }catch(e){res.status(500).json({error:e.message})} });
 router.get('/api/orders', async (req,res)=>{ const {restaurantId, status, riderId} = req.query; let filter = {}; if(restaurantId) filter.restaurantId = restaurantId; if(status) filter.status = status; if(riderId) filter.riderId = riderId; res.json(await Order.find(filter).sort({createdAt:-1})) });
-router.get('/api/orders/track/:id', async (req,res)=>{res.json(await Order.findOne({trackId:req.params.id}))});
-router.put('/api/orders/:id/status', async (req,res)=>{const {status,riderId,riderName}=req.body; const update={status}; if(riderId){update.riderId=riderId; update.riderName=riderName;} await Order.findByIdAndUpdate(req.params.id,update); res.json({success:true})});
-router.post('/api/order-delivered', async (req,res)=>{const {orderId}=req.body; const order=await Order.findById(orderId); if(order.paymentMode==="Cash"){await Rider.findOneAndUpdate({mobile:order.riderId},{$inc:{cash_balance:order.grand_total}});} order.status="Delivered"; await order.save(); res.json({success:true});});
-
-router.post('/api/rider/accept-order', async (req,res)=>{ await Order.findByIdAndUpdate(req.body.orderId, {status:"Out for Delivery", riderId: req.body.riderId, riderName: req.body.riderName}); res.json({success:true}) });
 
 // ===== AUTH APIs =====
-// RIDER LOGIN
-router.post('/api/rider/login', async (req,res)=>{
-  try{
-    const {mobile, password} = req.body;
-    const rider = await Rider.findOne({mobile});
-    if(!rider) return res.status(400).json({error: "Rider not found"});
-    if(rider.status !== 'Approved') return res.status(400).json({error: "Admin se approval pending hai"});
-    const match = await bcrypt.compare(password, rider.password);
-    if(!match) return res.status(400).json({error: "Invalid password"});
-    res.json({success:true, riderId: rider.mobile, name: rider.name});
-  }catch(e){ res.status(500).json({error: e.message}) }
-});
-
-// RESTAURANT LOGIN - NAYA ADD KIYA
 router.post('/api/restaurant/login', async (req,res)=>{
   try{
     const {mobile, password} = req.body;
     const restaurant = await RestaurantOwner.findOne({mobile});
-    if(!restaurant) return res.status(400).json({error: "Restaurant not found"});
-    if(restaurant.status !== 'Approved') return res.status(400).json({error: "Admin se approval pending hai"});
+    if(!restaurant) return res.status(400).json({success: false, error: "Restaurant not found"});
+    if(restaurant.status !== 'Approved') return res.status(400).json({success: false, error: "Admin se approval pending hai"});
     const match = await bcrypt.compare(password, restaurant.password);
-    if(!match) return res.status(400).json({error: "Invalid password"});
+    if(!match) return res.status(400).json({success: false, error: "Invalid password"});
     res.json({success:true, restaurantId: restaurant.restaurantId, name: restaurant.restaurantName});
-  }catch(e){ res.status(500).json({error: e.message}) }
+  }catch(e){ res.status(500).json({success: false, error: e.message}) }
 });
 
+router.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{ 
+  try{ 
+    const {restaurantName, ownerName, mobile, email, address, password} = req.body; 
+    const exist = await RestaurantOwner.findOne({mobile});
+    if(exist) return res.json({success: false, error: "Mobile pehle se registered hai"});
+    const restaurantId = 'RES' + Date.now(); 
+    let imageUrl = null; 
+    if(req.file){ 
+      const result = await new Promise((resolve) => { cloudinary.uploader.upload_stream({folder:"restaurants"}, (err, result) => resolve(result)).end(req.file.buffer); }); 
+      imageUrl = result.secure_url; 
+    } 
+    const hashedPassword = await bcrypt.hash(password, 10); 
+    const trial_end_date = new Date(); trial_end_date.setDate(trial_end_date.getDate() + 30); 
+    const newRestaurant = new RestaurantOwner({ restaurantId, restaurantName, ownerName, mobile, email, address, password: hashedPassword, image: imageUrl, trial_end_date }); 
+    await newRestaurant.save(); 
+    res.json({success:true, message: "Register ho gaya. Approval ka wait karein"}); 
+  }catch(e){ res.status(500).json({success: false, error: e.message}) } 
+});
+
+// ===== RESTAURANT DASHBOARD APIs - NAYE =====
+router.post('/api/restaurant/menu', upload.single('image'), async (req,res)=>{
+  try{
+    const {name, price, description, category, restaurantId} = req.body;
+    let imageUrl = '';
+    if(req.file){
+      const result = await new Promise((resolve) => {
+        cloudinary.uploader.upload_stream({folder:"menu-items"}, (err, result) => resolve(result)).end(req.file.buffer);
+      });
+      imageUrl = result.secure_url;
+    }
+    const item = new MenuItem({name, price: Number(price), desc: description, category, restaurantId, image: imageUrl, veg: category === 'Veg'});
+    await item.save();
+    res.json({success: true, item})
+  }catch(e){ res.status(500).json({success: false, error: e.message}) }
+})
+
+router.get('/api/restaurant/menu/:restaurantId', async (req,res)=>{
+  const items = await MenuItem.find({restaurantId: req.params.restaurantId}).sort({createdAt: -1});
+  res.json({success: true, items})
+})
+
+router.delete('/api/restaurant/menu/:id', async (req,res)=>{
+  await MenuItem.findByIdAndDelete(req.params.id);
+  res.json({success: true})
+})
+
+router.get('/api/restaurant/orders/:restaurantId', async (req,res)=>{
+  const orders = await Order.find({restaurantId: req.params.restaurantId}).sort({createdAt: -1});
+  res.json({success: true, orders})
+})
+
+router.get('/api/restaurant/payout/:restaurantId', async (req,res)=>{
+  const restaurant = await RestaurantOwner.findOne({restaurantId: req.params.restaurantId});
+  res.json({success: true, payout_due: restaurant?.payout_due || 0})
+})
+
+// ===== ADMIN APIs =====
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
 router.put('/api/admin/approve-restaurant/:id', async (req,res)=>{await RestaurantOwner.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
-router.get('/api/admin/pending-riders', async (req,res)=>{res.json(await Rider.find({status:"Pending"}))});
-router.put('/api/admin/approve-rider/:id', async (req,res)=>{await Rider.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
-router.get('/api/admin-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Approved"}))});
-router.post('/api/admin/reject-restaurant', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.body.restaurantId, {status: 'rejected'}); res.json({msg: 'Rejected'}); });
-router.post('/api/admin/pay-payout', async (req,res)=>{ const {restaurantId, amount} = req.body; await RestaurantOwner.findOneAndUpdate({restaurantId}, {$inc: {payout_due: -amount}}); res.json({success:true}) });
-router.get('/api/restaurant-profile', async (req,res)=>{ const {restaurantId} = req.query; res.json(await RestaurantOwner.findOne({restaurantId})) });
-router.get('/api/rider-profile', async (req,res)=>{ const {mobile} = req.query; res.json(await Rider.findOne({mobile})) });
-
-router.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{ try{ const {restaurantName, ownerName, mobile, email, address, password} = req.body; const restaurantId = 'RES' + Date.now(); let imageUrl = null; if(req.file){ const result = await new Promise((resolve) => { cloudinary.uploader.upload_stream({folder:"restaurants"}, (err, result) => resolve(result)).end(req.file.buffer); }); imageUrl = result.secure_url; } const hashedPassword = await bcrypt.hash(password, 10); const trial_end_date = new Date(); trial_end_date.setDate(trial_end_date.getDate() + 30); const newRestaurant = new RestaurantOwner({ restaurantId, restaurantName, ownerName, mobile, email, address, password: hashedPassword, image: imageUrl, trial_end_date }); await newRestaurant.save(); res.json({success:true, restaurantId}); }catch(e){ res.status(500).json({error: e.message}) } });
 
 // ===== PAGE ROUTES =====
 router.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
-router.get('/menu', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'menu.html')));
-router.get('/cart', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'cart.html')));
 router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-router.get('/track', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'track.html')));
-router.get('/rider', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider.html')));
-router.get('/rider-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
-router.get('/rider-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-login.html')));
 router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 router.get('/restaurant-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
 router.get('/restaurant-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
 
-// ===== SOCKET IO =====
 module.exports = (io) => {
   io.on('connection', (socket) => {
     socket.on('joinOrderRoom', (trackId) => { socket.join(trackId); });
-    socket.on('riderLocation', async (data) => { 
-      await Rider.findOneAndUpdate({mobile: data.riderId}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
-      await Order.updateMany({riderId: data.riderId, status: "Out for Delivery"}, {riderLat: data.lat, riderLng: data.lng});
-      const orders = await Order.find({riderId: data.riderId, status: "Out for Delivery"});
-      orders.forEach(o => io.to(o.trackId).emit('riderLocationUpdate', {...data, trackId: o.trackId}));
-    });
   });
   return router;
 }
