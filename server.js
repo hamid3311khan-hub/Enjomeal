@@ -3,7 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs'); // crash fix
+const fs = require('fs'); 
 const http = require('http');
 const { Server } = require("socket.io");
 
@@ -21,6 +21,9 @@ app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb', extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
+
+// YE LINE ADD KI HAI - BAHUT IMPORTANT HAI
+app.set('io', io);
 
 // DB CONNECT
 mongoose.connect(process.env.MONGO_URL)
