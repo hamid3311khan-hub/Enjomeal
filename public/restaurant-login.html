@@ -47,7 +47,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     const data = Object.fromEntries(formData.entries());
 
     try {
-        const res = await fetch(`${API}/api/restaurant-login`, {
+        const res = await fetch(`${API}/api/restaurant/login`, {  // FIX 1: / lagaya
             method: 'POST', 
             headers:{'Content-Type':'application/json'},
             body: JSON.stringify(data)
@@ -55,13 +55,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e)=>{
         const result = await res.json();
         
         if(result.success){
-            // IMPORTANT: Ye 3 cheez localStorage me save karni hai
-            localStorage.setItem('restaurantOwner', JSON.stringify(result.owner));
-            localStorage.setItem('restaurantId', result.owner.restaurantId);
-            localStorage.setItem('restaurantName', result.owner.restaurantName);
+            // FIX 2: Backend se owner object nahi aa raha, seedha restaurantId aur name aa raha
+            localStorage.setItem('restaurantId', result.restaurantId);
+            localStorage.setItem('restaurantName', result.name);
             
             document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Login Success! Redirecting...</div>`;
-            setTimeout(()=>{ window.location.href = '/restaurant-dashboard'; }, 1500); // .html hata diya
+            setTimeout(()=>{ window.location.href = '/restaurant-dashboard'; }, 1500);
         } else {
             document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.error || 'Login Failed'}</div>`;
         }
