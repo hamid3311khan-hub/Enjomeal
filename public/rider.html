@@ -1,151 +1,137 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>Rider Panel - Eat4Bite</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rider Dashboard - Eat4Bite™</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    body{background:#f1f3f6}
-    .navbar{background:#28a745}
-    .navbar-brand{color:white!important; font-weight:bold}
-    .stat-card{background:white; border-radius:15px; padding:20px; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.1)}
-    .stat-card h3{color:#28a745; font-weight:bold}
-    .order-card{border-left:5px solid #ffc107}
-    .order-card.active{border-left-color:#28a745; background:#d4edda}
-    #map{height:250px; border-radius:10px}
+body{font-family:Arial; background:#e3f2fd; padding:10px}
+.header{background:#2196f3; color:#fff; padding:15px; border-radius:8px; display:flex; justify-content:space-between}
+.box{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc; border-left:5px solid #2196f3}
+.btn{padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-size:16px; margin:5px}
+.btn-green{background:#4caf50; color:#fff}
+.btn-orange{background:#ff9800; color:#fff}
+.new-order{animation: blink 0.8s infinite}
+@keyframes blink {50% {background:#fff9c4}}
+#map{width:100%; height:300px; background:#ddd; border-radius:8px; margin-top:10px}
 </style>
 </head>
 <body>
 
-<nav class="navbar px-3">
-    <a class="navbar-brand">🏍️ <span id="riderName">Rider</span></a>
-    <button class="btn btn-light btn-sm" onclick="logout()">Logout</button>
-</nav>
-
-<div class="container mt-3">
-    <!-- STATS -->
-    <div class="row mb-3">
-        <div class="col-4"><div class="stat-card"><h3 id="todayOrders">0</h3><small>Aaj Ke Orders</small></div></div>
-        <div class="col-4"><div class="stat-card"><h3>₹<span id="todayEarning">0</span></h3><small>Aaj Ki Earning</small></div></div>
-        <div class="col-4"><div class="stat-card"><h3>₹<span id="cashBalance">0</span></h3><small>Cash Pass</small></div></div>
-    </div>
-
-    <div class="row">
-        <!-- LEFT: ORDERS -->
-        <div class="col-md-7">
-            <div class="card shadow-sm p-3">
-                <h5>📦 Current Order</h5>
-                <div id="currentOrder"><p class="text-muted text-center">Koi active order nahi</p></div>
-            </div>
-            <div class="card shadow-sm p-3 mt-3">
-                <h5>📜 Order History</h5>
-                <div id="orderHistory"></div>
-            </div>
-        </div>
-
-        <!-- RIGHT: MAP + ACTIONS -->
-        <div class="col-md-5">
-            <div class="card shadow-sm p-3">
-                <h5>📍 Live Tracking</h5>
-                <div id="map"></div>
-                <button class="btn btn-success w-100 mt-2" onclick="startTracking()">Start Location</button>
-                <button class="btn btn-danger w-100 mt-2" onclick="stopTracking()">Stop Location</button>
-            </div>
-            <div class="card shadow-sm p-3 mt-3">
-                <h5>💰 Cash Deposit</h5>
-                <input type="number" id="depositAmount" class="form-control mb-2" placeholder="Amount">
-                <button class="btn btn-warning w-100" onclick="depositCash()">Deposit Request</button>
-            </div>
-        </div>
-    </div>
+<div class="header">
+  <div>
+    <h2 id="riderName">Rider Panel</h2>
+    <p>Cash Balance: ₹<span id="cash">0</span> / ₹1000</p>
+  </div>
+  <button onclick="logout()" class="btn btn-orange">Logout</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<audio id="tingSound" src="/sound.mp3" preload="auto"></audio>
+
+<h3>🔔 Available Orders</h3>
+<div id="orders">Waiting for orders...</div>
+
+<div id="myOrder" style="display:none">
+  <h3>🚚 My Current Delivery</h3>
+  <div class="box" id="currentOrder"></div>
+  <button class="btn btn-green" onclick="markDelivered()">Delivered</button>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const API = window.location.origin;
+const API = "/api";
 const socket = io();
-let riderData = JSON.parse(localStorage.getItem('riderData') || '{}');
-let watchId = null;
-let map, marker;
+let riderId = localStorage.getItem('riderMobile');
+let riderName = localStorage.getItem('riderName');
 
-if(!riderData._id) window.location.href = '/rider';
-document.getElementById('riderName').innerText = riderData.name;
+// LOGIN CHECK
+if(!riderId) window.location = '/rider-register.html';
 
-loadDashboard();
-initMap();
+loadData();
+startLocationTracking();
 
-// 1. LOAD DASHBOARD
-async function loadDashboard(){
-    document.getElementById('cashBalance').innerText = riderData.cash_balance || 0;
-    
-    const res = await fetch(`${API}/api/rider-orders/${riderData.mobile}`);
-    const orders = await res.json();
-    
-    const today = orders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString());
-    document.getElementById('todayOrders').innerText = today.length;
-    document.getElementById('todayEarning').innerText = today.reduce((sum,o)=>sum+30, 0); // ₹30 per delivery
+// 1. NAYA ORDER AAYE TO TING TING
+socket.on('assignOrder', (order) => {
+  if(order.status === 'Accepted' &&!order.riderId){
+    document.getElementById('tingSound').play(); // TING TING
+    document.getElementById('tingSound').play(); // 2 baar
+    alert("🔔 Naya Delivery Order: " + order.trackId);
+    loadData();
+  }
+});
 
-    // Current Active Order
-    const active = orders.find(o=>o.status === 'Out for Delivery');
-    if(active){
-        document.getElementById('currentOrder').innerHTML = `
-        <div class="card order-card active p-3">
-            <h6><b>${active.trackId}</b> - ₹${active.grand_total}</h6>
-            <p class="mb-1"><b>Customer:</b> ${active.name} - ${active.phone}</p>
-            <p class="mb-2"><b>Address:</b> ${active.address}</p>
-            <button class="btn btn-primary w-100" onclick="markDelivered('${active._id}')">✅ Mark Delivered</button>
-        </div>`;
-    }
+async function loadData(){
+  // Rider info
+  let res = await fetch(`${API}/rider-profile?mobile=${riderId}`);
+  let rider = await res.json();
+  document.getElementById('riderName').innerText = rider.name;
+  document.getElementById('cash').innerText = rider.cash_balance;
 
-    // History
-    document.getElementById('orderHistory').innerHTML = orders.slice(0,5).map(o=>`
-        <div class="d-flex justify-content-between border-bottom py-2">
-            <div><b>${o.trackId}</b><br><small>${o.status}</small></div>
-            <div class="text-end">₹${o.grand_total}<br><small>${new Date(o.createdAt).toLocaleDateString()}</small></div>
-        </div>
-    `).join('');
+  // Available Orders
+  res = await fetch(`${API}/orders?status=Accepted`);
+  let orders = await res.json();
+  document.getElementById('orders').innerHTML = orders.length===0? "No new orders" : orders.map(o => `
+    <div class="box new-order">
+      <b>Order: ${o.trackId}</b> | ₹${o.grand_total} - ${o.paymentMode}<br>
+      Pickup: ${o.restaurantId}<br>
+      Drop: ${o.name} - ${o.address}<br>
+      <button class="btn btn-green" onclick="acceptOrder('${o._id}')">Accept Order</button>
+    </div>
+  `).join('');
+
+  // My Current Order
+  res = await fetch(`${API}/orders?riderId=${riderId}&status=Out for Delivery`);
+  let myOrders = await res.json();
+  if(myOrders.length > 0){
+    let o = myOrders[0];
+    document.getElementById('myOrder').style.display = 'block';
+    document.getElementById('currentOrder').innerHTML = `
+      <b>${o.trackId}</b><br>
+      Customer: ${o.name} - ${o.phone}<br>
+      Address: ${o.address}<br>
+      Amount to Collect: ₹${o.grand_total}
+    `;
+  }
 }
 
-// 2. MARK DELIVERED
-async function markDelivered(orderId){
-    const res = await fetch(`${API}/api/order-delivered`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({orderId})
+async function acceptOrder(orderId){
+  await fetch(`${API}/rider/accept-order`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({orderId, riderId, riderName})
+  });
+  alert("Order Accepted");
+  loadData();
+}
+
+async function markDelivered(){
+  let res = await fetch(`${API}/orders?riderId=${riderId}&status=Out for Delivery`);
+  let o = (await res.json())[0];
+  await fetch(`${API}/order-delivered`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({orderId: o._id})
+  });
+  alert("Marked as Delivered");
+  document.getElementById('myOrder').style.display = 'none';
+  loadData();
+}
+
+// 2. LIVE LOCATION HAR 5 SEC ME BHEJO
+function startLocationTracking(){
+  navigator.geolocation.watchPosition((pos) => {
+    socket.emit('riderLocation', {
+      riderId: riderId,
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude
     });
-    const result = await res.json();
-    if(result.success){ alert('Order Delivered!'); loadDashboard(); }
+  }, null, {enableHighAccuracy: true});
 }
 
-// 3. MAP + LOCATION
-function initMap(){
-    map = L.map('map').setView([26.1452, 85.8975], 13); // Madhubani
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    marker = L.marker([26.1452, 85.8975]).addTo(map);
+function logout(){
+  localStorage.clear();
+  window.location = '/';
 }
-
-function startTracking(){
-    if(!navigator.geolocation) return alert('GPS not supported');
-    watchId = navigator.geolocation.watchPosition((pos)=>{
-        const lat = pos.coords.latitude, lng = pos.coords.longitude;
-        marker.setLatLng([lat,lng]); map.setView([lat,lng]);
-        socket.emit('riderLocation', {riderId: riderData.mobile, lat, lng});
-    });
-}
-function stopTracking(){ navigator.geolocation.clearWatch(watchId); }
-
-async function depositCash(){
-    const amount = document.getElementById('depositAmount').value;
-    if(!amount) return alert('Amount daalo');
-    await fetch(`${API}/api/rider/deposit-cash`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({riderId:riderData.mobile, amount})});
-    alert('Deposit Request Bhej diya');
-    document.getElementById('depositAmount').value = '';
-}
-
-function logout(){ localStorage.clear(); window.location.href = '/rider'; }
 </script>
 </body>
 </html>
