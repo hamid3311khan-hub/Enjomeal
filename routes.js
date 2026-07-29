@@ -68,7 +68,7 @@ router.post('/api/restaurant/register', upload.single('image'), async (req,res)=
   }catch(e){ res.status(500).json({success: false, error: e.message}) } 
 });
 
-// ===== RESTAURANT DASHBOARD APIs - NAYE =====
+// ===== RESTAURANT DASHBOARD APIs =====
 router.post('/api/restaurant/menu', upload.single('image'), async (req,res)=>{
   try{
     const {name, price, description, category, restaurantId} = req.body;
@@ -109,6 +109,14 @@ router.get('/api/restaurant/payout/:restaurantId', async (req,res)=>{
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
 router.put('/api/admin/approve-restaurant/:id', async (req,res)=>{await RestaurantOwner.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
 
+// ===== HOME PAGE API - NAYA =====
+router.get('/api/restaurants/approved', async (req,res)=>{
+  try{
+    const restaurants = await RestaurantOwner.find({status: "Approved"}).select('-password -email');
+    res.json({success: true, restaurants})
+  }catch(e){ res.status(500).json({success: false, error: e.message}) }
+});
+
 // ===== PAGE ROUTES =====
 router.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
 router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'admin.html')));
@@ -122,10 +130,3 @@ module.exports = (io) => {
   });
   return router;
 }
-// Home page ke liye approved restaurants dikhane ke liye
-router.get('/api/restaurants/approved', async (req,res)=>{
-  try{
-    const restaurants = await RestaurantOwner.find({status: "Approved"});
-    res.json({success: true, restaurants})
-  }catch(e){ res.status(500).json({success: false, error: e.message}) }
-});
