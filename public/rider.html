@@ -58,8 +58,8 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 // ========= CONFIG =========
-const API = 'https://quickbite-ymqk.onrender.com/api';
-const SOCKET_URL = 'https://quickbite-ymqk.onrender.com';
+const API = window.location.origin + '/api'; // FIXED
+const SOCKET_URL = window.location.origin; // FIXED
 const socket = io(SOCKET_URL);
 // ==========================
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null; let customerMarkers = {};
@@ -72,7 +72,7 @@ window.onload = () => {
     document.getElementById('riderName').innerText = `Hello, ${riderData.name}`;
     initMap(); loadMyOrders(); loadHisab();
     updateStatusUI(riderData.status);
-    if(riderData.status === 'Approved') startLocationTracking(); // Approved = Online
+    if(riderData.status === 'Approved') startLocationTracking(); 
   }
 }
 
@@ -86,7 +86,7 @@ function showTab(tab, btn){
 
 function updateStatusUI(status){
   document.getElementById('riderStatus').innerText = status;
-  if(status === 'Approved'){ // Approved = Online
+  if(status === 'Approved'){ 
     document.getElementById('btnOnline').disabled = true;
     document.getElementById('btnOffline').disabled = false;
   } else {
@@ -110,7 +110,7 @@ async function riderLogin(){
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
 async function goOnline(){
-  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})}); // FIXED
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
   riderData.status = 'Approved';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   updateStatusUI('Approved');
@@ -119,7 +119,7 @@ async function goOnline(){
 
 async function goOffline(){
   clearInterval(locationInterval);
-  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Offline'})}); // FIXED
+  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Offline'})});
   riderData.status = 'Offline';
   localStorage.setItem('riderData', JSON.stringify(riderData));
   updateStatusUI('Offline');
@@ -179,17 +179,16 @@ async function loadMyOrders(){
 
     return `
     <div class="order">
-      <b>${o.trackId}</b> - ₹${o.grand_total} <br> // FIXED: grand_total
+      <b>${o.trackId}</b> - ₹${o.grand_total} <br> 
       <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
       <b>Address:</b> ${o.address} <br>
       <b>Status:</b> ${o.status} <br>
       ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn-directions">📍 Get Directions</a>` : '<small>Location not shared</small>'}
       ${o.status === 'Out for Delivery' ? `
         <label><b>Cash Collected ₹:</b></label>
-        <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.grand_total}"> // FIXED: grand_total
+        <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.grand_total}">
         <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
       ` : ''}
-      <a href="/invoice?id=${o.trackId}" target="_blank">📄 Bill</a>
     </div>`}).join('');
 }
 
