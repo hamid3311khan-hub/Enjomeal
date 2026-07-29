@@ -5,85 +5,133 @@
 <title>Restaurant Dashboard - Eat4Bite</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{font-family:Arial; background:#fff3e0; padding:10px}
-.header{background:#ff9800; color:#fff; padding:15px; border-radius:8px; display:flex; justify-content:space-between}
-.box{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc; border-left:5px solid #ff9800}
-.btn{padding:10px 20px; border:none; border-radius:5px; cursor:pointer; font-size:16px; margin:5px}
-.btn-green{background:#4caf50; color:#fff}
-.btn-red{background:#f44336; color:#fff}
-.new-order{animation: blink 1s infinite}
-@keyframes blink {50% {background:#fff9c4}}
+body{font-family:Arial; background:#f5f5f5; margin:0}
+.header{background:#4caf50; color:#fff; padding:15px; display:flex; justify-content:space-between}
+.container{padding:15px}
+.tabs{display:flex; gap:10px; margin:15px 0}
+.tab{padding:10px 15px; background:#fff; border-radius:8px; cursor:pointer; border:2px solid #4caf50}
+.tab.active{background:#4caf50; color:#fff}
+.box{background:#fff; padding:15px; border-radius:8px; margin:10px 0; box-shadow:0 2px 5px #ccc}
+input,textarea,select{width:95%; padding:8px; margin:5px 0; border:1px solid #ddd; border-radius:5px}
+.btn{background:#4caf50; color:#fff; padding:10px 15px; border:none; border-radius:5px; cursor:pointer}
+.btn-red{background:#f44336}
+.menu-item{display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee}
+.order-card{background:#fff8e1; padding:10px; margin:10px 0; border-left:4px solid #ff9800}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <h2 id="shopName">Restaurant Panel</h2>
-    <p>Payout Due: ₹<span id="payout">0</span></p>
-  </div>
-  <button onclick="logout()" class="btn btn-red">Logout</button>
+  <h2>🏪 Restaurant Panel</h2>
+  <button class="btn btn-red" onclick="logout()">Logout</button>
 </div>
 
-<audio id="tingSound" src="/sound.mp3" preload="auto"></audio>
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('menu')">1. Menu</div>
+    <div class="tab" onclick="showTab('orders')">2. Orders</div>
+    <div class="tab" onclick="showTab('payout')">3. Payout</div>
+  </div>
 
-<h3>🔔 New Orders</h3>
-<div id="orders">Loading...</div>
+  <!-- TAB 1: MENU -->
+  <div id="menuTab">
+    <h3>Add New Item</h3>
+    <div class="box">
+      <input type="text" id="itemName" placeholder="Item Name e.g. Veg Biryani">
+      <input type="number" id="price" placeholder="Price ₹">
+      <textarea id="desc" placeholder="Description"></textarea>
+      <select id="category">
+        <option>Veg</option><option>Non-Veg</option><option>Beverages</option>
+      </select>
+      <input type="file" id="itemImage">
+      <button class="btn" onclick="addMenuItem()">Add Item</button>
+    </div>
+    <h3>Your Menu</h3>
+    <div id="menuList">Loading...</div>
+  </div>
 
-<script src="/socket.io/socket.io.js"></script>
+  <!-- TAB 2: ORDERS -->
+  <div id="ordersTab" style="display:none">
+    <h3>New Orders</h3>
+    <div id="ordersList">Loading...</div>
+  </div>
+
+  <!-- TAB 3: PAYOUT -->
+  <div id="payoutTab" style="display:none">
+    <h3>Your Earnings</h3>
+    <div class="box">
+      <h2>Total Due: ₹<span id="payoutDue">0</span></h2>
+      <p>Admin will pay weekly</p>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = "/api";
-const socket = io();
-let restaurantId = localStorage.getItem('restaurantId');
+const restaurantId = localStorage.getItem('restaurantId');
+if(!restaurantId) window.location = '/restaurant-login';
 
-// LOGIN CHECK
-if(!restaurantId) window.location = '/restaurant-login.html';
+loadMenu(); loadOrders(); loadPayout();
 
-loadData();
+function showTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#menuTab, #ordersTab, #payoutTab').forEach(d=>d.style.display='none');
+  if(tab==='menu'){menuTab.style.display='block'; document.querySelectorAll('.tab')[0].classList.add('active')}
+  if(tab==='orders'){ordersTab.style.display='block'; document.querySelectorAll('.tab')[1].classList.add('active'); loadOrders()}
+  if(tab==='payout'){payoutTab.style.display='block'; document.querySelectorAll('.tab')[2].classList.add('active'); loadPayout()}
+}
 
-// 1. NAYA ORDER AAYE TO TING
-socket.on('newOrder', (order) => {
-  if(order.restaurantId === restaurantId){
-    document.getElementById('tingSound').play();
-    alert("🔔 Naya Order: " + order.trackId);
-    loadData();
-  }
-});
+// MENU FUNCTIONS
+async function addMenuItem(){
+  const formData = new FormData();
+  formData.append('restaurantId', restaurantId);
+  formData.append('name', itemName.value);
+  formData.append('price', price.value);
+  formData.append('description', desc.value);
+  formData.append('category', category.value);
+  formData.append('image', itemImage.files[0]);
 
-async function loadData(){
-  // Shop info
-  let res = await fetch(`${API}/restaurant-profile?restaurantId=${restaurantId}`);
-  let shop = await res.json();
-  document.getElementById('shopName').innerText = shop.restaurantName;
-  document.getElementById('payout').innerText = shop.payout_due;
+  let res = await fetch(`${API}/restaurant/add-menu`, {method:'POST', body:formData});
+  if(res.ok){ alert('Item Added'); loadMenu(); itemName.value=''; price.value='' } else alert('Error')
+}
 
-  // Pending Orders
-  res = await fetch(`${API}/orders?restaurantId=${restaurantId}&status=Pending`);
-  let orders = await res.json();
-  document.getElementById('orders').innerHTML = orders.length===0? "No new orders" : orders.map(o => `
-    <div class="box new-order">
-      <b>Order: ${o.trackId}</b> | ₹${o.grand_total} - ${o.paymentMode}<br>
-      Customer: ${o.name} - ${o.phone}<br>
-      Address: ${o.address}<br>
-      Items: ${o.items.map(i=>i.name+' x'+i.qty).join(', ')}<br><br>
-      <button class="btn btn-green" onclick="updateStatus('${o._id}','Accepted')">Accept</button>
-      <button class="btn btn-red" onclick="updateStatus('${o._id}','Rejected')">Reject</button>
+async function loadMenu(){
+  let res = await fetch(`${API}/restaurant/menu/${restaurantId}`);
+  let items = await res.json();
+  menuList.innerHTML = items.length===0? 'No items yet' : items.map(i=>`
+    <div class="menu-item">
+      <div><b>${i.name}</b> - ₹${i.price}<br><small>${i.category}</small></div>
+      <button class="btn btn-red" onclick="deleteItem('${i._id}')">Delete</button>
     </div>
   `).join('');
 }
 
-async function updateStatus(orderId, status){
-  await fetch(`${API}/orders/${orderId}/status`, {
-    method:'PUT',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({status})
-  });
-  alert("Order " + status);
-  loadData();
+async function deleteItem(id){
+  await fetch(`${API}/restaurant/delete-menu/${id}`, {method:'DELETE'});
+  loadMenu();
+}
+
+// ORDERS + PAYOUT
+async function loadOrders(){
+  let res = await fetch(`${API}/restaurant/orders/${restaurantId}`);
+  let orders = await res.json();
+  ordersList.innerHTML = orders.length===0? 'No new orders' : orders.map(o=>`
+    <div class="order-card">
+      <b>Order #${o.orderId}</b> - ₹${o.total}<br>
+      Customer: ${o.customerName} | ${o.mobile}<br>
+      <button class="btn" onclick="acceptOrder('${o._id}')">Accept</button>
+    </div>
+  `).join('');
+}
+
+async function loadPayout(){
+  let res = await fetch(`${API}/restaurant/payout/${restaurantId}`);
+  let data = await res.json();
+  payoutDue.innerText = data.payout_due || 0;
 }
 
 function logout(){
-  localStorage.clear();
+  localStorage.removeItem('restaurantId');
   window.location = '/';
 }
 </script>
