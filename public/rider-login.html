@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Rider Login - EatBite</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;background:#FF5722;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+.card{background:white;padding:30px;border-radius:15px;box-shadow:0 5px 20px rgba(0,0,0,0.2);width:90%;max-width:400px}
+h2{text-align:center;color:#FF5722;margin-bottom:20px}
+input{width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-size:15px}
+button{width:100%;padding:14px;background:#FF5722;color:white;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:10px}
+button:hover{background:#E64A19}
+a{color:#FF5722;text-decoration:none;font-weight:bold}
+.center{text-align:center;margin-top:15px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>🏍️ Rider Login</h2>
+  <input id="mobile" placeholder="Mobile Number" type="tel" required>
+  <input id="password" placeholder="Password" type="password" required>
+  <button onclick="riderLogin()">Login</button>
+  <div class="center">Account nahi hai? <a href="/rider-register">Register Kare</a></div>
+</div>
+
+<script>
+async function riderLogin(){
+  const mobile = document.getElementById('mobile').value;
+  const password = document.getElementById('password').value;
+  
+  if(!mobile || !password) return alert('Sab bharo');
+  
+  const res = await fetch('/api/rider/login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({mobile, password})
+  });
+  const data = await res.json();
+  
+  if(data.success){
+    localStorage.setItem('riderMobile', mobile);
+    localStorage.setItem('riderName', data.name);
+    alert('Login Success!');
+    window.location.href = '/rider';
+  } else {
+    alert(data.error || 'Login Failed');
+  }
+}
+</script>
+</body>
+</html>
