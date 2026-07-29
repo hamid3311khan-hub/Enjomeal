@@ -130,3 +130,7 @@ router.get('/api/restaurant-profile', async (req,res)=>{
   const {restaurantId} = req.query;
   res.json(await RestaurantOwner.findOne({restaurantId}))
 });
+router.get('/api/rider-profile', async (req,res)=>{
+  const {mobile} = req.query;
+  res.json(await Rider.findOne({mobile}))
+});
