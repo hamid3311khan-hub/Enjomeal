@@ -124,7 +124,32 @@ router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'ad
 router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 router.get('/rider', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider.html')));
 router.get('/track', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'track.html')));
+// RESTAURANT REGISTER
+router.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{
+  try{
+    const {restaurantName, ownerName, mobile, email, address, password} = req.body;
+    const restaurantId = 'RES' + Date.now();
 
+    let imageUrl = null;
+    if(req.file){
+      const result = await new Promise((resolve) => {
+        cloudinary.uploader.upload_stream({folder:"restaurants"}, (err, result) => resolve(result)).end(req.file.buffer);
+      });
+      imageUrl = result.secure_url;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const trial_end_date = new Date();
+    trial_end_date.setDate(trial_end_date.getDate() + 30); // 30 day trial
+
+    const newRestaurant = new RestaurantOwner({
+      restaurantId, restaurantName, ownerName, mobile, email, address,
+      password: hashedPassword, image: imageUrl, trial_end_date
+    });
+    await newRestaurant.save();
+    res.json({success:true, restaurantId});
+  }catch(e){ res.status(500).json({error: e.message}) }
+});
 // ===== SOCKET IO =====
 module.exports = (io) => {
   io.on('connection', (socket) => {
