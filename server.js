@@ -184,5 +184,4 @@ app.post('/api/coupon/validate', async (req,res)=>{
     res.json({success:false, msg: e.message})
   }
 })
-
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
