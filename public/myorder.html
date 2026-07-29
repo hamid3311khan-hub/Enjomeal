@@ -1,4 +1,8 @@
-<!DOCTYPE html><html lang="hi"><head><title>Track Order - Eat4Bite™</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<title>Track Order - Eat4Bite™</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial} 
 body{background:#f5f5f5}
@@ -10,10 +14,14 @@ input{width:70%;padding:12px;border:1px solid #ddd;border-radius:5px}
 button{background:#ff6600;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold} 
 .order-box{border:1px solid #ddd;padding:15px;margin:10px 0;border-radius:8px;background:#fff}
 .status{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:bold;color:white}
-.status-Pending{background:#ffc107}
+.status-Pending{background:#ffc107; color:#000}
 .status-Paid{background:#17a2b8}
 .status-Delivered{background:#28a745}
-</style></head><body>
+.status-Confirmed{background:#007bff}
+.status-Cancelled{background:#dc3545}
+</style>
+</head>
+<body>
 <nav><a href="/">🍴 Eat4Bite™ Home</a> <a href="/restaurants">🍔 Order Food</a> <a href="/admin">🔒 Admin</a></nav>
 
 <div class="container">
@@ -33,7 +41,7 @@ button{background:#ff6600;color:white;border:none;padding:12px 20px;border-radiu
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com/api'; // <- Yaha change
+const API = 'https://quickbite-ymqk.onrender.com/api';
 const urlParams = new URLSearchParams(window.location.search); 
 if(urlParams.get('id')) document.getElementById('t').value = urlParams.get('id');
 
@@ -53,7 +61,7 @@ function tr(){
             <div class="order-box">
                 <h3>Order: ${o.trackId}</h3>
                 <p><b>Status:</b> ${getStatusBadge(o.status)}</p>
-                <p><b>Payment:</b> ${o.payment} ${o.payment=='COD' ? '(Delivery pe dena)' : '(UPI se kiya)'}</p>
+                <p><b>Payment:</b> ${o.paymentMode} ${o.paymentMode=='COD' ? '(Delivery pe dena)' : '(UPI se kiya)'}</p>
                 <p><b>Total:</b> ₹${o.total}</p>
                 <p><b>Name:</b> ${o.name}</p>
                 <p><b>Address:</b> ${o.address}</p>
@@ -63,6 +71,8 @@ function tr(){
         } else{
             document.getElementById('r').innerHTML="<p style='color:red'>Order nahi mila</p>"
         }
+    }).catch(err=>{
+        document.getElementById('r').innerHTML="<p style='color:red'>Server Error</p>"
     })
 }
 
@@ -79,9 +89,13 @@ function history(){
             document.getElementById('h').innerHTML=orders.map(o=>`
             <div class="order-box">
                 <b>${o.trackId}</b> - ₹${o.total} - ${getStatusBadge(o.status)}<br>
-                <small>Payment: ${o.payment}</small>
+                <small>Payment: ${o.paymentMode}</small>
             </div>`).join('')
         }
+    }).catch(err=>{
+        document.getElementById('h').innerHTML="<p style='color:red'>Server Error</p>"
     })
 }
-</script></body></html>
+</script>
+</body>
+</html>
