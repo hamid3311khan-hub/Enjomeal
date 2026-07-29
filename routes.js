@@ -18,11 +18,10 @@ cloudinary.config({
 
 function sendWhatsApp(to, message) {console.log(`📲 WHATSAPP TO ${to}: ${message}`);}
 
-// FIX: 10% COMMISSION + 40 DELIVERY
 function calculateBill(item_total) {
-  const commission_10 = Math.round(item_total * 0.10); // 10%
+  const commission_10 = Math.round(item_total * 0.10);
   const platform_fee = 10;
-  const delivery_fee = 40; // 40
+  const delivery_fee = 40;
   const grand_total = item_total + commission_10 + platform_fee + delivery_fee;
   return {item_total, commission_10, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total - commission_10};
 }
@@ -37,18 +36,8 @@ const Offer = mongoose.model('Offer', new mongoose.Schema({code:String, discount
 const Banner = mongoose.model('Banner', new mongoose.Schema({text: String, image: String, color: String, updatedAt: {type: Date, default: Date.now}}));
 
 // ===== API ROUTES - MENU =====
-router.get('/api/menu', async (req,res)=>{
-  const {restaurantId} = req.query;
-  let filter = {inStock: true};
-  if(restaurantId) filter.restaurantId = restaurantId;
-  res.json(await MenuItem.find(filter))
-});
-
-router.post('/api/menu', async (req,res)=>{
-  const item = new MenuItem(req.body);
-  await item.save();
-  res.json(item);
-});
+router.get('/api/menu', async (req,res)=>{ const {restaurantId} = req.query; let filter = {inStock: true}; if(restaurantId) filter.restaurantId = restaurantId; res.json(await MenuItem.find(filter)) });
+router.post('/api/menu', async (req,res)=>{ const item = new MenuItem(req.body); await item.save(); res.json(item); });
 
 // ===== API ROUTES - ORDER =====
 router.post('/api/orders', async (req,res)=>{
@@ -59,104 +48,64 @@ router.post('/api/orders', async (req,res)=>{
     const order=new Order({...req.body, trackId, ...bill}); 
     await order.save(); 
     sendWhatsApp(order.phone,`Order ${order.trackId} received. Total: ₹${order.grand_total}`); 
-    
-    io.emit('newOrder', order); // restaurant ko
-    io.emit('assignOrder', order); // rider ko
-    
+    io.emit('newOrder', order); 
+    io.emit('assignOrder', order);
     res.json(order);
   }catch(e){res.status(500).json({error:e.message})}
 });
-
-router.get('/api/orders', async (req,res)=>{
-  const {restaurantId, status, riderId} = req.query; 
-  let filter = {};
-  if(restaurantId) filter.restaurantId = restaurantId;
-  if(status) filter.status = status;
-  if(riderId) filter.riderId = riderId;
-  res.json(await Order.find(filter).sort({createdAt:-1}))
-});
-
+router.get('/api/orders', async (req,res)=>{ const {restaurantId, status, riderId} = req.query; let filter = {}; if(restaurantId) filter.restaurantId = restaurantId; if(status) filter.status = status; if(riderId) filter.riderId = riderId; res.json(await Order.find(filter).sort({createdAt:-1})) });
 router.get('/api/orders/track/:id', async (req,res)=>{res.json(await Order.findOne({trackId:req.params.id}))});
 router.put('/api/orders/:id/status', async (req,res)=>{const {status,riderId,riderName}=req.body; const update={status}; if(riderId){update.riderId=riderId; update.riderName=riderName;} await Order.findByIdAndUpdate(req.params.id,update); res.json({success:true})});
 router.post('/api/order-delivered', async (req,res)=>{const {orderId}=req.body; const order=await Order.findById(orderId); if(order.paymentMode==="Cash"){await Rider.findOneAndUpdate({mobile:order.riderId},{$inc:{cash_balance:order.grand_total}});} order.status="Delivered"; await order.save(); res.json({success:true});});
 
 // ===== API ROUTES - RIDER =====
-router.post('/api/rider/accept-order', async (req,res)=>{ 
-    const {orderId, riderId, riderName} = req.body;
-    await Order.findByIdAndUpdate(orderId, {status:"Out for Delivery", riderId, riderName});
-    res.json({success:true})
-});
+router.post('/api/rider/accept-order', async (req,res)=>{ await Order.findByIdAndUpdate(req.body.orderId, {status:"Out for Delivery", riderId: req.body.riderId, riderName: req.body.riderName}); res.json({success:true}) });
 
 // ===== API ROUTES - ADMIN =====
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
 router.put('/api/admin/approve-restaurant/:id', async (req,res)=>{await RestaurantOwner.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
 router.get('/api/admin/pending-riders', async (req,res)=>{res.json(await Rider.find({status:"Pending"}))});
 router.put('/api/admin/approve-rider/:id', async (req,res)=>{await Rider.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
-
-// FIXED: YE WALA ROUTE
 router.get('/api/admin-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Approved"}))});
+router.post('/api/admin/reject-restaurant', async (req,res)=>{ await RestaurantOwner.findByIdAndUpdate(req.body.restaurantId, {status: 'rejected'}); res.json({msg: 'Rejected'}); });
+router.post('/api/admin/pay-payout', async (req,res)=>{ const {restaurantId, amount} = req.body; await RestaurantOwner.findOneAndUpdate({restaurantId}, {$inc: {payout_due: -amount}}); res.json({success:true}) });
+router.get('/api/restaurant-profile', async (req,res)=>{ const {restaurantId} = req.query; res.json(await RestaurantOwner.findOne({restaurantId})) });
+router.get('/api/rider-profile', async (req,res)=>{ const {mobile} = req.query; res.json(await Rider.findOne({mobile})) });
 
-// FIXED: REJECT ROUTE
-router.post('/api/admin/reject-restaurant', async (req,res)=>{
-  await RestaurantOwner.findByIdAndUpdate(req.body.restaurantId, {status: 'rejected'});
-  res.json({msg: 'Rejected'});
-});
-
-router.post('/api/admin/pay-payout', async (req,res)=>{
-  const {restaurantId, amount} = req.body;
-  await RestaurantOwner.findOneAndUpdate({restaurantId}, {$inc: {payout_due: -amount}});
-  res.json({success:true})
-});
-
-router.get('/api/restaurant-profile', async (req,res)=>{
-  const {restaurantId} = req.query;
-  res.json(await RestaurantOwner.findOne({restaurantId}))
-});
-
-router.get('/api/rider-profile', async (req,res)=>{
-  const {mobile} = req.query;
-  res.json(await Rider.findOne({mobile}))
-});
-
-// ===== PAGE ROUTES =====
-router.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html'))); // FIXED
-router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
-router.get('/rider', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider.html')));
-router.get('/track', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'track.html')));
-// RESTAURANT REGISTER
+// ===== API ROUTES - RESTAURANT AUTH =====
 router.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{
   try{
     const {restaurantName, ownerName, mobile, email, address, password} = req.body;
     const restaurantId = 'RES' + Date.now();
-
     let imageUrl = null;
     if(req.file){
-      const result = await new Promise((resolve) => {
-        cloudinary.uploader.upload_stream({folder:"restaurants"}, (err, result) => resolve(result)).end(req.file.buffer);
-      });
+      const result = await new Promise((resolve) => { cloudinary.uploader.upload_stream({folder:"restaurants"}, (err, result) => resolve(result)).end(req.file.buffer); });
       imageUrl = result.secure_url;
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
-    const trial_end_date = new Date();
-    trial_end_date.setDate(trial_end_date.getDate() + 30); // 30 day trial
-
-    const newRestaurant = new RestaurantOwner({
-      restaurantId, restaurantName, ownerName, mobile, email, address,
-      password: hashedPassword, image: imageUrl, trial_end_date
-    });
+    const trial_end_date = new Date(); trial_end_date.setDate(trial_end_date.getDate() + 30);
+    const newRestaurant = new RestaurantOwner({ restaurantId, restaurantName, ownerName, mobile, email, address, password: hashedPassword, image: imageUrl, trial_end_date });
     await newRestaurant.save();
     res.json({success:true, restaurantId});
   }catch(e){ res.status(500).json({error: e.message}) }
 });
-// ===== SOCKET IO =====
+
+// ===== PAGE ROUTES - SIRF 1 BAAR HONE CHAHIYE =====
+router.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
+router.get('/menu', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'menu.html')));
+router.get('/cart', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'cart.html')));
+router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+router.get('/track', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'track.html')));
+router.get('/rider', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider.html')));
+router.get('/rider-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
+router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
+router.get('/restaurant-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
+router.get('/restaurant-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
+
+// ===== SOCKET IO - YE SABSE LAST ME HONA CHAHIYE =====
 module.exports = (io) => {
   io.on('connection', (socket) => {
-    socket.on('joinOrderRoom', (trackId) => {
-      socket.join(trackId); 
-    });
-
+    socket.on('joinOrderRoom', (trackId) => { socket.join(trackId); });
     socket.on('riderLocation', async (data) => { 
       await Rider.findOneAndUpdate({mobile: data.riderId}, {lat: data.lat, lng: data.lng, lastUpdate: new Date()});
       await Order.updateMany({riderId: data.riderId, status: "Out for Delivery"}, {riderLat: data.lat, riderLng: data.lng});
@@ -166,15 +115,3 @@ module.exports = (io) => {
   });
   return router;
 }
-// ===== PAGE ROUTES =====
-router.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
-router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
-router.get('/rider', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider.html')));
-router.get('/track', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'track.html')));
-
-// YE 4 NAYI LINE ADD KAR
-router.get('/restaurant-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
-router.get('/restaurant-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
-router.get('/cart', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'cart.html')));
-router.get('/menu', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'menu.html')));
