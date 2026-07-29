@@ -30,40 +30,25 @@ button:disabled{background:#ccc;cursor:not-allowed}
 <div class="container">
     <div class="card">
         <div id="hotelName" class="hotel-name">📍 Loading Hotel...</div>
-
         <h2>🛒 Your Cart</h2>
-        <div id="cartItems"></div>
-        <hr>
-
+        <div id="cartItems"></div><hr>
         <div class="coupon-box">
             <input id="coupon" placeholder="Enter Coupon: FIRST30">
             <button onclick="applyCoupon()">Apply</button>
         </div>
         <p id="discountMsg" style="color:green;font-weight:bold"></p>
-
         <div id="billBreakup"></div>
-
         <h3>Total: ₹<span id="total">0</span></h3>
 
         <h3>Payment Method</h3>
-        <div class="payment-option active" onclick="selectPay('COD', this)">
-            <b>💵 Cash on Delivery</b><br><small>Order ke time cash dena</small>
-        </div>
-        <div class="payment-option" onclick="selectPay('UPI', this)">
-            <b>📱 Pay Online - UPI</b><br><small>Scan karke pay karo</small>
-        </div>
-
-        <div id="qrBox">
-            <p><b>Scan karke ₹<span id="qrAmount">0</span> pay kare</b></p>
-            <img id="qr" src="" style="width:220px;margin:10px 0">
-            <p style="font-size:12px;color:#666">UPI ID: <span id="qrUpiID">tanbalkhi2014-3@okhdfcbank</span></p>
-        </div>
+        <div class="payment-option active" onclick="selectPay('COD', this)"><b>💵 Cash on Delivery</b><br><small>Order ke time cash dena</small></div>
+        <div class="payment-option" onclick="selectPay('UPI', this)"><b>📱 Pay Online - UPI</b><br><small>Scan karke pay karo</small></div>
+        <div id="qrBox"><p><b>Scan karke ₹<span id="qrAmount">0</span> pay kare</b></p><img id="qr" src="" style="width:220px;margin:10px 0"><p style="font-size:12px;color:#666">UPI ID: <span id="qrUpiID">tanbalkhi2014-3@okhdfcbank</span></p></div>
 
         <h3>Delivery Details</h3>
         <input id="name" placeholder="Full Name" required>
         <input id="phone" placeholder="Phone - 10 digit" maxlength="10" required>
         <input id="address" placeholder="Complete Address" required>
-
         <button id="placeBtn" onclick="placeOrder()">Place Order</button>
     </div>
 </div>
@@ -81,12 +66,11 @@ async function loadCart(){
     const restaurantName = localStorage.getItem('restaurantName') || 'Eat4Bite™ Shop';
     document.getElementById('hotelName').innerText = `📍 Order From: ${restaurantName}`;
 
-    // Restaurant ka UPI ID fetch karo
     if(shopId){
         try{
             const res = await fetch(`${API}/restaurants`);
             const shops = await res.json();
-            const currentShop = shops.find(s => s.id == shopId);
+            const currentShop = shops.find(s => s._id == shopId); // FIX: _id
             if(currentShop && currentShop.upi_id) upiID = currentShop.upi_id;
         }catch(e){ console.log("UPI fetch error") }
     }
@@ -108,49 +92,15 @@ async function loadCart(){
     finalTotal = subtotal + commission_5 + platform_fee + delivery_fee;
     if(finalTotal<0) finalTotal=0;
 
-    document.getElementById('cartItems').innerHTML = cart.map((i,index)=>`
-        <div class="cart-item">
-            <span><b>${i.name}</b> x${i.qty} - ₹${i.price*i.qty}</span>
-            <button onclick="remove(${index})" class="remove-btn">X</button>
-        </div>
-    `).join('');
-
-    document.getElementById('billBreakup').innerHTML = `
-        <p>Subtotal: ₹${item_total}</p>
-        ${discount > 0 ? `<p style="color:green">Discount: -₹${discount}</p>` : ''}
-        <p>Commission 5%: ₹${commission_5}</p>
-        <p>Platform Fee: ₹${platform_fee}</p>
-        <p>Delivery Fee: ₹${delivery_fee}</p>
-        <hr>
-    `;
+    document.getElementById('cartItems').innerHTML = cart.map((i,index)=>`<div class="cart-item"><span><b>${i.name}</b> x${i.qty} - ₹${i.price*i.qty}</span><button onclick="remove(${index})" class="remove-btn">X</button></div>`).join('');
+    document.getElementById('billBreakup').innerHTML = `<p>Subtotal: ₹${item_total}</p>${discount > 0 ? `<p style="color:green">Discount: -₹${discount}</p>` : ''}<p>Commission 5%: ₹${commission_5}</p><p>Platform Fee: ₹${platform_fee}</p><p>Delivery Fee: ₹${delivery_fee}</p><hr>`;
     document.getElementById('total').innerText = finalTotal;
     updateQR();
 }
 
-function remove(index){
-    cart.splice(index,1);
-    localStorage.setItem('cart', JSON.stringify(cart));
-    loadCart();
-}
-
-function selectPay(mode, el){
-    paymentMode = mode;
-    document.querySelectorAll('.payment-option').forEach(b=>b.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('qrBox').style.display = mode=='UPI'? 'block' : 'none';
-    updateQR();
-}
-
-function updateQR(){
-    if(paymentMode=='UPI' && finalTotal > 0){
-        document.getElementById('qr').src = `https://upiqr.in/api/qr?name=Eat4Bite&vpa=${upiID}&amount=${finalTotal}`;
-        document.getElementById('qrAmount').innerText = finalTotal;
-        document.getElementById('qrUpiID').innerText = upiID;
-    } else {
-        document.getElementById('qr').src = "";
-        document.getElementById('qrAmount').innerText = 0;
-    }
-}
+function remove(index){ cart.splice(index,1); localStorage.setItem('cart', JSON.stringify(cart)); loadCart(); }
+function selectPay(mode, el){ paymentMode = mode; document.querySelectorAll('.payment-option').forEach(b=>b.classList.remove('active')); el.classList.add('active'); document.getElementById('qrBox').style.display = mode=='UPI'? 'block' : 'none'; updateQR(); }
+function updateQR(){ if(paymentMode=='UPI' && finalTotal > 0){ document.getElementById('qr').src = `https://upiqr.in/api/qr?name=Eat4Bite&vpa=${upiID}&amount=${finalTotal}`; document.getElementById('qrAmount').innerText = finalTotal; document.getElementById('qrUpiID').innerText = upiID; } else { document.getElementById('qr').src = ""; document.getElementById('qrAmount').innerText = 0; } }
 
 async function applyCoupon(){
     const code = document.getElementById('coupon').value.trim();
@@ -163,17 +113,13 @@ async function applyCoupon(){
         document.getElementById('discountMsg').innerText = `✅ ${data.discount}${data.type=='PERCENT'?'%':'₹'} Off Applied`;
         loadCart();
     } else {
-        discount = 0;
-        document.getElementById('discountMsg').innerText = "";
-        alert("Invalid Coupon");
-        loadCart();
+        discount = 0; document.getElementById('discountMsg').innerText = ""; alert("Invalid Coupon"); loadCart();
     }
 }
 
 async function placeOrder(){
     document.getElementById('placeBtn').innerText = "📍 Location le rahe hain...";
     document.getElementById('placeBtn').disabled = true;
-
     if(!shopId) return alert("Error: Restaurant select nahi hai. Pehle restaurant choose karo");
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -183,7 +129,7 @@ async function placeOrder(){
             address:document.getElementById('address').value.trim(),
             items:cart,
             restaurantId: shopId,
-            paymentMode:paymentMode, // ✅ Yahi fix tha
+            paymentMode:paymentMode,
             coupon:document.getElementById('coupon').value,
             discount:discount,
             custLat: pos.coords.latitude,
