@@ -7,10 +7,12 @@
 <style>
 body{font-family:Arial; background:#f4f4f4; padding:20px}
 .box{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc}
-.btn{background:#28a745; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer}
+.btn{background:#28a745; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; margin:3px}
 .btn-red{background:#dc3545}
+.btn-orange{background:#ff9800}
 h2{color:#333; border-bottom:2px solid #ff5722; padding-bottom:5px}
 img{width:100px; border-radius:5px}
+.empty{color:#777; text-align:center; padding:20px}
 </style>
 </head>
 <body>
@@ -34,40 +36,46 @@ loadData();
 
 async function loadData(){
   // 1. PENDING RESTAURANT
-  let res = await fetch(`${API}/admin/pending-restaurants`);
-  let restaurants = await res.json();
-  document.getElementById('pendingRestaurants').innerHTML = restaurants.length===0 ? "No pending" : restaurants.map(r => `
-    <div class="box">
-      <b>${r.restaurantName}</b> - ${r.ownerName}<br>
-      Mobile: ${r.mobile} | Plan: ${r.plan_status}<br>
-      <img src="${r.image}" /><br>
-      <button class="btn" onclick="approveRestaurant('${r._id}')">Approve</button>
-      <button class="btn btn-red" onclick="rejectRestaurant('${r._id}')">Reject</button>
-    </div>
-  `).join('');
+  try{
+    let res = await fetch(`${API}/admin/pending-restaurants`);
+    let restaurants = await res.json();
+    document.getElementById('pendingRestaurants').innerHTML = restaurants.length===0 ? '<p class="empty">No pending</p>' : restaurants.map(r => `
+      <div class="box">
+        <b>${r.restaurantName}</b> - ${r.ownerName}<br>
+        Mobile: ${r.mobile} | Plan: ${r.plan_status}<br>
+        <img src="${r.image || 'https://via.placeholder.com/100'}" /><br>
+        <button class="btn" onclick="approveRestaurant('${r._id}')">Approve</button>
+        <button class="btn btn-red" onclick="rejectRestaurant('${r._id}')">Reject</button>
+      </div>
+    `).join('');
+  }catch(e){ document.getElementById('pendingRestaurants').innerHTML = '<p class="empty">Error</p>' }
 
   // 2. PENDING RIDER
-  res = await fetch(`${API}/admin/pending-riders`);
-  let riders = await res.json();
-  document.getElementById('pendingRiders').innerHTML = riders.length===0 ? "No pending" : riders.map(r => `
-    <div class="box">
-      <b>${r.name}</b> - ${r.mobile}<br>
-      Vehicle: ${r.vehicleNo}<br>
-      DL: <img src="${r.dlProof}" /> Aadhar: <img src="${r.aadharImg}" /><br>
-      <button class="btn" onclick="approveRider('${r._id}')">Approve</button>
-    </div>
-  `).join('');
+  try{
+    res = await fetch(`${API}/admin/pending-riders`);
+    let riders = await res.json();
+    document.getElementById('pendingRiders').innerHTML = riders.length===0 ? '<p class="empty">No pending</p>' : riders.map(r => `
+      <div class="box">
+        <b>${r.name}</b> - ${r.mobile}<br>
+        Vehicle: ${r.vehicleNo}<br>
+        DL: <img src="${r.dlProof || 'https://via.placeholder.com/100'}" /> Aadhar: <img src="${r.aadharImg || 'https://via.placeholder.com/100'}" /><br>
+        <button class="btn" onclick="approveRider('${r._id}')">Approve</button>
+      </div>
+    `).join('');
+  }catch(e){ document.getElementById('pendingRiders').innerHTML = '<p class="empty">Error</p>' }
 
-  // 3. APPROVED RESTAURANT + PAYOUT
-  res = await fetch(`${API}/admin/restaurants`);
-  let approved = await res.json();
-  document.getElementById('approvedRestaurants').innerHTML = approved.map(r => `
-    <div class="box">
-      <b>${r.restaurantName}</b><br>
-      Payout Due: ₹${r.payout_due}<br>
-      <button class="btn" onclick="payPayout('${r.restaurantId}', ${r.payout_due})">Pay Payout</button>
-    </div>
-  `).join('');
+  // 3. APPROVED RESTAURANT + PAYOUT - YAHI FIX KIYA
+  try{
+    res = await fetch(`${API}/admin-restaurants`); // FIX: /admin/restaurants -> /admin-restaurants
+    let approved = await res.json();
+    document.getElementById('approvedRestaurants').innerHTML = approved.length===0 ? '<p class="empty">No approved restaurants</p>' : approved.map(r => `
+      <div class="box">
+        <b>${r.restaurantName}</b><br>
+        Payout Due: ₹${r.payout_due || 0}<br>
+        <button class="btn btn-orange" onclick="payPayout('${r.restaurantId}', ${r.payout_due || 0})">Pay Payout</button>
+      </div>
+    `).join('');
+  }catch(e){ document.getElementById('approvedRestaurants').innerHTML = '<p class="empty">Error loading</p>' }
 }
 
 // FUNCTIONS
@@ -77,6 +85,14 @@ async function approveRestaurant(id){
   loadData();
 }
 
+async function rejectRestaurant(id){ // NAYA ADD KIYA
+  if(confirm("Reject this restaurant?")){
+    await fetch(`${API}/admin/reject-restaurant`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({restaurantId:id})});
+    alert("Restaurant Rejected");
+    loadData();
+  }
+}
+
 async function approveRider(id){
   await fetch(`${API}/admin/approve-rider/${id}`, {method:'PUT'});
   alert("Rider Approved");
@@ -84,8 +100,8 @@ async function approveRider(id){
 }
 
 async function payPayout(restaurantId, amount){
+  if(amount <= 0) return alert('No payout due');
   if(confirm(`Pay ₹${amount} to ${restaurantId}?`)){
-    // Yaha tu UPI/IMPS ka logic jodega. Abhi ke liye DB me 0 kar rahe
     await fetch(`${API}/admin/pay-payout`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
