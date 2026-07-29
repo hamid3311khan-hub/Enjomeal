@@ -5,137 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Eat4Bite™ Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-    body{font-family:Arial; background:#f4f4f4; padding:20px;}
- .top-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
- .card{background:white; padding:20px; border-radius:10px; margin-bottom:20px; box-shadow:0 2px 5px #ccc;}
-    input, select, button, textarea{padding:10px; margin:5px; border-radius:5px; border:1px solid #ccc; width:calc(100% - 22px);}
-    button{background:#ff6600; color:white; border:none; cursor:pointer;} button:hover{opacity:0.9;}
- .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;}
- .stat-card{background:#ff6600; color:white; text-align:center; padding:20px;}
- .stat-card h2{margin:0; font-size:30px;}
- .order,.rider-item{border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
- .btn-green{background:#25D366;}.btn-red{background:#dc3545;}.btn-blue{background:#007bff;}
- .btn-warning{background:#ffc107; color:#000; text-decoration:none; padding:8px 15px; border-radius:5px; font-weight:600;}
- .logout-btn{background:#6c757d; padding:8px 15px; width:auto;}
-    small{color:#666; font-size:12px;}
-    canvas{background:white; padding:10px; border-radius:8px; min-height:200px; max-height:300px;}
- .error{color:red; font-size:14px; padding:10px; background:#ffe0e0; border-radius:5px;}
-</style>
+<style>/* same css rehne de */</style>
 </head>
 <body>
+<!-- same body rehne de -->
 
-<div class="top-bar">
-    <h1>🍴 Eat4Bite™ Admin Panel</h1>
-    <div class="top-buttons">
-        <a href="/approve-restaurants" class="btn-warning">🏪 Approve Restaurants</a>
-        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
-    </div>
-</div>
-
-<div class="grid">
-    <div class="card stat-card"><h3>Total Orders</h3><h2 id="totalOrders">0</h2></div>
-    <div class="card stat-card" style="background:#007bff;"><h3>Total Customers</h3><h2 id="totalCustomers">0</h2></div>
-    <div class="card stat-card" style="background:#28a745;"><h3>Today Revenue</h3><h2 id="todayRevenue">₹0</h2></div>
-</div>
-
-<div class="card">
-    <h2>📈 Last 7 Days Sales Graph</h2>
-    <canvas id="salesChart"></canvas>
-</div>
-
-<div class="card">
-    <h2>📊 All Restaurants Sales Report</h2>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <select id="reportShop" style="width:200px;"><option value="all">All Restaurants</option></select>
-        <input type="date" id="startDate"><input type="date" id="endDate">
-    </div>
-    <button class="btn-blue" onclick="getReport()">Get Report</button>
-    <div id="reportResult" style="margin-top:15px;"></div>
-</div>
-
-<div class="card">
-  <h2>🎨 Banner / Promo Manage Karo</h2>
-  <form id="bannerForm">
-    <label>Banner Text</label><input type="text" id="bannerText" placeholder="Free Delivery on 299+">
-    <div style="display:flex; gap:10px;"><div style="flex:1;"><label>Banner Color</label><input type="color" id="bannerColor" value="#ff5722"></div><div style="flex:2;"><label>Banner Image</label><input type="file" id="bannerImage" accept="image/*"></div></div>
-    <div id="bannerPreview" style="display:none; margin-top:10px;"><p><b>📸 Preview:</b></p><img id="previewImg" src="" style="max-height:200px; border-radius:8px;"></div>
-    <button type="submit">💾 Banner Save Karo</button>
-    <button type="button" id="deleteBanner" class="btn-red">🗑️ Banner Hatao</button>
-  </form>
-</div>
-
-<div class="card"><h2>🏍️ Pending Rider Approvals</h2><div id="pendingRidersList">Loading...</div></div>
-<div class="card"><h2>📦 Orders - Manual Assign</h2><div id="ordersList">Loading...</div></div>
-<div class="card"><h2>🏍️ Approved Riders List</h2><div id="riderList">Loading...</div></div>
-
-<script src="/socket.io/socket.io.js"></script>
 <script>
-const API = window.location.origin; // FIX 1: Yaha change kiya
+const API = window.location.origin; // FIX
 const socket = io();
 let salesChart = null;
 let allRiders = [];
 const ADMIN_PASSWORD = 'admin123';
 
-function checkLogin(){
-    if(sessionStorage.getItem('adminLoggedIn')!== 'true'){
-        let pass = prompt("🔒 Admin Login\nPassword: admin123");
-        if(pass === ADMIN_PASSWORD){ sessionStorage.setItem('adminLoggedIn', 'true'); location.reload(); }
-        else { alert("Galat Password!"); window.location.href = '/'; }
-    } else { loadData(); }
-}
-
-function logout(){ sessionStorage.removeItem('adminLoggedIn'); alert("Logout ho gaye"); window.location.href = '/'; }
-
-async function safeFetch(url, targetId){ try{ const res = await fetch(url); if(!res.ok) throw new Error(res.status); return await res.json(); }catch(e){ console.log("API Fail:", url, e); if(targetId) document.getElementById(targetId).innerHTML = `<p class="error">❌ API Error: ${url}</p>`; return null; } }
+function checkLogin(){ /* same */ }
+function logout(){ /* same */ }
+async function safeFetch(url, targetId){ /* same */ }
 
 async function loadShopDropdown(){
     const shops = await safeFetch(`${API}/api/admin/restaurants`);
     if(!shops) return;
     const select = document.getElementById('reportShop');
     select.innerHTML = `<option value="all">All Restaurants</option>`;
-    shops.forEach(s => { select.innerHTML += `<option value="${s._id}">${s.name}</option>`; });
+    shops.forEach(s => { select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`; }); // FIX: s._id -> s.restaurantId
 }
 
-function renderChart(orders){
-    if(!orders || orders.length === 0){
-        document.getElementById('salesChart').style.display = 'none';
-        return;
-    }
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    const last7Days = Array.from({length:7}, (_,i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
-    const salesData = last7Days.map(date => { const dayOrders = orders.filter(o => o.createdAt && o.createdAt.startsWith(date)); return dayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0); }); // FIX 2: o.createdAt && add kiya
-    if(salesChart) salesChart.destroy();
-    salesChart = new Chart(ctx, { type: 'line', data: { labels: last7Days.map(d => new Date(d).toLocaleDateString('hi-IN', {day:'2-digit', month:'short'})), datasets: [{ label: 'Revenue ₹', data: salesData, borderColor: '#ff6600', backgroundColor: 'rgba(255,102,0,0.2)', tension: 0.4, fill: true }] }, options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}} });
-}
+function renderChart(orders){ /* same */ }
 
-async function loadData(){
-    await loadShopDropdown();
-    const ridersRes = await safeFetch(`${API}/api/admin/approved-riders`, 'riderList');
-    if(ridersRes){ allRiders = ridersRes; document.getElementById('riderList').innerHTML = allRiders.length === 0? 'Koi approved rider nahi' : allRiders.map(r => `<div class="rider-item"><b>${r.name}</b> - ${r.mobile}</div>`).join(''); }
-    const pendingRiders = await safeFetch(`${API}/api/admin/pending-riders`, 'pendingRidersList');
-    if(pendingRiders) document.getElementById('pendingRidersList').innerHTML = pendingRiders.length === 0? 'Koi pending rider nahi hai' : pendingRiders.map(r => `<div class="rider-item"><div><b>${r.name}</b> - ${r.mobile}</div><button class="btn-green" onclick="approveRider('${r._id}')">✅ Approve</button></div>`).join('');
-    const orders = await safeFetch(`${API}/api/orders`, 'ordersList');
-    if(orders){
-        const today = new Date().toISOString().split('T')[0];
-        const todayOrders = orders.filter(o => o.createdAt && o.createdAt.startsWith(today)); // FIX 3: o.createdAt && add kiya
-        const todayRev = todayOrders.reduce((a,b) => a + Number(b.grand_total || b.total || 0), 0);
-        document.getElementById('totalOrders').innerText = orders.length;
-        document.getElementById('totalCustomers').innerText = [...new Set(orders.map(o=>o.phone))].length;
-        document.getElementById('todayRevenue').innerText = '₹' + todayRev;
-        renderChart(orders);
-        let orderHtml = '';
-        for(let o of orders){
-            let assignDropdown = '';
-            if(o.status === 'Pending' &&!o.riderId){ assignDropdown = `<select onchange="assignRider('${o.trackId}', this.value)"><option value="">Assign Rider</option>${allRiders.map(r => `<option value="${r.mobile}">${r.name}</option>`).join('')}</select>`; }
-            else if(o.riderId){ assignDropdown = `<small style="color:green;">Rider: ${o.riderName || o.riderId}</small>`; }
-            orderHtml += `<div class="order"><div><b>${o.trackId}</b> - ${o.name} - ₹${o.grand_total || o.total} <br><small>${o.phone}</small><br>${assignDropdown}</div></div>`;
-        }
-        document.getElementById('ordersList').innerHTML = orderHtml || 'Abhi koi order nahi';
-    }
-}
+async function loadData(){ /* same */ }
 
-async function assignRider(orderId, riderId){ if(!riderId) return; const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) }); const data = await res.json(); alert(data.msg || 'Rider Assigned!'); loadData(); }
+async function assignRider(orderId, riderId){ if(!riderId) return; const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) }); const data = await res.json(); alert(data.success? 'Rider Assigned!' : data.error); loadData(); }
 async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
 
 async function getReport(){
@@ -143,36 +41,33 @@ async function getReport(){
     const start = document.getElementById('startDate').value;
     const end = document.getElementById('endDate').value;
     if(!start ||!end) return alert("Start aur End date select karo");
-    const res = await fetch(`${API}/api/report?start=${start}&end=${end}&shop=${shop}`);
+    const res = await fetch(`${API}/api/report?startDate=${start}&endDate=${end}&restaurantId=${shop}`); // FIX: param name
     const data = await res.json();
     document.getElementById('reportResult').innerHTML = `
         <h3>Report Result</h3>
-        <p><b>Total Orders:</b> ${data.totalOrders}</p>
-        <p><b>Total Revenue:</b> ₹${data.totalRevenue}</p>
+        <p><b>Total Orders:</b> ${data.length}</p>
+        <p><b>Total Revenue:</b> ₹${data.reduce((a,b)=>a+b.grand_total,0)}</p>
     `;
 }
 
-async function loadBanner(){
-    try{
-        const res = await fetch('/api/admin/promo');
-        const data = await res.json();
-        if(data && data.text){
-            document.getElementById('bannerText').value = data.text;
-            document.getElementById('bannerColor').value = data.color;
-            document.getElementById('previewImg').src = data.image;
-            document.getElementById('bannerPreview').style.display = 'block';
-        }
-    }catch(e){ console.log("Banner load error", e) }
-}
+async function loadBanner(){ /* same */ }
 
-document.getElementById('bannerImage').addEventListener('change', function(e){ const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = function(event){ document.getElementById('previewImg').src = event.target.result; document.getElementById('bannerPreview').style.display = 'block'; } reader.readAsDataURL(file); } });
-document.getElementById('bannerForm').addEventListener('submit', async(e)=>{ e.preventDefault(); const fd = new FormData(); fd.append('text', document.getElementById('bannerText').value); fd.append('color', document.getElementById('bannerColor').value); const file = document.getElementById('bannerImage').files[0]; if(file) fd.append('bannerImage', file); const res = await fetch('/api/admin/promo', {method:'POST', body:fd}); const data = await res.json(); alert(data.success? '✅ Banner Save ho gaya!' : 'Error'); loadBanner(); });
-document.getElementById('deleteBanner').addEventListener('click', async()=>{ if(confirm('Banner delete kare?')){ const res = await fetch('/api/admin/promo', {method:'DELETE'}); const data = await res.json(); alert(data.success? '✅ Banner Delete ho gaya!' : 'Error'); document.getElementById('bannerPreview').style.display = 'none'; document.getElementById('bannerImage').value = ''; } });
-
-document.addEventListener('DOMContentLoaded', function(){
-    checkLogin();
+document.getElementById('bannerImage').addEventListener('change', function(e){ /* same */ });
+document.getElementById('bannerForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('text', document.getElementById('bannerText').value);
+    fd.append('color', document.getElementById('bannerColor').value);
+    const file = document.getElementById('bannerImage').files[0];
+    if(file) fd.append('image', file); // FIX: bannerImage -> image
+    const res = await fetch(`${API}/api/admin/promo`, {method:'POST', body:fd}); // FIX
+    const data = await res.json();
+    alert(data.success? '✅ Banner Save ho gaya!' : 'Error');
     loadBanner();
 });
+document.getElementById('deleteBanner').addEventListener('click', async()=>{ if(confirm('Banner delete kare?')){ const res = await fetch(`${API}/api/admin/promo`, {method:'DELETE'}); const data = await res.json(); alert(data.success? '✅ Banner Delete ho gaya!' : 'Error'); document.getElementById('bannerPreview').style.display = 'none'; document.getElementById('bannerImage').value = ''; } });
+
+document.addEventListener('DOMContentLoaded', function(){ checkLogin(); loadBanner(); });
 </script>
 </body>
 </html>
