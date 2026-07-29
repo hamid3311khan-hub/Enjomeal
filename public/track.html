@@ -35,23 +35,28 @@ body{font-family:Arial; background:#f4f4f4; padding:10px}
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+
+<!-- YE SCRIPT YAHI DALNA HAI -->
 <script>
 const API = "/api";
 const socket = io();
 const urlParams = new URLSearchParams(window.location.search);
 const trackId = urlParams.get('trackId');
-document.getElementById('trackId').innerText = trackId;
 
-// MAP INIT - Madhubani
-let map = L.map('map').setView([26.3547, 86.0841], 13); 
+// MAP INIT
+let map = L.map('map').setView([26.3547, 86.0841], 13); // Madhubani
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let riderMarker;
 
-// PAGE LOAD HOTE HI ROOM JOIN KAR LO
-socket.emit('joinOrderRoom', trackId); // FIX 1: Hamesha join karo
-
-loadOrder();
-setInterval(loadOrder, 10000); // 10 sec me status refresh
+if(!trackId){
+  alert("Error: Order ID nahi mila. URL me ?trackId=xxx add karo");
+  document.getElementById('status').innerText = "Invalid Order";
+} else {
+  document.getElementById('trackId').innerText = trackId;
+  socket.emit('joinOrderRoom', trackId);
+  loadOrder();
+  setInterval(loadOrder, 10000);
+}
 
 // RIDER LOCATION LIVE UPDATE
 socket.on('riderLocationUpdate', (data) => {
@@ -66,28 +71,37 @@ socket.on('riderLocationUpdate', (data) => {
 });
 
 async function loadOrder(){
-  let res = await fetch(`${API}/orders/track/${trackId}`);
-  let o = await res.json();
-  if(!o) return alert("Order not found");
-
-  let statusClass = o.status.toLowerCase().replace(' ','');
-  document.getElementById('status').innerText = o.status;
-  document.getElementById('status').className = `status ${statusClass}`;
-  document.getElementById('address').innerText = o.address;
-  document.getElementById('total').innerText = o.grand_total;
-  document.getElementById('rider').innerText = o.riderName || "Finding rider...";
-
-  // RESTAURANT NAME LANE KE LIYE
-  let shopRes = await fetch(`${API}/restaurant-profile?restaurantId=${o.restaurantId}`);
-  let shop = await shopRes.json();
-  document.getElementById('restaurant').innerText = shop.restaurantName;
-
-  // AGAR ORDER ME PEHLE SE LOCATION HAI TO MAP PE DAAL DO
-  if(o.riderLat && o.riderLng){
-    if(!riderMarker){
-      riderMarker = L.marker([o.riderLat, o.riderLng]).addTo(map).bindPopup("🚚 Rider");
-      map.setView([o.riderLat, o.riderLng], 15);
+  try{
+    let res = await fetch(`${API}/orders/track/${trackId}`);
+    let o = await res.json();
+    if(!o){ 
+      document.getElementById('status').innerText = "Order Not Found";
+      return;
     }
+
+    let statusClass = o.status.toLowerCase().replace(' ','');
+    document.getElementById('status').innerText = o.status;
+    document.getElementById('status').className = `status ${statusClass}`;
+    document.getElementById('address').innerText = o.address;
+    document.getElementById('total').innerText = o.grand_total;
+    document.getElementById('rider').innerText = o.riderName || "Finding rider...";
+
+    // Restaurant name
+    let shopRes = await fetch(`${API}/restaurant-profile?restaurantId=${o.restaurantId}`);
+    let shop = await shopRes.json();
+    document.getElementById('restaurant').innerText = shop.restaurantName;
+
+    // Agar order me pehle se location hai
+    if(o.riderLat && o.riderLng){
+      if(!riderMarker){
+        riderMarker = L.marker([o.riderLat, o.riderLng]).addTo(map).bindPopup("🚚 Rider");
+        map.setView([o.riderLat, o.riderLng], 15);
+      }
+    }
+
+  }catch(e){
+    console.log("API Error:", e);
+    document.getElementById('status').innerText = "API Error";
   }
 }
 </script>
