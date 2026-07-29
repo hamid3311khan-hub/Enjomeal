@@ -78,7 +78,8 @@ router.put('/api/orders/:id/status', async (req,res)=>{const {status,riderId,rid
 router.post('/api/order-delivered', async (req,res)=>{const {orderId}=req.body; const order=await Order.findById(orderId); if(order.paymentMode==="Cash"){await Rider.findOneAndUpdate({mobile:order.riderId},{$inc:{cash_balance:order.grand_total}});} order.status="Delivered"; await order.save(); res.json({success:true});});
 const io = req.app.get('io');
 io.emit('newOrder', order); // sab restaurant ko broadcast
-
+const io = req.app.get('io');
+io.emit('assignOrder', order); // sab rider ko
 // ===== API ROUTES - ADMIN =====
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
 router.put('/api/admin/approve-restaurant/:id', async (req,res)=>{await RestaurantOwner.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
