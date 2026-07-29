@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>Menu</title><style>body{padding:15px}.item-card{background:#fff; padding:10px; margin:10px 0; border-radius:8px}</style></head>
+<body>
+<h2 id="shopName">Menu</h2>
+<div id="menu"></div>
+<script>
+const API="/api";
+const restaurantId = new URLSearchParams(window.location.search).get('restaurantId');
+loadMenu();
+async function loadMenu(){
+  let res = await fetch(`${API}/menu?restaurantId=${restaurantId}`);
+  let items = await res.json();
+  document.getElementById('menu').innerHTML = items.map(i=>`
+    <div class="item-card">
+      <b>${i.name}</b> - ₹${i.price}<br>${i.description}
+      <button onclick='addToCart(${JSON.stringify({...i, restaurantId})})'>Add</button>
+    </div>
+  `).join('');
+}
+function addToCart(item){
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  let ex = cart.find(c=>c._id===item._id);
+  if(ex) ex.qty++; else {item.qty=1; cart.push(item)}
+  localStorage.setItem('cart', JSON.stringify(cart));
+  alert(item.name+" added to cart");
+}
+</script>
+</body>
+</html>
