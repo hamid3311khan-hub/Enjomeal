@@ -89,6 +89,43 @@ app.post('/api/rider-login', async (req,res)=>{ try{ const rider = await Rider.f
 app.get('/api/rider-orders/:mobile', async (req,res)=>{ try{ res.json(await Order.find({riderId: req.params.mobile, status: {$ne: "Delivered"}}).sort({createdAt:-1})) }catch(e){ res.json([]) }});
 app.get('/api/rider/ledger', async (req,res)=>{ try{ const rider = await Rider.findOne({mobile: req.query.riderId}); const today = new Date(); today.setHours(0,0,0,0); const todayOrders = await Order.find({riderId: req.query.riderId, createdAt: {$gte: today}, status: "Delivered"}); const today_collected = todayOrders.reduce((a,b)=>a+Number(b.cashCollected || 0),0); const progress = Math.round((rider.cash_balance / rider.cashLimit) * 100); res.json({pending_cash: rider.cash_balance, today_orders: todayOrders.length, today_collected: today_collected, progress: progress > 100? 100 : progress}) }catch(e){ res.json({}) }});
 app.post('/api/order-delivered', async (req,res)=>{ try{ const {orderId, cashCollected} = req.body; const order = await Order.findById(orderId); await Order.findByIdAndUpdate(orderId, {status: "Delivered", cashCollected: cashCollected}); await Rider.updateOne({mobile: order.riderId}, {$inc: {cash_balance: cashCollected}}); io.emit('orderStatusUpdate', {orderId: orderId, status: "Delivered"}); res.json({success:true}) }catch(e){ res.json({success:false}) }});
+// 1. RIDER ONLINE/OFFLINE KE LIYE
+app.put('/api/rider-status/:id', async (req,res)=>{ 
+  try{ 
+    await Rider.findByIdAndUpdate(req.params.id, {status: req.body.status});
+    res.json({success:true, msg: "Status Updated"}) 
+  }catch(e){ 
+    res.json({success:false, msg: e.message}) 
+  }
+});
+
+// 2. RIDER TRACKID SE ORDER DELIVERED + CASH UPDATE KE LIYE
+app.put('/api/orders/track/:trackId/status', async (req,res)=>{ 
+  try{ 
+    const { status, cashCollected } = req.body;
+    const updateData = { status };
+    if(cashCollected !== undefined) updateData.cashCollected = cashCollected;
+
+    const order = await Order.findOneAndUpdate(
+      {trackId: req.params.trackId}, 
+      updateData, 
+      {new: true}
+    ); 
+    
+    if(!order) return res.json({success:false, msg: "Order nahi mila"});
+
+    // Agar delivered hua to rider ka cash badhao
+    if(status === "Delivered" && cashCollected){
+      await Rider.updateOne({mobile: order.riderId}, {$inc: {cash_balance: cashCollected}});
+    }
+
+    io.emit('orderStatusUpdate', {trackId: req.params.trackId, status: status});
+    res.json({success:true, msg: "Order Updated"}) 
+  }catch(e){ 
+    console.log(e)
+    res.json({success:false, msg: e.message}) 
+  }
+});
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ try{ res.json(await RestaurantOwner.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
 app.get('/api/admin/pending-riders', async (req,res)=>{ try{ res.json(await Rider.find({status: "Pending"})) } catch(e){ res.status(500).json([]) }});
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ try{ const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 30); await RestaurantOwner.findByIdAndUpdate(req.params.id, {status:"Approved", trial_end_date: trialEnd}); res.json({success:true, msg:"Restaurant Approved"}) } catch(e){ res.status(500).json({success:false}) }});
