@@ -138,3 +138,23 @@ router.post('/api/rider-login', async (req,res)=>{
     const match = await bcrypt.compare(password, rider.password);
     if(!match) return res.json({error:'Invalid Password'});
     res.json({success:true, rider});
+// GET MENU
+router.get('/api/menu/:restaurantId', async (req,res)=>{res.json(await Menu.find({restaurantId:req.params.restaurantId}))});
+
+// ADD MENU
+router.post('/api/menu-add', upload.single('image'), async (req,res)=>{
+    const item = new Menu({...req.body, image:req.file.path});
+    await item.save();
+    res.json({success:true})
+});
+
+// DELETE MENU
+router.delete('/api/menu-delete/:id', async (req,res)=>{await Menu.findByIdAndDelete(req.params.id); res.json({success:true})});
+
+// UPDATE RESTAURANT
+router.post('/api/restaurant-update', upload.single('image'), async (req,res)=>{
+    const update = {...req.body};
+    if(req.file) update.image = req.file.path;
+    const owner = await Restaurant.findOneAndUpdate({restaurantId:req.body.restaurantId}, update, {new:true});
+    res.json({success:true, owner})
+});
