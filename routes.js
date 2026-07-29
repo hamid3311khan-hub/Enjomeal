@@ -116,3 +116,11 @@ module.exports = (io) => {
   });
   return router;
 }
+router.post('/api/admin/pay-payout', async (req,res)=>{
+  const {restaurantId, amount} = req.body;
+  await RestaurantOwner.findOneAndUpdate(
+    {restaurantId}, 
+    {$inc: {payout_due: -amount}} // paise kam kar do
+  );
+  res.json({success:true})
+});
