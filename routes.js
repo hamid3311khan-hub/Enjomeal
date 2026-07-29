@@ -166,3 +166,15 @@ module.exports = (io) => {
   });
   return router;
 }
+// ===== PAGE ROUTES =====
+router.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'index.html')));
+router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
+router.get('/rider', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider.html')));
+router.get('/track', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'track.html')));
+
+// YE 4 NAYI LINE ADD KAR
+router.get('/restaurant-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
+router.get('/restaurant-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
+router.get('/cart', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'cart.html')));
+router.get('/menu', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'menu.html')));
