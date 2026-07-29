@@ -3,112 +3,139 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Restaurant Profile - Eat4Bite™</title>
+<title>My Restaurant - Eat4Bite™</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     body{background:#f8f9fa}
-   .navbar-brand{color:#ff6600!important; font-weight:bold}
-   .card{border-radius:15px}
+    .navbar{background:#ff6600}
+    .navbar-brand{color:white!important; font-weight:bold}
+    .profile-img{width:120px; height:120px; border-radius:50%; object-fit:cover; border:4px solid #ff6600}
+    .menu-item-card{border-left:4px solid #ff6600}
 </style>
 </head>
 <body>
 
-<nav class="navbar bg-white shadow-sm px-3">
-    <a href="/restaurant-dashboard" class="navbar-brand">🍴 <span id="resName"></span></a>
+<nav class="navbar px-3">
+    <a class="navbar-brand">🍴 <span id="shopName">My Restaurant</span></a>
     <div>
-        <a href="/restaurant-dashboard" class="btn btn-outline-secondary btn-sm me-2">← Dashboard</a>
-        <button class="btn btn-outline-danger btn-sm" onclick="logout()">Logout</button>
+        <a href="/restaurant-dashboard" class="btn btn-light btn-sm">Dashboard</a>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
     </div>
 </nav>
 
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card shadow-sm p-4">
-                <h4 class="mb-4">⚙️ Restaurant Profile</h4>
-                <div id="profileData">Loading...</div>
-
-                <!-- SUPPORT PLAN BUTTON -->
-                <button class="btn w-100 mb-3" style="background:#ff6600; color:white;" type="button" data-bs-toggle="collapse" data-bs-target="#supportPlan" aria-expanded="false" aria-controls="supportPlan">
-                    ℹ️ View Annual Support Plan - ₹2000/Year
-                </button>
-
-                <!-- COLLAPSE CONTENT -->
-                <div class="collapse mb-3" id="supportPlan">
-                    <div class="card shadow-sm p-4">
-                        <h4 class="mb-3" style="color:#ff6600;">Eat4Bite™ Annual Support Plan</h4>
-                        <h5>₹2000 / Year</h5>
-                        <p><b>Grow Your Restaurant. We Handle The Tech.</b></p>
-                        
-                        <p>The Eat4Bite™ Annual Support Plan is designed for local restaurants to go digital without any hassle. 
-                        For a small annual fee, you get a complete technology and marketing solution for 12 months.</p>
-
-                        <h6 class="mt-3">What's Included:</h6>
-                        <ul>
-                            <li><b>Website & Brand Listing:</b> Get a professional restaurant page with photos, menu, and location. 
-                            Be visible to thousands of customers on Google and the Eat4Bite™ App.</li>
-                            
-                            <li><b>24x7 Technical Support:</b> Facing any issue with App, Website, or Payments? 
-                            Our dedicated support team is available 24x7. Call or WhatsApp us and get it resolved within 15 minutes.</li>
-                            
-                            <li><b>Free Menu & Offer Management:</b> Want to update prices or add new items? Just send us a message. 
-                            We will update it for you in real-time. Absolutely Free.</li>
-                            
-                            <li><b>Secure Payments & Billing:</b> Accept Online Payments, UPI, and get automated billing. 
-                            Your earnings are transferred to your bank account every 3 days. 100% Safe & Transparent.</li>
-                        </ul>
-
-                        <div class="alert alert-warning mt-3">
-    <b>Only ₹2000 per Year. 12 Months of Tension-Free Business.</b><br>
-    <small>Note: Apart from this, we charge only 5% Commission + ₹10 Platform Fee per order. No Hidden Charges.</small>
-</div>
-                    </div>
+        <!-- PROFILE SECTION -->
+        <div class="col-md-4">
+            <div class="card shadow-sm p-3 mb-3">
+                <h5>Restaurant Profile</h5>
+                <div class="text-center">
+                    <img id="profilePic" src="https://via.placeholder.com/120/ff6600/ffffff" class="profile-img mb-2">
                 </div>
+                <form id="profileForm" enctype="multipart/form-data">
+                    <input type="text" name="restaurantName" id="restaurantName" class="form-control mb-2" placeholder="Restaurant Name" required>
+                    <textarea name="address" id="address" class="form-control mb-2" placeholder="Address" rows="2" required></textarea>
+                    <label class="small">Change Photo</label>
+                    <input type="file" name="image" class="form-control mb-2" accept="image/*">
+                    <button class="btn btn-warning w-100">Update Profile</button>
+                </form>
+                <div id="profileMsg" class="mt-2"></div>
+            </div>
+        </div>
 
-                <hr>
-                <h5>Payment Details</h5>
-                <table class="table table-sm">
-                    <tr><td>Yearly Support Fee</td><td>₹2000 Yearly</td></tr>
-                    <tr><td>Yearly Maintenance</td><td>₹00 / Year</td></tr>
-                    <tr><td>Last Payment</td><td id="lastPayment">-</td></tr>
-                    <tr><td>Next Due Date</td><td id="nextDue">-</td></tr>
-                    <tr><td>Status</td><td><span class="badge bg-success" id="payStatus">Paid</span></td></tr>
-                </table>
+        <!-- MENU SECTION -->
+        <div class="col-md-8">
+            <div class="card shadow-sm p-3">
+                <h5>➕ Add New Menu Item</h5>
+                <form id="addItemForm" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-8"><input type="text" name="name" class="form-control" placeholder="Item Name" required></div>
+                        <div class="col-4"><input type="number" name="price" class="form-control" placeholder="Price" required></div>
+                    </div>
+                    <textarea name="desc" class="form-control mt-2" placeholder="Description" rows="2"></textarea>
+                    <input type="file" name="image" class="form-control mt-2" accept="image/*">
+                    <button class="btn btn-success w-100 mt-2">Add Item</button>
+                </form>
+                <div id="itemMsg" class="mt-2"></div>
+            </div>
+
+            <div class="card shadow-sm p-3 mt-3">
+                <h5>📋 My Menu Items</h5>
+                <div id="menuList"><p>Loading...</p></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const owner = JSON.parse(localStorage.getItem('restaurantOwner'));
-if(!owner){ window.location.href = '/restaurant-login'; }
+const API = window.location.origin;
+const restaurantId = localStorage.getItem('restaurantId');
+const restaurantData = JSON.parse(localStorage.getItem('restaurantOwner') || '{}');
 
-document.getElementById('resName').innerText = owner.restaurantName;
+if(!restaurantId) window.location.href = '/restaurant-login';
 
-let html = `
-    <p><b>Owner Name:</b> ${owner.ownerName}</p>
-    <p><b>Restaurant Name:</b> ${owner.restaurantName}</p>
-    <p><b>Email:</b> ${owner.email}</p>
-    <p><b>Mobile:</b> ${owner.mobile}</p>
-    <p><b>Address:</b> ${owner.address}</p>
-    <p><b>Restaurant ID:</b> ${owner.restaurantId}</p>
-    <p><b>Account Status:</b> <span class="badge ${owner.status=='Approved'?'bg-success':'bg-warning'}">${owner.status}</span></p>
-`;
-document.getElementById('profileData').innerHTML = html;
+document.getElementById('shopName').innerText = restaurantData.restaurantName;
+document.getElementById('restaurantName').value = restaurantData.restaurantName;
+document.getElementById('address').value = restaurantData.address;
+document.getElementById('profilePic').src = restaurantData.image || 'https://via.placeholder.com/120/ff6600/ffffff';
 
-// Date safe check
-document.getElementById('lastPayment').innerText = owner.lastPaymentDate? new Date(owner.lastPaymentDate).toLocaleDateString('hi-IN') : '-';
-document.getElementById('nextDue').innerText = owner.nextDueDate? new Date(owner.nextDueDate).toLocaleDateString('hi-IN') : '-';
+loadMenu();
 
-function logout(){
-    localStorage.removeItem('restaurantId');
-    localStorage.removeItem('restaurantName');
-    localStorage.removeItem('restaurantOwner');
-    window.location.href = '/restaurant-login';
+// 1. UPDATE PROFILE
+document.getElementById('profileForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    formData.append('restaurantId', restaurantId);
+    const res = await fetch(`${API}/api/restaurant-update`, {method:'POST', body:formData});
+    const result = await res.json();
+    document.getElementById('profileMsg').innerHTML = result.success? 
+        `<div class="alert alert-success">✅ Updated!</div>` : 
+        `<div class="alert alert-danger">❌ ${result.error}</div>`;
+    if(result.success) localStorage.setItem('restaurantOwner', JSON.stringify(result.owner));
+});
+
+// 2. ADD MENU ITEM
+document.getElementById('addItemForm').addEventListener('submit', async(e)=>{
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    formData.append('restaurantId', restaurantId);
+    const res = await fetch(`${API}/api/menu-add`, {method:'POST', body:formData});
+    const result = await res.json();
+    document.getElementById('itemMsg').innerHTML = result.success? 
+        `<div class="alert alert-success">✅ Item Added!</div>` : 
+        `<div class="alert alert-danger">❌ ${result.error}</div>`;
+    if(result.success){ e.target.reset(); loadMenu(); }
+});
+
+// 3. LOAD MENU
+async function loadMenu(){
+    const res = await fetch(`${API}/api/menu/${restaurantId}`);
+    const items = await res.json();
+    if(items.length === 0) return document.getElementById('menuList').innerHTML = '<p class="text-muted">Koi item nahi hai</p>';
+    document.getElementById('menuList').innerHTML = items.map(item=>`
+        <div class="card menu-item-card p-2 mb-2">
+            <div class="d-flex">
+                <img src="${item.image}" width="60" height="60" style="object-fit:cover; border-radius:8px">
+                <div class="ms-2 flex-grow-1">
+                    <h6 class="mb-0">${item.name} - ₹${item.price}</h6>
+                    <small class="text-muted">${item.desc}</small>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="deleteItem('${item._id}')">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function deleteItem(id){
+    if(!confirm('Delete this item?')) return;
+    await fetch(`${API}/api/menu-delete/${id}`, {method:'DELETE'});
+    loadMenu();
+}
+
+function logout(){ 
+    localStorage.clear(); 
+    window.location.href = '/restaurant-login'; 
 }
 </script>
-
-<!-- YE LINE ADD KI HAI - BOOTSTRAP JS FOR COLLAPSE -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
