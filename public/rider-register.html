@@ -41,7 +41,7 @@ small{color:gray; font-size:12px;}
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com';
+const API = window.location.origin; // FIXED
 
 function compressImage(file) {
   return new Promise((resolve) => {
@@ -83,8 +83,7 @@ async function loadRestaurants(){
             select.innerHTML += `<option disabled>Koi restaurant approved nahi hai</option>`;
         }
         shops.forEach(s=>{
-            // FIX: s.id ki jagah s._id
-            select.innerHTML += `<option value="${s._id}">${s.name}</option>`;
+            select.innerHTML += `<option value="${s._id}">${s.name}</option>`; // FIXED: s._id
         });
     }catch(err){
         document.getElementById('msg').innerText = "Restaurant list load nahi hui";
@@ -131,12 +130,12 @@ async function register(){
     fd.append('panImg', panFile);
     fd.append('photoImg', photoFile);
 
-    const res = await fetch(API+'/api/rider-register', {method:'POST', body:fd}); // FIX: dash lagaya
+    const res = await fetch(API+'/api/rider-register', {method:'POST', body:fd}); // FIXED
     const d = await res.json();
     msg.innerText = d.msg;
     msg.style.color = d.success? 'green' : 'red';
 
-    if(d.success) setTimeout(()=>window.location='/rider', 2000);
+    if(d.success) setTimeout(()=>window.location='/rider-login', 2000); // FIXED: /rider-login
   }catch(err){
     msg.innerText = "Server Error. Photo 2MB se kam rakho";
     msg.style.color = "red";
