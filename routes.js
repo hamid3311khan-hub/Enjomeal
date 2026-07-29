@@ -117,3 +117,24 @@ module.exports = (io) => {
   });
   return router;
 }
+// RIDER REGISTER
+router.post('/api/rider-register', upload.fields([{name:'dlProof'}, {name:'aadhaarProof'}]), async (req,res)=>{
+    try{
+        const {name,mobile,email,password,address,vehicleNo} = req.body;
+        const dlProof = req.files.dlProof? req.files.dlProof[0].path : '';
+        const aadhaarProof = req.files.aadhaarProof? req.files.aadhaarProof[0].path : '';
+        const newRider = new Rider({name,mobile,email,password:await bcrypt.hash(password,10),address,vehicleNo,dlProof,aadhaarProof,status:'Pending',cash_balance:0});
+        await newRider.save();
+        res.json({success:true});
+    }catch(e){res.status(500).json({error:e.message})}
+});
+
+// RIDER LOGIN
+router.post('/api/rider-login', async (req,res)=>{
+    const {mobile,password} = req.body;
+    const rider = await Rider.findOne({mobile});
+    if(!rider) return res.json({error:'Rider not found'});
+    if(rider.status!== 'Approved') return res.json({error:'Your account is not approved yet'});
+    const match = await bcrypt.compare(password, rider.password);
+    if(!match) return res.json({error:'Invalid Password'});
+    res.json({success:true, rider});
