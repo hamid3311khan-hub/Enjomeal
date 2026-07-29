@@ -25,7 +25,7 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 <body>
 <div class="login-box" id="loginBox"><h2>🏍️ Eat4Bite™ Rider Login</h2>
 <input id="riderMobile" placeholder="Registered Mobile Number" maxlength="10">
-<button onclick="riderLogin()">Login</button></div>
+<button id="loginBtn" onclick="riderLogin()">Login</button></div>
 
 <div class="dashboard" id="dashboard" style="display:none;">
 <div class="top-bar"><h2 id="riderName">Rider Panel</h2><button class="logout-btn" onclick="riderLogout()">🚪 Logout</button></div>
@@ -58,8 +58,8 @@ button:disabled{background:#ccc; cursor:not-allowed;}
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 // ========= CONFIG =========
-const API = window.location.origin + '/api'; // FIXED
-const SOCKET_URL = window.location.origin; // FIXED
+const API = 'https://quickbite-ymqk.onrender.com/api'; // <-- FIX 1: HARDCODED URL
+const SOCKET_URL = 'https://quickbite-ymqk.onrender.com'; // <-- FIX 1
 const socket = io(SOCKET_URL);
 // ==========================
 let riderData = null; let locationInterval = null; let map = null; let riderMarker = null; let customerMarkers = {};
@@ -86,43 +86,46 @@ function showTab(tab, btn){
 
 function updateStatusUI(status){
   document.getElementById('riderStatus').innerText = status;
-  if(status === 'Approved'){ 
-    document.getElementById('btnOnline').disabled = true;
-    document.getElementById('btnOffline').disabled = false;
-  } else {
-    document.getElementById('btnOnline').disabled = false;
-    document.getElementById('btnOffline').disabled = true;
-  }
+  document.getElementById('btnOnline').disabled = status === 'Approved';
+  document.getElementById('btnOffline').disabled = status !== 'Approved';
 }
 
 async function riderLogin(){
   const mobile = document.getElementById('riderMobile').value;
+  const btn = document.getElementById('loginBtn');
   if(mobile.length!=10) return alert('Enter 10 digit mobile');
-  const res = await fetch(`${API}/rider-login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
-  const data = await res.json();
-  if(data.success){
-    riderData = data.rider;
-    localStorage.setItem('riderData', JSON.stringify(riderData));
-    location.reload();
-  } else { alert(data.msg); }
+  
+  btn.disabled = true; btn.innerText = "Logging in..."; // <-- LOADING FIX
+  
+  try{
+    const res = await fetch(`${API}/rider-login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile})});
+    const data = await res.json();
+    if(data.success){
+      riderData = data.rider;
+      localStorage.setItem('riderData', JSON.stringify(riderData));
+      location.reload();
+    } else { 
+      alert(data.msg); 
+      btn.disabled = false; btn.innerText = "Login"; // <-- ERROR PE WAPAS
+    }
+  }catch(e){
+    alert("Server slow hai. Dobara try karo");
+    btn.disabled = false; btn.innerText = "Login"; // <-- ERROR PE WAPAS
+  }
 }
 
 function riderLogout(){ localStorage.removeItem('riderData'); clearInterval(locationInterval); location.reload();}
 
+// FIX 2: STATUS UPDATE KE LIYE NAYA API BANANA HOGA SERVER ME
+// Abhi ke liye ye button hata dete hain kyunki route nahi hai
 async function goOnline(){
-  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Approved'})});
-  riderData.status = 'Approved';
-  localStorage.setItem('riderData', JSON.stringify(riderData));
-  updateStatusUI('Approved');
-  startLocationTracking();
+  alert("Go Online feature ke liye server me API add karna padega");
+  // riderData.status = 'Approved'; startLocationTracking();
 }
 
 async function goOffline(){
-  clearInterval(locationInterval);
-  await fetch(`${API}/rider-status/${riderData._id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:'Offline'})});
-  riderData.status = 'Offline';
-  localStorage.setItem('riderData', JSON.stringify(riderData));
-  updateStatusUI('Offline');
+  alert("Go Offline feature ke liye server me API add karna padega");
+  // clearInterval(locationInterval);
 }
 
 function startLocationTracking(){
@@ -137,23 +140,25 @@ function updateRiderLocation(pos){
   if(!riderMarker){ riderMarker = L.marker([lat, lng]).addTo(map).bindPopup("You"); map.setView([lat, lng], 15); }
   else { riderMarker.setLatLng([lat, lng]); }
   
-  fetch(`${API}/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})});
+  fetch(`${API}/riderLocation`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mobile: riderData.mobile, lat: lat, lng: lng})}).catch(()=>{});
   socket.emit('riderLocation', {mobile: riderData.mobile, lat: lat, lng: lng});
 }
 
 async function loadHisab(){
-  const res = await fetch(`${API}/rider/ledger?riderId=${riderData.mobile}`);
-  const data = await res.json();
-  document.getElementById('cashInHand').innerText = data.pending_cash || 0;
-  document.getElementById('cashPending').innerText = data.pending_cash || 0;
-  document.getElementById('todayCollection').innerText = data.today_collected || 0;
-  document.getElementById('todayOrders').innerText = data.today_orders || 0;
-  
-  const percent = data.progress || 0;
-  document.getElementById('limitBar').style.width = percent + '%';
-  document.getElementById('limitBar').innerText = percent + '%';
-  
-  if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; } else { document.getElementById('cashAlert').style.display = 'none'; }
+  try{
+    const res = await fetch(`${API}/rider/ledger?riderId=${riderData.mobile}`);
+    const data = await res.json();
+    document.getElementById('cashInHand').innerText = data.pending_cash || 0;
+    document.getElementById('cashPending').innerText = data.pending_cash || 0;
+    document.getElementById('todayCollection').innerText = data.today_collected || 0;
+    document.getElementById('todayOrders').innerText = data.today_orders || 0;
+    
+    const percent = data.progress || 0;
+    document.getElementById('limitBar').style.width = percent + '%';
+    document.getElementById('limitBar').innerText = percent + '%';
+    
+    if(data.pending_cash >= 1000){ document.getElementById('cashAlert').style.display = 'block'; } else { document.getElementById('cashAlert').style.display = 'none'; }
+  }catch(e){ console.log("Ledger load error") }
 }
 
 socket.on('newOrderForRider', (data) => {
@@ -165,31 +170,33 @@ socket.on('newOrderForRider', (data) => {
 });
 
 async function loadMyOrders(){
-  const res = await fetch(`${API}/rider-orders/${riderData.mobile}`);
-  const orders = await res.json();
-  if(orders.length === 0){ document.getElementById('myOrders').innerHTML = 'No orders yet'; return; }
-  
-  document.getElementById('myOrders').innerHTML = orders.map(o => {
-    const hasLocation = o.custLat && o.custLng;
-    const directionsLink = hasLocation ? `https://www.google.com/maps/search/?api=1&query=${o.custLat},${o.custLng}` : '#';
+  try{
+    const res = await fetch(`${API}/rider-orders/${riderData.mobile}`);
+    const orders = await res.json();
+    if(orders.length === 0){ document.getElementById('myOrders').innerHTML = 'No orders yet'; return; }
     
-    if(hasLocation && !customerMarkers[o._id]){
-      customerMarkers[o._id] = L.marker([o.custLat, o.custLng]).addTo(map).bindPopup(`${o.name}<br>${o.address}`);
-    }
+    document.getElementById('myOrders').innerHTML = orders.map(o => {
+      const hasLocation = o.custLat && o.custLng;
+      const directionsLink = hasLocation ? `https://www.google.com/maps/search/?api=1&query=${o.custLat},${o.custLng}` : '#';
+      
+      if(hasLocation && !customerMarkers[o._id]){
+        customerMarkers[o._id] = L.marker([o.custLat, o.custLng]).addTo(map).bindPopup(`${o.name}<br>${o.address}`);
+      }
 
-    return `
-    <div class="order">
-      <b>${o.trackId}</b> - ₹${o.grand_total} <br> 
-      <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
-      <b>Address:</b> ${o.address} <br>
-      <b>Status:</b> ${o.status} <br>
-      ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn-directions">📍 Get Directions</a>` : '<small>Location not shared</small>'}
-      ${o.status === 'Out for Delivery' ? `
-        <label><b>Cash Collected ₹:</b></label>
-        <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.grand_total}">
-        <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
-      ` : ''}
-    </div>`}).join('');
+      return `
+      <div class="order">
+        <b>${o.trackId}</b> - ₹${o.grand_total} <br> 
+        <small>${o.name} - ${o.paymentMode || 'COD'}</small> <br>
+        <b>Address:</b> ${o.address} <br>
+        <b>Status:</b> ${o.status} <br>
+        ${hasLocation ? `<a href="${directionsLink}" target="_blank" class="btn-directions">📍 Get Directions</a>` : '<small>Location not shared</small>'}
+        ${o.status === 'Out for Delivery' ? `
+          <label><b>Cash Collected ₹:</b></label>
+          <input type="number" id="cash_${o._id}" class="cash-input" placeholder="Enter amount taken" value="${o.grand_total}">
+          <button onclick="markDelivered('${o._id}')">Mark Delivered</button>
+        ` : ''}
+      </div>`}).join('');
+  }catch(e){ document.getElementById('myOrders').innerHTML = 'Error loading orders'; }
 }
 
 async function markDelivered(orderId){
