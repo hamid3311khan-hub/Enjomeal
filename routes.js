@@ -121,3 +121,8 @@ module.exports = (io) => {
   });
   return router;
 }
+// REJECT RESTAURANT
+router.post('/reject-restaurant', async (req,res)=>{
+  await Restaurant.findByIdAndUpdate(req.body.restaurantId, {status: 'rejected'});
+  res.json({msg: 'Rejected'});
+});
