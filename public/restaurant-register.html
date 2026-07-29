@@ -1,205 +1,59 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>Restaurant Registration - Eat4Bite</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Restaurant Registration - Eat4Bite™</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-    body{background:#f8f9fa}
-.card{max-width:650px; margin:30px auto; border-radius:15px}
-.logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
-.info-box{background:#D1E7DD; padding:15px; border-radius:10px; border:1px solid #0F5132}
-#photoPreview{max-width:100%; border-radius:10px; margin-top:10px; display:none; max-height:150px;}
-#qrBox{background:#fff3cd; border:2px dashed #ffc107; border-radius:10px}
-.plan-card{border:2px solid #ddd; border-radius:10px; padding:15px; cursor:pointer; transition:0.3s; margin-bottom:10px}
-.plan-card.active{border-color:#ff6600; background:#fff5f0;}
-.plan-card:hover{border-color:#ff6600;}
-.plan-info-btn{background:#ff6600; color:#fff; border:none; width:100%; padding:12px; border-radius:10px; font-weight:600; margin:15px 0}
-.plan-details{display:none; background:#fff8e1; border:1px solid #ffc107; border-radius:10px; padding:15px; margin-top:10px}
-.preview-with-qr{display:none; background:#fff; padding:12px; border-radius:10px; border:2px dashed #ff6600; margin-top:12px}
-.preview-with-qr img{max-width:100px; border-radius:8px}
+body{font-family:Arial; background:#f5f5f5; padding:20px}
+.form{background:#fff; padding:20px; border-radius:10px; max-width:500px; margin:auto; box-shadow:0 2px 10px #ccc}
+input,textarea{width:95%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:5px}
+.btn{background:#4caf50; color:#fff; padding:12px; border:none; border-radius:5px; width:100%; font-size:16px; cursor:pointer}
+h2{color:#4caf50; text-align:center}
+.note{font-size:12px; color:#777}
 </style>
 </head>
 <body>
-<div class="container">
-    <div class="card shadow p-4">
-        <div class="logo">🍴 Eat4Bite™ Partner</div>
-        <h4 class="text-center mb-3">Restaurant Registration</h4>
-        <p class="text-center text-success fw-bold" id="planText">30 Days Trial - ₹200 Registration Fee</p>
 
-        <form id="registerForm" enctype="multipart/form-data">
-            <div class="mb-3">
-                <label class="form-label fw-bold">Choose Your Plan</label>
-                <div class="plan-card active" onclick="selectPlan('Trial', 200, event)">
-                    <input type="radio" name="plan" value="Trial" checked>
-                    <b>30 Days Trial</b> - ₹200 Only
-                </div>
-                <div class="plan-card" onclick="selectPlan('Annual', 2000, event)">
-                    <input type="radio" name="plan" value="Annual">
-                    <b>Eat4Bite™ Annual Support Plan ₹2000/Year</b>
-                </div>
-            </div>
+<div class="form">
+  <h2>🏪 Restaurant Registration</h2>
+  <p class="note">Registration Fee: ₹200 One Time. Status: Trial 30 Days</p>
 
-            <button type="button" class="plan-info-btn" onclick="togglePlanInfo()">ℹ️ View Trial Plan - ₹200/30 Days</button>
+  <input type="text" id="restaurantName" placeholder="Restaurant Name" required>
+  <input type="text" id="ownerName" placeholder="Owner Name" required>
+  <input type="tel" id="mobile" placeholder="10 Digit Mobile" required>
+  <input type="email" id="email" placeholder="Email" required>
+  <textarea id="address" placeholder="Full Address with Pincode" required></textarea>
+  <input type="password" id="password" placeholder="Create Password" required>
+  <input type="file" id="image" accept="image/*">
 
-            <div id="planDetails" class="plan-details">
-                <div id="trialDetails">
-                    <h5 style="color:#28a745;">Eat4Bite™ 30 Days Trial</h5>
-                    <h6>₹200 One Time</h6>
-                    <p><b>Test Our Platform Before You Commit</b></p>
-                    <h6 class="mt-3">What's Included:</h6>
-                    <ul>
-                        <li><b>Full App Access:</b> 30 days ke liye sab features</li>
-                        <li><b>Menu Listing:</b> Unlimited items add kar sakte ho</li>
-                        <li><b>Order Management:</b> Real orders accept karo</li>
-                        <li><b>Basic Support:</b> WhatsApp support 10AM to 8PM</li>
-                    </ul>
-                    <div class="alert alert-success mt-3">
-                        <b>₹200 me 30 din. Pasand aaye to Annual le lena.</b>
-                    </div>
-                </div>
-
-                <div id="annualDetails" style="display:none;">
-                    <h4 class="mb-3" style="color:#ff6600;">Eat4Bite™ Annual Support Plan</h4>
-                    <h5>₹2000 / Year</h5>
-                    <p><b>Grow Your Restaurant. We Handle The Tech.</b></p>
-                    <ul>
-                        <li><b>Website & Brand Listing:</b> Professional restaurant page</li>
-                        <li><b>24x7 Technical Support:</b> 15 min me issue resolve</li>
-                        <li><b>Free Menu & Offer Management:</b> Hum update karenge</li>
-                        <li><b>Secure Payments:</b> Har 3 din me payout</li>
-                    </ul>
-                    <div class="alert alert-warning mt-3">
-                        <b>Only ₹2000 per Year.</b><br>
-                        <small>Note: 5% Commission + ₹10 Platform Fee per order</small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-3 mt-2"><label class="form-label">Owner Name</label><input type="text" name="ownerName" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Mobile Number</label><input type="tel" name="mobile" class="form-control" pattern="[0-9]{10}" maxlength="10" required></div>
-            <div class="mb-3"><label class="form-label">Restaurant Name</label><input type="text" name="restaurantName" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">Restaurant Address</label><textarea name="address" class="form-control" rows="2" required></textarea></div>
-
-            <div class="info-box mb-3">
-                <h6 class="fw-bold mb-3">Step 1: Upload Details</h6>
-                <div class="mb-3 p-3 bg-white rounded border">
-                    <label class="form-label fw-bold text-success">Restaurant Photo *</label>
-                    <small class="text-muted d-block mb-2">Ye photo card pe public dikhegi</small>
-                    <input type="file" name="restaurantImage" id="restaurant_image" class="form-control" accept="image/*" required>
-                    <img id="photoPreview" src=""/>
-                </div>
-                <div class="mb-3 p-3 bg-white rounded border">
-                    <label class="form-label fw-bold text-danger">Payment Proof *</label>
-                    <small class="text-muted d-block mb-2" id="paymentProofText">₹200 ka UPI/Bank screenshot. Sirf Admin dekhega</small>
-                    <input type="file" name="paymentProof" id="payment_proof" class="form-control" accept="image/*" required>
-                </div>
-                <div id="previewWithQR" class="preview-with-qr">
-                    <div class="row align-items-center">
-                        <div class="col-4 text-center">
-                            <p class="small fw-bold mb-1">Your Photo</p>
-                            <img id="photoPreviewSmall" src=""/>
-                        </div>
-                        <div class="col-8 text-center">
-                            <p class="small fw-bold mb-1 text-danger">Pay <span id="payAmountPreview">₹200</span></p>
-                            <img id="qrImgPreview" width="100">
-                            <p class="small mb-0">Scan to Pay</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <button type="submit" id="registerBtn" class="btn btn-warning w-100 fw-bold">Register & Pay ₹200</button>
-        </form>
-
-        <div id="qrBox" class="mt-3 p-3 text-center d-none">
-            <h5 class="text-danger">Step 2: Pay <span id="payAmount">₹200</span> to Activate</h5>
-            <img id="qrImg" width="200" class="my-2">
-            <p><b>UPI ID:</b> <span id="upiText" class="text-primary"></span></p>
-            <p class="small">Payment karke Admin se approval lein</p>
-        </div>
-        <div id="msg" class="mt-3"></div>
-        <p class="text-center mt-3">Already have an account? <a href="/restaurant-login">Login</a></p>
-    </div>
+  <button class="btn" onclick="registerRestaurant()">Register & Pay ₹200</button>
+  <p style="text-align:center">Already have account? <a href="/restaurant-login">Login</a></p>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const API = window.location.origin; // FIXED
-let selectedAmount = 200;
-let selectedPlan = 'Trial';
+const API = "/api";
 
-function togglePlanInfo(){
-  const details = document.getElementById('planDetails');
-  const btn = document.querySelector('.plan-info-btn');
-  if(details.style.display === 'block'){
-    details.style.display = 'none';
-    btn.innerText = selectedPlan === 'Annual' 
-      ? 'ℹ️ View Annual Support Plan - ₹2000/Year' 
-      : 'ℹ️ View Trial Plan - ₹200/30 Days';
+async function registerRestaurant(){
+  const formData = new FormData();
+  formData.append('restaurantName', document.getElementById('restaurantName').value);
+  formData.append('ownerName', document.getElementById('ownerName').value);
+  formData.append('mobile', document.getElementById('mobile').value);
+  formData.append('email', document.getElementById('email').value);
+  formData.append('address', document.getElementById('address').value);
+  formData.append('password', document.getElementById('password').value);
+  formData.append('image', document.getElementById('image').files[0]);
+
+  let res = await fetch(`${API}/restaurant/register`, {method:'POST', body:formData});
+  let data = await res.json();
+
+  if(res.ok){
+    alert('Registration Submitted! Wait for Admin Approval. ID: ' + data.restaurantId);
+    window.location = '/restaurant-login';
   } else {
-    details.style.display = 'block';
-    btn.innerText = '❌ Hide Plan Details';
+    alert(data.error || 'Registration Failed');
   }
 }
-
-function selectPlan(plan, amount, event){
-    selectedPlan = plan;
-    selectedAmount = amount;
-    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
-    event.currentTarget.classList.add('active');
-    document.querySelector(`input[value="${plan}"]`).checked = true;
-    document.getElementById('registerBtn').innerText = `Register & Pay ₹${amount}`;
-    document.getElementById('planText').innerText = plan === 'Trial'? '30 Days Trial - ₹200 Registration Fee' : 'Annual Plan - ₹2000 / Year';
-    document.querySelector('.plan-info-btn').innerText = plan === 'Annual' ? 'ℹ️ View Annual Support Plan - ₹2000/Year' : 'ℹ️ View Trial Plan - ₹200/30 Days';
-    document.getElementById('paymentProofText').innerText = `₹${amount} ka UPI/Bank screenshot. Sirf Admin dekhega`;
-    document.getElementById('payAmountPreview').innerText = '₹' + selectedAmount;
-    document.getElementById('annualDetails').style.display = plan === 'Annual' ? 'block' : 'none';
-    document.getElementById('trialDetails').style.display = plan === 'Trial' ? 'block' : 'none';
-}
-
-document.getElementById('restaurant_image').addEventListener('change', function(e){
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(event){
-        document.getElementById('photoPreview').src = event.target.result;
-        document.getElementById('photoPreview').style.display = 'block';
-        document.getElementById('photoPreviewSmall').src = event.target.result;
-        document.getElementById('previewWithQR').style.display = 'block';
-        document.getElementById('payAmountPreview').innerText = '₹' + selectedAmount;
-        document.getElementById('qrImgPreview').src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=${selectedAmount}&cu=INR`;
-    }
-    reader.readAsDataURL(file);
-});
-
-document.getElementById('registerForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const btn = e.target.querySelector('button');
-    btn.disabled = true; btn.innerText = "Registering...";
-    const formData = new FormData(e.target);
-    formData.append('plan', selectedPlan);
-    formData.append('amount', selectedAmount);
-    try {
-        const res = await fetch(`${API}/api/restaurant-register`, {method: 'POST', body: formData}); // FIXED
-        const result = await res.json();
-        if(result.success){
-            document.getElementById('registerForm').style.display = 'none';
-            document.getElementById('qrBox').classList.remove('d-none');
-            document.getElementById('upiText').innerText = result.upi_id || "tanbalkhi2014-3@okhdfcbank";
-            document.getElementById('payAmount').innerText = '₹' + selectedAmount;
-            document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=tanbalkhi2014-3@okhdfcbank&pn=Eat4Bite&am=${selectedAmount}&cu=INR`;
-            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Registered! Now pay ₹${selectedAmount} and wait for approval</div>`;
-        } else {
-            document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.msg}</div>`;
-        }
-    } catch(err) {
-        document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error: ${err.message}</div>`;
-    }
-    btn.disabled = false; btn.innerText = `Register & Pay ₹${selectedAmount}`;
-});
 </script>
 </body>
 </html>
