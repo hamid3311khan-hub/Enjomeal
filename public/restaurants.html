@@ -24,7 +24,7 @@ a{text-decoration:none;}
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com/api';
+const API = window.location.origin + '/api'; // FIXED
 
 async function loadRestaurants(){
     try{
