@@ -26,18 +26,14 @@ body.dark #restaurantList a{color:#eee; border-color:#333;}
 #sysMenu a:hover{background:#f5f5f5;}
 body.dark #sysMenu{background:#2a2a2a;}
 body.dark #sysMenu a{color:#eee; border-color:#444;}
-
-/* CATEGORY BAR */
 .categories{display:flex; gap:8px; padding:10px 15px; overflow-x:auto; background:white;}
 body.dark .categories{background:#1e1e1e;}
 .category-btn{padding:8px 16px; border:1px solid #ff6600; border-radius:20px; background:white; color:#ff6600; white-space:nowrap; cursor:pointer; font-size:14px;}
 .category-btn.active{background:#ff6600; color:white;}
 body.dark .category-btn{background:#2a2a2a;}
-
-/* GRID */
 .grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:15px; padding:10px;}
 .card {background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;}
-.card img{width:100%;height:220px;object-fit:cover;object-position:center 35%;border-radius:8px 8px 0 0;} /* PIC FULL COVER - 340 se 220 kiya */
+.card img{width:100%;height:220px;object-fit:cover;object-position:center 35%;border-radius:8px 8px 0 0;}
 .card-body{padding:10px 12px;}
 .card h3{font-size:16px; margin:0 0 2px 0;font-weight:600; display:flex; align-items:center; gap:6px;}
 .card .offer-tag{background:#ffe0e0; color:#ff0000; font-size:12px; padding:2px 6px; border-radius:4px; font-weight:bold;}
@@ -50,15 +46,7 @@ body.dark .card{background:#1e1e1e;}
 body.dark .card .desc{color:#aaa;}
 body.dark .card .price{color:#eee;}
 .empty-state{text-align:center; padding:60px 20px; color:#999;}
-
-/* NAYA: Banner image fix */
-#bannerImg{
-  width:100%;
-  height:220px;
-  object-fit:cover;
-  object-position:center 40%;
-  border-radius:10px;
-}
+#bannerImg{width:100%; height:220px; object-fit:cover; object-position:center 40%; border-radius:10px;}
 </style>
 </head>
 <body>
@@ -97,7 +85,7 @@ body.dark .card .price{color:#eee;}
 </div>
 
 <div class="categories" id="categoryBar">
-    <button class="category-btn active" onclick="filterCategory('All')">All</button>
+    <button class="category-btn active" onclick="filterCategory('All', event)">All</button>
 </div>
 
 <div class="grid" id="menu">
@@ -108,7 +96,7 @@ body.dark .card .price{color:#eee;}
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com/api';
+const API = window.location.origin + '/api'; // FIX 1
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
 let allRestaurants = [];
 let allItems = [];
@@ -144,7 +132,7 @@ async function loadFeatured(){
                 <h3 style="padding:10px 15px; margin:0;">🔥 Featured Restaurants</h3>
                 <div class="grid">
                 ${restaurants.slice(0,6).map(r=>`
-                    <div class="card" onclick="showRestaurantBanner(${JSON.stringify(r).replace(/"/g, '&quot;')}); window.location='/?shop=${r._id}'" style="cursor:pointer;">
+                    <div class="card" onclick='showRestaurantBanner(${JSON.stringify(r)}); window.location="/?shop=${r._id}"' style="cursor:pointer;">
                         <img src="${r.image || 'https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'}" onerror="this.src='https://via.placeholder.com/300x180/ff6600/ffffff?text=Restaurant'">
                         <div class="card-body">
                             <h3>${r.name}</h3>
@@ -180,7 +168,7 @@ async function loadMenuByShop(id){
     const selected = allRestaurants.find(r=>r._id==id);
     if(selected){
         document.getElementById('search').value = selected.name;
-        showRestaurantBanner(selected); // NAYA: Banner dikhane ke liye
+        showRestaurantBanner(selected);
     }
     document.getElementById('menu').innerHTML = '<p style="text-align:center">Loading...</p>';
     let url = `${API}/menu?shop=${id}`;
@@ -203,7 +191,7 @@ function displayItems(items){
     allItems = items;
     const categories = ['All', ...new Set(items.map(i=>i.category).filter(Boolean))];
     document.getElementById('categoryBar').innerHTML = categories.map(c=> 
-        `<button class="category-btn ${c=='All'?'active':''}" onclick="filterCategory('${c}')">${c}</button>`
+        `<button class="category-btn ${c=='All'?'active':''}" onclick="filterCategory('${c}', event)">${c}</button>` // FIX 2
     ).join('');
 
     if(items.length==0) document.getElementById('menu').innerHTML = "<p style='text-align:center'>Is restaurant me koi item nahi hai</p>";
@@ -219,7 +207,7 @@ function displayItems(items){
                     <p class="category">${item.category || ''}</p>
                     <div class="card-footer">
                         <span class="price">₹${price}</span>
-                        <button class="add-btn" onclick='addToCart(${JSON.stringify(item)})'>Add +</button>
+                        <button class="add-btn" onclick='addToCartById("${item._id}")'>Add +</button> // FIX 3
                     </div>
                 </div>
             </div>`
@@ -227,15 +215,18 @@ function displayItems(items){
     }
 }
 
-function filterCategory(cat){
+function filterCategory(cat, e){ // FIX 2
     currentCategory = cat;
     document.querySelectorAll('.category-btn').forEach(b=>b.classList.remove('active'));
-    event.target.classList.add('active');
+    e.target.classList.add('active');
     const filtered = cat=='All' ? allItems : allItems.filter(i=>i.category==cat);
     displayItems(filtered);
 }
 
-function addToCart(item){
+// FIX 3: ID se add karo, string crash nahi hoga
+function addToCartById(id){
+    const item = allItems.find(i => i._id == id);
+    if(!item) return alert('Item nahi mila');
     let cart=JSON.parse(localStorage.getItem('cart')||'[]'); 
     const ex = cart.find(i=>i._id==item._id); 
     if(ex) ex.qty++; 
@@ -248,7 +239,6 @@ function addToCart(item){
 function showCart(){window.location = '/cart';} 
 function updateCart(){document.getElementById('count').innerText = cart.reduce((s,i)=>s+i.qty,0);}
 
-// NAYA FUNCTION: Restaurant banner dikhane ke liye
 function showRestaurantBanner(restaurant){
     if(!restaurant) return;
     document.getElementById('homeBanner').style.display = 'block';
