@@ -6,120 +6,70 @@
 <title>Restaurant Login - Eat4Bite™</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-    body{background:linear-gradient(135deg,#ff6600,#ff3300); min-height:100vh; display:flex; align-items:center;}
-   .card{max-width:450px; margin:auto; border-radius:15px; border:none;}
-   .logo{font-size:28px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:20px}
-   .back-home{position:absolute; top:20px; left:20px; color:white; text-decoration:none; font-weight:bold;}
-   #captchaQ{font-weight:bold; font-size:20px; background:#ff6600; color:white; padding:8px 15px; border-radius:8px; letter-spacing:2px}
+    body{background:linear-gradient(135deg,#ff6600,#ff3300); min-height:100vh; display:flex; align-items:center; justify-content:center}
+.card{max-width:450px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.3)}
+.logo{font-size:32px; font-weight:bold; color:#ff6600; text-align:center; margin-bottom:10px}
 </style>
 </head>
 <body>
-
-<a href="/" class="back-home">← Back to Home</a>
-
 <div class="container">
     <div class="card shadow p-4">
-        <div class="logo">🍴 Eat4Bite™ Partner</div>
+        <div class="logo">🍴 Eat4Bite™</div>
         <h4 class="text-center mb-3">Restaurant Login</h4>
+        <p class="text-center text-muted">Apne dashboard me login karein</p>
 
         <form id="loginForm">
             <div class="mb-3">
-                <label class="form-label">Mobile Number</label>
-                <input type="tel" id="mobile" class="form-control" placeholder="98xxxxxx98" required>
+                <label class="form-label fw-bold">Mobile Number</label>
+                <input type="tel" name="mobile" class="form-control form-control-lg" placeholder="10 digit mobile" pattern="[0-9]{10}" maxlength="10" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input type="password" id="password" class="form-control" required>
+                <label class="form-label fw-bold">Password</label>
+                <input type="password" name="password" class="form-control form-control-lg" required>
             </div>
-
-            <div class="mb-3">
-                <label class="form-label">Captcha Verify</label>
-                <div class="d-flex align-items-center gap-2">
-                    <span id="captchaQ"></span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="genCaptcha()">🔄</button>
-                </div>
-                <input type="number" id="captchaAns" class="form-control mt-2" placeholder="Answer" required>
-            </div>
-
-            <div class="text-end mb-2">
-                <a href="#" onclick="alert('Admin se contact karo password reset ke liye')" style="font-size:13px;">Forgot Password?</a>
-            </div>
-            <button type="submit" class="btn btn-warning w-100 fw-bold">Login</button>
+            <button type="submit" id="loginBtn" class="btn w-100 btn-lg fw-bold" style="background:#ff6600; color:white;">Login</button>
         </form>
 
         <div id="msg" class="mt-3"></div>
-        <hr>
-        <p class="text-center">Naya restaurant hai? <a href="/restaurant-register" class="fw-bold">Register karo</a></p>
+        <p class="text-center mt-3">Naya Restaurant hai? <a href="/restaurant-register">Register karein</a></p>
     </div>
 </div>
 
 <script>
-const API = 'https://quickbite-ymqk.onrender.com';
-let captchaResult = 0;
-
-function genCaptcha(){
-  let a = Math.floor(Math.random() * 9) + 1;
-  let b = Math.floor(Math.random() * 9) + 1;
-  captchaResult = a + b;
-  document.getElementById('captchaQ').innerText = `${a} + ${b} = ?`;
-}
+const API = window.location.origin;
 
 document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const btn = e.target.querySelector('button');
-    btn.disabled = true;
-    btn.innerText = "Checking...";
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.innerText = "Logging in...";
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
 
-    const mobile = document.getElementById('mobile').value;
-    const password = document.getElementById('password').value;
-    const ans = Number(document.getElementById('captchaAns').value);
-
-    if(ans !== captchaResult){
-        document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ Captcha galat hai</div>`;
-        genCaptcha();
-        document.getElementById('captchaAns').value = '';
-        btn.disabled = false;
-        btn.innerText = "Login";
-        return;
-    }
-
-    const data = { mobile, password };
-
-    try{
-        // FIX 1: Yaha dash lagaya /restaurant-login
+    try {
         const res = await fetch(`${API}/api/restaurant-login`, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            method: 'POST', 
+            headers:{'Content-Type':'application/json'},
             body: JSON.stringify(data)
         });
         const result = await res.json();
-
+        
         if(result.success){
-            // FIX 2: result.shop ab server se aa raha hoga
-            if(result.shop.status !== 'Approved'){
-                document.getElementById('msg').innerHTML = `<div class="alert alert-warning">⚠️ Tumhara restaurant abhi Admin se approve nahi hua. Thoda wait karo.</div>`;
-                btn.disabled = false;
-                btn.innerText = "Login";
-                return;
-            }
-            localStorage.setItem('restaurantId', result.shop.restaurantId);
-            localStorage.setItem('restaurantName', result.shop.restaurantName);
-            localStorage.setItem('restaurantOwner', JSON.stringify(result.shop));
-            window.location.href = '/restaurant-dashboard';
+            // IMPORTANT: Ye 3 cheez localStorage me save karni hai
+            localStorage.setItem('restaurantOwner', JSON.stringify(result.owner));
+            localStorage.setItem('restaurantId', result.owner.restaurantId);
+            localStorage.setItem('restaurantName', result.owner.restaurantName);
+            
+            document.getElementById('msg').innerHTML = `<div class="alert alert-success">✅ Login Success! Redirecting...</div>`;
+            setTimeout(()=>{ window.location.href = '/restaurant-dashboard'; }, 1500); // .html hata diya
         } else {
-            document.getElementById('msg').innerHTML = `<div class="alert alert-danger">${result.msg}</div>`;
-            btn.disabled = false;
-            btn.innerText = "Login";
-            genCaptcha();
+            document.getElementById('msg').innerHTML = `<div class="alert alert-danger">❌ ${result.error || 'Login Failed'}</div>`;
         }
-    }catch(err){
+    } catch(err) {
         document.getElementById('msg').innerHTML = `<div class="alert alert-danger">Server Error: ${err.message}</div>`;
-        btn.disabled = false;
-        btn.innerText = "Login";
     }
+    btn.disabled = false; btn.innerText = "Login";
 });
-
-genCaptcha();
 </script>
 </body>
 </html>
