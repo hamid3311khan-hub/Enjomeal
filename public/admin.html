@@ -2,72 +2,99 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>Eat4Bite Admin Panel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eat4Bite™ Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>/* same css rehne de */</style>
+<style>
+body{font-family:Arial; background:#f4f4f4; padding:20px}
+.box{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc}
+.btn{background:#28a745; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer}
+.btn-red{background:#dc3545}
+h2{color:#333; border-bottom:2px solid #ff5722; padding-bottom:5px}
+img{width:100px; border-radius:5px}
+</style>
 </head>
 <body>
-<!-- same body rehne de -->
+
+<h1>🔥 Eat4Bite Admin Panel</h1>
+
+<h2>1. Pending Restaurants</h2>
+<div id="pendingRestaurants">Loading...</div>
+
+<h2>2. Pending Riders</h2>
+<div id="pendingRiders">Loading...</div>
+
+<h2>3. Approved Restaurants - Payout</h2>
+<div id="approvedRestaurants">Loading...</div>
 
 <script>
-const API = window.location.origin; // FIX
-const socket = io();
-let salesChart = null;
-let allRiders = [];
-const ADMIN_PASSWORD = 'admin123';
+const API = "/api";
 
-function checkLogin(){ /* same */ }
-function logout(){ /* same */ }
-async function safeFetch(url, targetId){ /* same */ }
+// PAGE LOAD HOTE HI DATA LAO
+loadData();
 
-async function loadShopDropdown(){
-    const shops = await safeFetch(`${API}/api/admin/restaurants`);
-    if(!shops) return;
-    const select = document.getElementById('reportShop');
-    select.innerHTML = `<option value="all">All Restaurants</option>`;
-    shops.forEach(s => { select.innerHTML += `<option value="${s.restaurantId}">${s.restaurantName}</option>`; }); // FIX: s._id -> s.restaurantId
+async function loadData(){
+  // 1. PENDING RESTAURANT
+  let res = await fetch(`${API}/admin/pending-restaurants`);
+  let restaurants = await res.json();
+  document.getElementById('pendingRestaurants').innerHTML = restaurants.length===0 ? "No pending" : restaurants.map(r => `
+    <div class="box">
+      <b>${r.restaurantName}</b> - ${r.ownerName}<br>
+      Mobile: ${r.mobile} | Plan: ${r.plan_status}<br>
+      <img src="${r.image}" /><br>
+      <button class="btn" onclick="approveRestaurant('${r._id}')">Approve</button>
+      <button class="btn btn-red" onclick="rejectRestaurant('${r._id}')">Reject</button>
+    </div>
+  `).join('');
+
+  // 2. PENDING RIDER
+  res = await fetch(`${API}/admin/pending-riders`);
+  let riders = await res.json();
+  document.getElementById('pendingRiders').innerHTML = riders.length===0 ? "No pending" : riders.map(r => `
+    <div class="box">
+      <b>${r.name}</b> - ${r.mobile}<br>
+      Vehicle: ${r.vehicleNo}<br>
+      DL: <img src="${r.dlProof}" /> Aadhar: <img src="${r.aadharImg}" /><br>
+      <button class="btn" onclick="approveRider('${r._id}')">Approve</button>
+    </div>
+  `).join('');
+
+  // 3. APPROVED RESTAURANT + PAYOUT
+  res = await fetch(`${API}/admin/restaurants`);
+  let approved = await res.json();
+  document.getElementById('approvedRestaurants').innerHTML = approved.map(r => `
+    <div class="box">
+      <b>${r.restaurantName}</b><br>
+      Payout Due: ₹${r.payout_due}<br>
+      <button class="btn" onclick="payPayout('${r.restaurantId}', ${r.payout_due})">Pay Payout</button>
+    </div>
+  `).join('');
 }
 
-function renderChart(orders){ /* same */ }
-
-async function loadData(){ /* same */ }
-
-async function assignRider(orderId, riderId){ if(!riderId) return; const res = await fetch(`${API}/api/admin/assign-rider`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({orderId, riderId}) }); const data = await res.json(); alert(data.success? 'Rider Assigned!' : data.error); loadData(); }
-async function approveRider(id){ await fetch(`${API}/api/admin/approve-rider/${id}`, {method:'PUT'}); alert('Rider Approved!'); loadData(); }
-
-async function getReport(){
-    const shop = document.getElementById('reportShop').value;
-    const start = document.getElementById('startDate').value;
-    const end = document.getElementById('endDate').value;
-    if(!start ||!end) return alert("Start aur End date select karo");
-    const res = await fetch(`${API}/api/report?startDate=${start}&endDate=${end}&restaurantId=${shop}`); // FIX: param name
-    const data = await res.json();
-    document.getElementById('reportResult').innerHTML = `
-        <h3>Report Result</h3>
-        <p><b>Total Orders:</b> ${data.length}</p>
-        <p><b>Total Revenue:</b> ₹${data.reduce((a,b)=>a+b.grand_total,0)}</p>
-    `;
+// FUNCTIONS
+async function approveRestaurant(id){
+  await fetch(`${API}/admin/approve-restaurant/${id}`, {method:'PUT'});
+  alert("Restaurant Approved");
+  loadData();
 }
 
-async function loadBanner(){ /* same */ }
+async function approveRider(id){
+  await fetch(`${API}/admin/approve-rider/${id}`, {method:'PUT'});
+  alert("Rider Approved");
+  loadData();
+}
 
-document.getElementById('bannerImage').addEventListener('change', function(e){ /* same */ });
-document.getElementById('bannerForm').addEventListener('submit', async(e)=>{
-    e.preventDefault();
-    const fd = new FormData();
-    fd.append('text', document.getElementById('bannerText').value);
-    fd.append('color', document.getElementById('bannerColor').value);
-    const file = document.getElementById('bannerImage').files[0];
-    if(file) fd.append('image', file); // FIX: bannerImage -> image
-    const res = await fetch(`${API}/api/admin/promo`, {method:'POST', body:fd}); // FIX
-    const data = await res.json();
-    alert(data.success? '✅ Banner Save ho gaya!' : 'Error');
-    loadBanner();
-});
-document.getElementById('deleteBanner').addEventListener('click', async()=>{ if(confirm('Banner delete kare?')){ const res = await fetch(`${API}/api/admin/promo`, {method:'DELETE'}); const data = await res.json(); alert(data.success? '✅ Banner Delete ho gaya!' : 'Error'); document.getElementById('bannerPreview').style.display = 'none'; document.getElementById('bannerImage').value = ''; } });
-
-document.addEventListener('DOMContentLoaded', function(){ checkLogin(); loadBanner(); });
+async function payPayout(restaurantId, amount){
+  if(confirm(`Pay ₹${amount} to ${restaurantId}?`)){
+    // Yaha tu UPI/IMPS ka logic jodega. Abhi ke liye DB me 0 kar rahe
+    await fetch(`${API}/admin/pay-payout`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({restaurantId, amount})
+    });
+    alert("Payout Marked as Paid");
+    loadData();
+  }
+}
 </script>
 </body>
 </html>
