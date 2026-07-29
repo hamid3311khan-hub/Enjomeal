@@ -11,7 +11,8 @@ body{font-family:Arial; background:#f5f5f5; padding:10px}
 .item{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee}
 input,textarea{width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:5px}
 .btn{width:100%; padding:15px; background:#ff9800; color:#fff; border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer}
-.total{font-size:20px; font-weight:bold; text-align:right}
+.total-row{display:flex; justify-content:space-between; padding:5px 0}
+.total{font-size:20px; font-weight:bold; text-align:right; border-top:2px solid #4caf50; padding-top:10px; margin-top:10px}
 </style>
 </head>
 <body>
@@ -23,7 +24,8 @@ input,textarea{width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; bo
 
 <div class="box">
   <div id="cartItems">Your cart is empty</div>
-  <h3 class="total">Total: ₹<span id="grandTotal">0</span></h3>
+  <div id="billDetails"></div>
+  <h3 class="total">Grand Total: ₹<span id="grandTotal">0</span></h3>
 </div>
 
 <div class="box">
@@ -50,9 +52,9 @@ function loadCart(){
     return;
   }
   
-  let total = 0;
+  let item_total = 0;
   document.getElementById('cartItems').innerHTML = cart.map((item, index) => {
-    total += item.price * item.qty;
+    item_total += item.price * item.qty;
     return `
       <div class="item">
         <div>
@@ -61,13 +63,25 @@ function loadCart(){
         </div>
         <div>
           ₹${item.price * item.qty}
-          <button onclick="removeItem(${index})" style="margin-left:10px">❌</button>
+          <button onclick="removeItem(${index})" style="margin-left:10px; background:red; color:#fff; border:none; border-radius:5px">❌</button>
         </div>
       </div>
     `
   }).join('');
   
-  document.getElementById('grandTotal').innerText = total;
+  // BILL CALCULATION - SERVER KE HISAB SE
+  let commission_10 = Math.round(item_total * 0.10);
+  let platform_fee = 10;
+  let delivery_fee = 40;
+  let grand_total = item_total + commission_10 + platform_fee + delivery_fee;
+  
+  billDetails.innerHTML = `
+    <div class="total-row"><span>Item Total</span><span>₹${item_total}</span></div>
+    <div class="total-row"><span>Commission 10%</span><span>₹${commission_10}</span></div>
+    <div class="total-row"><span>Platform Fee</span><span>₹${platform_fee}</span></div>
+    <div class="total-row"><span>Delivery Fee</span><span>₹${delivery_fee}</span></div>
+  `;
+  grandTotal.innerText = grand_total;
 }
 
 function removeItem(index){
@@ -79,14 +93,18 @@ function removeItem(index){
 async function placeOrder(){
   if(cart.length === 0) return alert("Cart is empty");
   
+  let item_total = cart.reduce((sum,i)=>sum + i.price * i.qty, 0);
+  
   let orderData = {
-    name: document.getElementById('name').value,
-    phone: document.getElementById('phone').value,
-    address: document.getElementById('address').value,
-    paymentMode: document.getElementById('payment').value,
+    name: name.value,
+    phone: phone.value,
+    address: address.value,
+    paymentMode: payment.value,
     items: cart,
-    grand_total: document.getElementById('grandTotal').innerText,
-    restaurantId: cart[0].restaurantId // pehle item ka restaurant
+    item_total: item_total, // FIX: YE BHEJNA HAI
+    restaurantId: cart[0].restaurantId,
+    custLat: 0, // abhi ke liye 0
+    custLng: 0
   }
   
   if(!orderData.name || !orderData.phone || !orderData.address) return alert("Fill all details");
@@ -98,10 +116,10 @@ async function placeOrder(){
   });
   
   let data = await res.json();
-  localStorage.removeItem('cart');
-  alert("Order Placed! ID: " + data.trackId);
-  window.location = `/track.html?trackId=${data.trackId}`;
-}
-</script>
-</body>
-</html>
+  if(res.ok){
+    localStorage.removeItem('cart');
+    alert("Order Placed! ID: " + data.trackId);
+    window.location = `/track.html?trackId=${data.trackId}`;
+  } else {
+    alert("Order Failed: " + data.error);
+  }
