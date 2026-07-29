@@ -185,7 +185,4 @@ app.post('/api/coupon/validate', async (req,res)=>{
   }
 })
 
-app.get('/eat4bite', (req,res)=>{ 
-  res.sendFile(path.join(__dirname, 'public', 'Eat4bite.html')); 
-});
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
