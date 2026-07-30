@@ -6,7 +6,7 @@ module.exports = (io) => {
   const restaurantRoutes = require('./restaurant')(io);
   const riderRoutes = require('./rider')(io);
   const adminRoutes = require('./admin')(io);
-  const pageRoutes = require('./pages');
+  const pageRoutes = require('./pages')(io); // <-- (io) add kiya
 
   router.use('/', pageRoutes);
   router.use('/api/customer', customerRoutes);
@@ -14,6 +14,5 @@ module.exports = (io) => {
   router.use('/api/rider', riderRoutes);
   router.use('/api/admin', adminRoutes);
   
-  router.get('/', (req, res) => res.send('QuickBite API Running ✅'));
   return router;
 };
