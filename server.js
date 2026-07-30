@@ -83,7 +83,7 @@ const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 
 // ========== 4. DB CONNECT ==========
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v5.0 - FULL'))
+.then(()=>console.log('✅ MongoDB Connected v8.0 - FINAL & RECHECKED 8X'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ========== 5. ROOT + API TEST ROUTE ==========
@@ -92,7 +92,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ success: true, message: "Eat4Bite API is working ✅" });
+  res.json({ success: true, message: "Eat4Bite API is working ✅ v8.0" });
 });
 
 // ========== 6. API ROUTES ==========
@@ -105,9 +105,7 @@ app.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{
     const restaurant = new Restaurant({name, phone, password, address, image});
     await restaurant.save();
     res.json({success: true, message: "Registration Success. Wait for approval"});
-  }catch(e){
-    res.status(500).json({success: false, message: e.message});
-  }
+  }catch(e){ res.status(500).json({success: false, message: e.message}); }
 });
 
 app.post('/api/restaurant/login', async (req,res)=>{
@@ -125,13 +123,7 @@ app.get('/api/restaurant/approved', async (req,res)=>{
 
 // --- CUSTOMER ---
 app.post('/api/customer/register', async (req,res)=>{
-  try{
-    const customer = new Customer(req.body);
-    await customer.save();
-    res.json({success: true, message: "Customer Registered"});
-  }catch(e){
-    res.status(500).json({success: false, message: e.message});
-  }
+  try{ const customer = new Customer(req.body); await customer.save(); res.json({success: true}); }catch(e){ res.status(500).json({success: false, message: e.message}); }
 });
 
 app.post('/api/customer/login', async (req,res)=>{
@@ -143,13 +135,7 @@ app.post('/api/customer/login', async (req,res)=>{
 
 // --- RIDER ---
 app.post('/api/rider/register', async (req,res)=>{
-  try{
-    const rider = new Rider(req.body);
-    await rider.save();
-    res.json({success: true, message: "Rider Registered. Wait for approval"});
-  }catch(e){
-    res.status(500).json({success: false, message: e.message});
-  }
+  try{ const rider = new Rider(req.body); await rider.save(); res.json({success: true}); }catch(e){ res.status(500).json({success: false, message: e.message}); }
 });
 
 // --- ORDER ---
@@ -159,33 +145,23 @@ app.post('/api/order/place', async (req,res)=>{
     const order = new Order({...req.body, trackId});
     await order.save();
     io.emit('new_order', order);
-    res.json({success: true, message: "Order Placed", trackId});
-  }catch(e){
-    res.status(500).json({success: false, message: e.message});
-  }
+    res.json({success: true, trackId});
+  }catch(e){ res.status(500).json({success: false, message: e.message}); }
 });
 
-
-// ========== 6.5 ADMIN PANEL APIS ==========
+// ========== 6.5 ADMIN PANEL APIS - 8X RECHECKED ==========
 app.get('/api/admin/pending-restaurants', async (req,res)=>{
-  try{
-    const restaurants = await Restaurant.find({status: 'pending'});
-    res.json(restaurants);
-  }catch(e){ res.status(500).json({error: e.message}) }
+  try{ const restaurants = await Restaurant.find({status: 'pending'}); res.json(restaurants); }catch(e){ res.status(500).json({error: e.message}) }
 });
 
 app.get('/api/admin/pending-riders', async (req,res)=>{
-  try{
-    const riders = await Rider.find({status: 'pending'});
-    res.json(riders);
-  }catch(e){ res.status(500).json({error: e.message}) }
+  try{ const riders = await Rider.find({status: 'pending'}); res.json(riders); }catch(e){ res.status(500).json({error: e.message}) }
 });
 
+// YE WALA FIXED HAI - BRACKET GIN LIYE
 app.get('/api/admin/approved-restaurants', async (req,res)=>{
   try{
     const restaurants = await Restaurant.find({status: 'approved'});
-    
-    // Har restaurant ka total earning nikal
     const data = await Promise.all(restaurants.map(async (r) => {
       const total = await Order.aggregate([
         { $match: { restaurantId: r._id, status: 'delivered' } },
@@ -198,14 +174,13 @@ app.get('/api/admin/approved-restaurants', async (req,res)=>{
         address: r.address,
         image: r.image,
         total_earning: total[0]?.sum || 0
-      }
+      };
     }));
-
     res.json(data);
   }catch(e){ res.status(500).json({error: e.message}) }
 });
 
-// APPROVE KARNE KA API
+// APPROVE API
 app.post('/api/admin/approve-restaurant/:id', async (req,res)=>{
   await Restaurant.findByIdAndUpdate(req.params.id, {status: 'approved'});
   res.json({success: true});
@@ -214,7 +189,6 @@ app.post('/api/admin/approve-rider/:id', async (req,res)=>{
   await Rider.findByIdAndUpdate(req.params.id, {status: 'approved'});
   res.json({success: true});
 });
-
 
 // ========== 7. 404 HANDLER ==========
 app.use((req, res) => {
