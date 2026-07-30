@@ -9,14 +9,14 @@
     body{background:#f8f9fa}
    .proof-img{width:80px; height:80px; object-fit:cover; cursor:pointer; border-radius:5px; border:1px solid #ddd}
    .navbar-brand{color:#ff4d4d !important; font-weight:bold}
-   .nav-link{cursor:pointer}
+   .nav-link{cursor:pointer; color:#000}
    .nav-link.active{border-bottom: 2px solid #ff4d4d; color:#ff4d4d !important; font-weight:600}
 </style>
 </head>
 <body>
 
 <nav class="navbar bg-dark navbar-dark px-3">
-    <a class="navbar-brand" href="/admin">🍴 Eat4Bite™ ← Back to Admin</a>
+    <a class="navbar-brand" href="/">🍴 Eat4Bite™ Admin</a>
 </nav>
 
 <div class="container mt-4">
@@ -54,16 +54,17 @@
 </div>
 
 <script>
-const API = window.location.origin; // FIX 1: Hosting ke liye
+const API = "/api"; // FIX 1: window.location.origin ki jagah
 let allData = [];
 
 async function loadOwners(){
     try{
-        const res = await fetch(API+'/api/admin/all-restaurants');
+        // FIX 2: /api/admin/all-restaurants -> /api/admin/restaurants
+        const res = await fetch(API+'/admin/restaurants');
         if(!res.ok) throw new Error('API Error: '+res.status);
         allData = await res.json();
         updateCount();
-        filterTable('All', document.querySelector('.nav-link.active')); // FIX 2: Default All
+        filterTable('All', document.querySelector('.nav-link.active'));
     }catch(err){
         console.error(err);
         document.getElementById('ownersTable').innerHTML = `<tr><td colspan="9" class="text-center text-danger">Data load nahi hua: ${err.message}</td></tr>`;
@@ -78,7 +79,7 @@ function updateCount(){
     document.getElementById('countText').innerText = `Total: ${total} | Pending: ${pending} | Approved: ${approved} | Rejected: ${rejected}`;
 }
 
-function filterTable(status, el){ // FIX 3: el add kiya
+function filterTable(status, el){
     document.querySelectorAll('.nav-link').forEach(b=>b.classList.remove('active'));
     if(el) el.classList.add('active');
 
@@ -96,10 +97,11 @@ function filterTable(status, el){ // FIX 3: el add kiya
             <button class="btn btn-sm btn-danger" onclick="rejectOwner('${o._id}')">❌ Reject</button>
         ` : '-';
 
-        let proofLink = o.payment_proof ? `<a href="${o.payment_proof}" target="_blank"><img src="${o.payment_proof}" class="proof-img"></a>` : '-';
+        // FIX 3: field naam server ke hisab se
+        let proofLink = o.payment_proof || o.proof ? `<a href="${o.payment_proof || o.proof}" target="_blank"><img src="${o.payment_proof || o.proof}" class="proof-img"></a>` : '-';
         let restImg = o.image ? `<img src="${o.image}" class="proof-img">` : '-';
         let regDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('hi-IN') : '-';
-        let trialEnd = o.trial_end_date ? new Date(o.trial_end_date).toLocaleDateString('hi-IN') : '-';
+        let trialEnd = o.trialEndDate ? new Date(o.trialEndDate).toLocaleDateString('hi-IN') : '-'; // camelCase
         let badgeColor = o.status=='Approved'?'success':o.status=='Pending'?'warning':'danger';
 
         rows += `
@@ -120,7 +122,8 @@ function filterTable(status, el){ // FIX 3: el add kiya
 
 async function approveOwner(id){
     if(!confirm('Pakka Approve karna hai? 30 Din ka trial start ho jayega.')) return;
-    const res = await fetch(API+`/api/admin/approve-restaurant/${id}`, {method:'PUT'}); 
+    // FIX 4: route name
+    const res = await fetch(API+`/admin/restaurant/${id}/approve`, {method:'PUT'}); 
     const result = await res.json();
     if(result.success){ alert('Restaurant Approved ho gaya!'); loadOwners(); } 
     else { alert('Error: '+result.msg); }
@@ -128,7 +131,8 @@ async function approveOwner(id){
 
 async function rejectOwner(id){
     if(!confirm('Pakka Reject karna hai?')) return;
-    const res = await fetch(API+`/api/admin/reject-restaurant/${id}`, {method:'PUT'});
+    // FIX 4: route name
+    const res = await fetch(API+`/admin/restaurant/${id}/reject`, {method:'PUT'});
     const result = await res.json();
     if(result.success){ alert('Restaurant Reject kar diya'); loadOwners(); } 
     else { alert('Error: '+result.msg); }
