@@ -52,5 +52,5 @@ module.exports = {
   Restaurant: mongoose.model('Restaurant', restaurantSchema),
   Rider: mongoose.model('Rider', riderSchema),
   Order: mongoose.model('Order', orderSchema),
-  MenuItem: mongoose.model('MenuItem', menuSchema)
+  MenuItem: mongoose.model('MenuItem', menuItemSchema) // <- yahi theek kiya
 };
