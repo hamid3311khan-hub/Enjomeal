@@ -3,11 +3,20 @@ const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const path = require('path');
+const cors = require('cors'); // 1. cors add kiya
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
+// 2. Socket.io me CORS allow kiya
+const io = new Server(server, {
+  cors: {
+    origin: "*", // production me apni frontend URL daal dena
+    methods: ["GET", "POST"]
+  }
+});
+
+app.use(cors()); // 3. Express ke liye CORS
 app.use(express.json());
 app.use(express.static('public'));
 
