@@ -45,11 +45,11 @@ const Order = mongoose.model('Order', orderSchema);
 const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 
 // DB
-mongoose.connect(process.env.MONGO_URL).then(()=>console.log('✅ MongoDB Connected v8.6')).catch(err => { console.log('Mongo Error:', err); process.exit(1) });
+mongoose.connect(process.env.MONGO_URL).then(()=>console.log('✅ MongoDB Connected v8.7')).catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // BASIC
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/api', (req, res) => res.json({ success: true, message: "Eat4Bite API v8.6" }));
+app.get('/api', (req, res) => res.json({ success: true, message: "Eat4Bite API v8.7" }));
 
 // RESTAURANT
 app.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{ try{ const {name, phone, password, address, ownerName} = req.body; const image = req.file? `/uploads/${req.file.filename}` : ''; await new Restaurant({name, phone, password, address, ownerName, image}).save(); res.json({success: true}); }catch(e){ res.status(500).json({success: false, message: e.message}); }});
@@ -70,16 +70,15 @@ app.post('/api/rider/register', async (req,res)=>{ try{ await new Rider(req.body
 app.post('/api/order/place', async (req,res)=>{ try{ const trackId = 'E4B' + Date.now(); const order = await new Order({...req.body, trackId}).save(); io.emit('new_order', order); res.json({success: true, trackId}); }catch(e){ res.status(500).json({success: false}); }});
 app.get('/api/track/:trackId', async (req,res)=>{ const o = await Order.findOne({trackId: req.params.trackId}); if(!o) return res.status(404).json({error: "Not found"}); res.json(o); });
 
-// RESTAURANT ORDERS + PAYOUT - FIXED
+// RESTAURANT ORDERS + PAYOUT - AGGREGATE HATA DIYA
 app.get('/api/restaurant/orders/:id', async (req,res)=>{ res.json({orders: await Order.find({restaurantId: req.params.id}).sort({createdAt: -1})}); });
 
 app.get('/api/restaurant/payout/:id', async (req,res)=>{
   try {
-    const total = await Order.aggregate([
-      { $match: { restaurantId: new mongoose.Types.ObjectId(req.params.id), status: 'Delivered' } },
-      { $group: { _id: null, sum: { $sum: "$grand_total" } } // <-- Yaha ] lagaya
-    ]);
-    res.json({payout_due: total[0]?.sum || 0});
+    const orders = await Order.find({ restaurantId: req.params.id, status: 'Delivered' });
+    let total = 0;
+    orders.forEach(o => total += o.grand_total || 0);
+    res.json({payout_due: total});
   } catch(e) {
     res.status(500).json({error: e.message})
   }
