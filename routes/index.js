@@ -2,17 +2,12 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = (io) => {
-  const customerRoutes = require('./customer')(io);
-  const restaurantRoutes = require('./restaurant')(io);
-  const riderRoutes = require('./rider')(io);
-  const adminRoutes = require('./admin')(io);
-  const pageRoutes = require('./pages')(io); // <-- (io) add kiya
-
-  router.use('/', pageRoutes);
-  router.use('/api/customer', customerRoutes);
-  router.use('/api/restaurant', restaurantRoutes);
-  router.use('/api/rider', riderRoutes);
-  router.use('/api/admin', adminRoutes);
+  router.use('/admin', require('./admin')(io));
+  router.use('/customer', require('./customer')(io));
+  router.use('/restaurant', require('./restaurant')(io));
+  router.use('/rider', require('./rider')(io));
+  router.use('/pages', require('./pages')(io));
   
+  router.get('/', (req,res) => res.send("EatBuddha API Running ✅"))
   return router;
-};
+}
