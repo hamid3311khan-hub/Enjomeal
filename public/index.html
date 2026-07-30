@@ -30,7 +30,7 @@ body{font-family:Arial; background:#f5f5f5; margin:0}
     <a href="/restaurant-login.html" class="btn">Restaurant Login</a>
     <a href="/rider-register.html" class="btn">Rider Register</a>
     <a href="/rider-login.html" class="btn">Rider Login</a>
-    <a href="/admin.html" class="btn admin">Admin</a>
+    <a href="/admin-login.html" class="btn admin">Admin</a>
   </div>
 
   <input type="text" class="search" id="search" placeholder="Search restaurants..." onkeyup="searchRestaurants()">
@@ -54,8 +54,8 @@ updateCartCount();
 
 async function loadRestaurants(){
   try{
-    // FIXED: /restaurant/approved -> /restaurant
-    let res = await fetch(`${API}/restaurant`);
+    // FIXED: /restaurant -> /restaurant/approved
+    let res = await fetch(`${API}/restaurant/approved`);
     
     if(!res.ok) throw new Error("API failed: " + res.status);
     
@@ -102,7 +102,7 @@ function searchRestaurants(){
 }
 
 function openMenu(id){
-  window.location = `/menu.html?restaurantId=${id}`;
+  window.location = `/restaurant.html?id=${id}`;
 }
 
 function updateCartCount(){
