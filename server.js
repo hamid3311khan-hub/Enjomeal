@@ -159,7 +159,7 @@ app.get('/api/admin/pending-riders', async (req,res)=>{
 });
 
 // YE WALA FIXED HAI - BRACKET GIN LIYE
-app.get('/api/admin/approved-restaurants', async (req,res)=>{
+app.get('/api/admin-restaurants', async (req,res)=>{
   try{
     const restaurants = await Restaurant.find({status: 'approved'});
     const data = await Promise.all(restaurants.map(async (r) => {
