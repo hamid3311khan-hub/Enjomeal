@@ -176,10 +176,7 @@ app.post('/api/admin/approve-rider/:id', async (req,res)=>{
   res.json({success: true});
 });
 
-// ========== 7. 404 HANDLER ==========
-app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+
 // ADMIN PANEL APIS
 app.get('/api/admin/pending-restaurants', async (req,res)=>{
   try{
@@ -202,6 +199,10 @@ app.get('/api/admin/approved-restaurants', async (req,res)=>{
   }catch(e){ res.status(500).json({error: e.message}) }
 });
 
+// ========== 7. 404 HANDLER ==========
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // ========== 8. SERVER START ==========
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
