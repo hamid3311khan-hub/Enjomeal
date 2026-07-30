@@ -33,9 +33,9 @@ nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:18px
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const API = 'https://quickbite-ymqk.onrender.com';
+const API = '/api'; // FIX 1: Hardcoded URL hatao
 const urlParams = new URLSearchParams(window.location.search);
-const trackId = urlParams.get('id'); 
+const trackId = urlParams.get('trackId'); // FIX 2: id -> trackId
 let orderData;
 let map, riderMarker;
 let lastStatus = "";
@@ -48,7 +48,8 @@ async function loadOrder(){
     }
     
     try{
-        const res = await fetch(`${API}/api/orders/track/${trackId}`);
+        // FIX 3: /orders/track -> /track
+        const res = await fetch(`${API}/track/${trackId}`);
         if(!res.ok) throw new Error("Order not found");
         orderData = await res.json();
         
@@ -72,7 +73,7 @@ async function loadOrder(){
                 <h2>Order: ${orderData.trackId}</h2>
                 <p><b>Name:</b> ${orderData.name}</p>
                 <p><b>Address:</b> ${orderData.address}</p>
-                <p><b>Total:</b> ₹${orderData.total} | <b>Payment:</b> ${orderData.paymentMode || orderData.payment}</p>
+                <p><b>Total:</b> ₹${orderData.grand_total} | <b>Payment:</b> ${orderData.paymentMode}</p> <!-- FIX 4: total -> grand_total -->
                 <p><b>Rider:</b> ${orderData.riderName || 'Assign hone par dikhega'}</p>
                 <p><b>Current Status:</b> <span style="color:green;font-size:18px">${orderData.status}</span></p>
                 
@@ -87,41 +88,36 @@ async function loadOrder(){
             </div>
         `;
         
-        // FIX 1: MAP SIRF TAB JAB LOCATION HO
-        let lat = orderData.riderLat || orderData.custLat;
-        let lng = orderData.riderLng || orderData.custLng;
+        // MAP SIRF TAB JAB LOCATION HO
+        let lat = orderData.riderLat || 23.6357; // Barkagaon default
+        let lng = orderData.riderLng || 85.1920;
         
-        if(lat && lng){
-            if(!map){
-                map = L.map('map').setView([lat, lng], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            }
-            if(riderMarker) map.removeLayer(riderMarker);
-            let popupText = orderData.riderLat ? `🏍️ Rider Live` : `📍 Order Location`;
-            riderMarker = L.marker([lat, lng]).addTo(map).bindPopup(popupText).openPopup();
-            map.setView([lat, lng], 14);
-        } else {
-            document.getElementById('map').innerHTML = "<p style='text-align:center;padding:50px;color:#666'>📍 Location jald hi update hogi</p>"
+        if(!map){
+            map = L.map('map').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         }
+        if(riderMarker) map.removeLayer(riderMarker);
+        let popupText = orderData.riderLat ? `🏍️ Rider Live` : `📍 Default Location`;
+        riderMarker = L.marker([lat, lng]).addTo(map).bindPopup(popupText).openPopup();
         
         // WHATSAPP BUTTON
-        const waNumber = orderData.restaurantPhone || '91XXXXXXXXXX';
+        const waNumber = '91XXXXXXXXXX'; // TODO: restaurant phone save karo order me
         const waLink = `https://wa.me/${waNumber}?text=Order ${orderData.trackId} ke baare me baat karni hai. Status: ${orderData.status}`;
         document.getElementById('waBtn').style.display = 'block';
         document.getElementById('waBtn').onclick = ()=> window.open(waLink, '_blank');
 
-        // FIX 2: SMART REFRESH - Out for Delivery me 5sec, baaki 30sec
+        // SMART REFRESH
         clearInterval(refreshInterval);
         let refreshTime = orderData.status === 'Out for Delivery' ? 5000 : 30000;
         refreshInterval = setInterval(loadOrder, refreshTime);
         
     } catch(e){
-        document.getElementById('orderBox').innerHTML = `<div class="error">Server Error. Refresh karo</div>`;
+        document.getElementById('orderBox').innerHTML = `<div class="alert alert-danger">Server Error. Refresh karo</div>`;
         console.log(e)
     }
 }
 
-loadOrder(); // pehli baar load
+loadOrder();
 </script>
 </body>
 </html>
