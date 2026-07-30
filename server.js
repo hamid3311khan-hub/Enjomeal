@@ -169,6 +169,37 @@ app.post('/api/order/place', async (req,res)=>{
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// ADMIN PANEL APIS
+app.get('/api/admin/pending-restaurants', async (req,res)=>{
+  try{
+    const restaurants = await Restaurant.find({status: 'pending'});
+    res.json(restaurants);
+  }catch(e){ res.status(500).json({error: e.message}) }
+});
+
+app.get('/api/admin/pending-riders', async (req,res)=>{
+  try{
+    const riders = await Rider.find({status: 'pending'});
+    res.json(riders);
+  }catch(e){ res.status(500).json({error: e.message}) }
+});
+
+app.get('/api/admin/approved-restaurants', async (req,res)=>{
+  try{
+    const restaurants = await Restaurant.find({status: 'approved'});
+    res.json(restaurants);
+  }catch(e){ res.status(500).json({error: e.message}) }
+});
+
+// APPROVE KARNE KA API
+app.post('/api/admin/approve-restaurant/:id', async (req,res)=>{
+  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'approved'});
+  res.json({success: true});
+});
+app.post('/api/admin/approve-rider/:id', async (req,res)=>{
+  await Rider.findByIdAndUpdate(req.params.id, {status: 'approved'});
+  res.json({success: true});
+});
 
 // ========== 8. SERVER START ==========
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
