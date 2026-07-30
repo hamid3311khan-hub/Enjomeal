@@ -24,7 +24,7 @@
             <ul class="mb-0 small">
                 <li>Bike + DL + Aadhaar</li>
                 <li>Smartphone with Internet</li>
-                <li>Madhubani me rehte ho</li>
+                <li>Barkagaon me rehte ho</li> <!-- FIXED: Madhubani -> Barkagaon -->
             </ul>
         </div>
 
@@ -36,7 +36,7 @@
                 </div>
                 <div class="col-6 mb-3">
                     <label class="form-label fw-bold">Mobile Number</label>
-                    <input type="tel" name="mobile" class="form-control" pattern="[0-9]{10}" maxlength="10" required>
+                    <input type="tel" name="phone" class="form-control" pattern="[0-9]{10}" maxlength="10" required> <!-- FIX: mobile -> phone -->
                 </div>
             </div>
 
@@ -57,7 +57,7 @@
 
             <div class="mb-3">
                 <label class="form-label fw-bold">Bike Number</label>
-                <input type="text" name="vehicleNo" class="form-control" placeholder="BR32 AB 1234" required>
+                <input type="text" name="vehicle" class="form-control" placeholder="JH12 AB 1234" required> <!-- FIX: vehicleNo -> vehicle -->
             </div>
 
             <div class="mb-3">
@@ -67,19 +67,19 @@
 
             <div class="mb-3">
                 <label class="form-label fw-bold">Upload Aadhaar Photo</label>
-                <input type="file" name="aadhaarProof" class="form-control" accept="image/*" required>
+                <input type="file" name="aadharImg" class="form-control" accept="image/*" required> <!-- FIX: aadhaarProof -> aadharImg -->
             </div>
 
             <button type="submit" id="registerBtn" class="btn w-100 btn-lg fw-bold" style="background:#28a745; color:white;">Apply Now</button>
         </form>
 
         <div id="msg" class="mt-3"></div>
-        <p class="text-center mt-3">Already have an account? <a href="/rider">Login</a></p>
+        <p class="text-center mt-3">Already have an account? <a href="/rider-login.html">Login</a></p> <!-- FIXED -->
     </div>
 </div>
 
 <script>
-const API = window.location.origin;
+const API = "/api"; // FIXED
 
 document.getElementById('riderRegisterForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -87,11 +87,10 @@ document.getElementById('riderRegisterForm').addEventListener('submit', async (e
     btn.disabled = true; btn.innerText = "Submitting...";
 
     const formData = new FormData(e.target);
-    formData.append('status', 'Pending'); // Admin approval ke liye
-    formData.append('cash_balance', 0);
+    formData.append('status', 'pending'); // Admin approval ke liye
 
     try {
-        const res = await fetch(`${API}/api/rider-register`, {
+        const res = await fetch(`${API}/rider/register`, { // FIXED URL
             method: 'POST',
             body: formData
         });
