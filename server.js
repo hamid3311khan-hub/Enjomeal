@@ -165,6 +165,17 @@ app.post('/api/order/place', async (req,res)=>{
   }
 });
 
+
+// APPROVE KARNE KA API
+app.post('/api/admin/approve-restaurant/:id', async (req,res)=>{
+  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'approved'});
+  res.json({success: true});
+});
+app.post('/api/admin/approve-rider/:id', async (req,res)=>{
+  await Rider.findByIdAndUpdate(req.params.id, {status: 'approved'});
+  res.json({success: true});
+});
+
 // ========== 7. 404 HANDLER ==========
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -191,15 +202,6 @@ app.get('/api/admin/approved-restaurants', async (req,res)=>{
   }catch(e){ res.status(500).json({error: e.message}) }
 });
 
-// APPROVE KARNE KA API
-app.post('/api/admin/approve-restaurant/:id', async (req,res)=>{
-  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'approved'});
-  res.json({success: true});
-});
-app.post('/api/admin/approve-rider/:id', async (req,res)=>{
-  await Rider.findByIdAndUpdate(req.params.id, {status: 'approved'});
-  res.json({success: true});
-});
 
 // ========== 8. SERVER START ==========
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
