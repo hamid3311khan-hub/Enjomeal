@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
 <title>Menu - Eat4Bite</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{padding:15px; font-family:Arial; background:#f5f5f5; margin:0}
-.header{display:flex; justify-content:space-between; align-items:center; background:#ff5722; color:#fff; padding:10px; border-radius:8px; position:sticky; top:0}
+.header{display:flex; justify-content:space-between; align-items:center; background:#ff5722; color:#fff; padding:10px; border-radius:8px; position:sticky; top:0; z-index:10}
 .cart-btn{background:#fff; color:#ff5722; padding:8px 15px; border-radius:20px; font-weight:bold; cursor:pointer}
 .item-card{background:#fff; padding:10px; margin:10px 0; border-radius:8px; display:flex; gap:10px; box-shadow:0 1px 3px #ccc}
 .item-card img{width:80px; height:80px; border-radius:8px; object-fit:cover}
@@ -22,42 +22,40 @@ body{padding:15px; font-family:Arial; background:#f5f5f5; margin:0}
 <div id="menu">Loading...</div>
 
 <script>
-const restaurantId = new URLSearchParams(window.location.search).get('restaurantId');
+const API = "/api"; // FIXED
+const urlParams = new URLSearchParams(window.location.search);
+const restaurantId = urlParams.get('restaurantId');
 
-if(!restaurantId) { 
-  document.getElementById('menu').innerHTML = '<p style="color:red">No restaurant selected</p>'; 
+if(!restaurantId) {
+  document.getElementById('menu').innerHTML = '<p style="color:red">No restaurant selected</p>';
 } else {
-  loadMenu(); 
+  loadMenu();
   updateCartCount();
 }
 
 async function loadMenu(){
   try{
-    // FIX 1: Sahi API URL
-    let res = await fetch(`/api/restaurant/menu/${restaurantId}`);
-    let data = await res.json();
-    let items = data.items;
+    let res = await fetch(`${API}/restaurant/menu/${restaurantId}`);
+    let items = await res.json(); // FIX 1: Server direct array bhejta hai
 
-    if(!data.success) throw new Error("API error");
-    if(items.length===0) { 
-      document.getElementById('menu').innerHTML = 'No items in menu. Restaurant se item add karwao'; 
-      return; 
+    if(items.length===0) {
+      document.getElementById('menu').innerHTML = 'No items in menu. Restaurant se item add karwao';
+      return;
     }
 
-    // FIX 2: Shop name ke liye alag API nahi hai, to hata diya. Baad me add karenge
-    document.getElementById('shopName').innerText = 'Menu';
+    document.getElementById('shopName').innerText = 'Menu'; // TODO: restaurant name API add karna padega
 
     document.getElementById('menu').innerHTML = items.map(i=>`
       <div class="item-card">
         <img src="${i.image || 'https://via.placeholder.com/80'}" />
         <div style="flex:1">
           <b>${i.name}</b> - ₹${i.price}<br>
-          <small>${i.desc || ''}</small><br>
-          <button class="btn-add" onclick='addToCart(${JSON.stringify({...i, restaurantId})'>Add</button>
+          <small>${i.description || ''}</small><br> <!-- FIX: desc -> description -->
+          <button class="btn-add" onclick='addToCart(${JSON.stringify({...i, restaurantId})})'>Add</button> <!-- FIX 2: ) band kiya -->
         </div>
       </div>
     `).join('');
-    
+
   }catch(e){
     document.getElementById('menu').innerHTML = '<p style="color:red">Menu load nahi ho pa raha</p>';
     console.error("Menu Load Error:", e);
@@ -75,6 +73,7 @@ function addToCart(item){
   let ex = cart.find(c=>c._id===item._id);
   if(ex) ex.qty++; else {item.qty=1; cart.push(item)}
   localStorage.setItem('cart', JSON.stringify(cart));
+  localStorage.setItem('cart_restaurant', restaurantId); // FIX: restaurant bhi save karo
   updateCartCount();
   alert(item.name+" added to cart");
 }
