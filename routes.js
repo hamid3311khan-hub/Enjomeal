@@ -33,7 +33,7 @@ const Order = mongoose.model('Order', OrderSchema);
 
 // ===== CUSTOMER + ADMIN APIs =====
 router.get('/api/menu', async (req,res)=>{ const {restaurantId} = req.query; let filter = {inStock: true}; if(restaurantId) filter.restaurantId = restaurantId; res.json(await MenuItem.find(filter)) });
-router.post('/api/orders', async (req,res)=>{ try{ const io = req.app.get('io'); const bill=calculateBill(req.body.item_total); const trackId = 'EB' + Date.now(); const order=new Order({...req.body, trackId, ...bill}); await order.save(); sendWhatsApp(order.phone,`Order ${order.trackId} received. Total: ₹${order.grand_total}`); io.emit('newOrder', order); res.json(order); }catch(e){res.status(500).json({error:e.message})} });
+router.post('/api/orders', async (req,res)=>{ try{ const io = req.app.get('io'); const bill=calculateBill(req.body.item_total); const trackId = 'EB' + Date.now(); const order=new Order({...req.body, trackId,...bill}); await order.save(); sendWhatsApp(order.phone,`Order ${order.trackId} received. Total: ₹${order.grand_total}`); io.emit('newOrder', order); res.json(order); }catch(e){res.status(500).json({error:e.message})} });
 router.get('/api/orders', async (req,res)=>{ const {restaurantId, status, riderId} = req.query; let filter = {}; if(restaurantId) filter.restaurantId = restaurantId; if(status) filter.status = status; if(riderId) filter.riderId = riderId; res.json(await Order.find(filter).sort({createdAt:-1})) });
 
 // ===== AUTH APIs =====
@@ -42,30 +42,66 @@ router.post('/api/restaurant/login', async (req,res)=>{
     const {mobile, password} = req.body;
     const restaurant = await RestaurantOwner.findOne({mobile});
     if(!restaurant) return res.status(400).json({success: false, error: "Restaurant not found"});
-    if(restaurant.status !== 'Approved') return res.status(400).json({success: false, error: "Admin se approval pending hai"});
+    if(restaurant.status!== 'Approved') return res.status(400).json({success: false, error: "Admin se approval pending hai"});
     const match = await bcrypt.compare(password, restaurant.password);
     if(!match) return res.status(400).json({success: false, error: "Invalid password"});
     res.json({success:true, restaurantId: restaurant.restaurantId, name: restaurant.restaurantName});
   }catch(e){ res.status(500).json({success: false, error: e.message}) }
 });
 
-router.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{ 
-  try{ 
-    const {restaurantName, ownerName, mobile, email, address, password} = req.body; 
+router.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{
+  try{
+    const {restaurantName, ownerName, mobile, email, address, password} = req.body;
     const exist = await RestaurantOwner.findOne({mobile});
     if(exist) return res.json({success: false, error: "Mobile pehle se registered hai"});
-    const restaurantId = 'RES' + Date.now(); 
-    let imageUrl = null; 
-    if(req.file){ 
-      const result = await new Promise((resolve) => { cloudinary.uploader.upload_stream({folder:"restaurants"}, (err, result) => resolve(result)).end(req.file.buffer); }); 
-      imageUrl = result.secure_url; 
-    } 
-    const hashedPassword = await bcrypt.hash(password, 10); 
-    const trial_end_date = new Date(); trial_end_date.setDate(trial_end_date.getDate() + 30); 
-    const newRestaurant = new RestaurantOwner({ restaurantId, restaurantName, ownerName, mobile, email, address, password: hashedPassword, image: imageUrl, trial_end_date }); 
-    await newRestaurant.save(); 
-    res.json({success:true, message: "Register ho gaya. Approval ka wait karein"}); 
-  }catch(e){ res.status(500).json({success: false, error: e.message}) } 
+    const restaurantId = 'RES' + Date.now();
+    let imageUrl = null;
+    if(req.file){
+      const result = await new Promise((resolve) => { cloudinary.uploader.upload_stream({folder:"restaurants"}, (err, result) => resolve(result)).end(req.file.buffer); });
+      imageUrl = result.secure_url;
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const trial_end_date = new Date(); trial_end_date.setDate(trial_end_date.getDate() + 30);
+    const newRestaurant = new RestaurantOwner({ restaurantId, restaurantName, ownerName, mobile, email, address, password: hashedPassword, image: imageUrl, trial_end_date });
+    await newRestaurant.save();
+    res.json({success:true, message: "Register ho gaya. Approval ka wait karein"});
+  }catch(e){ res.status(500).json({success: false, error: e.message}) }
+});
+
+// ===== RIDER AUTH APIs - NAYA ADD KIYA =====
+router.post('/api/rider/register', upload.fields([{name: 'aadharImg'}, {name: 'dlProof'}]), async (req,res)=>{
+  try{
+    const {name, mobile, email, password, address, vehicleNo} = req.body;
+    const exist = await Rider.findOne({mobile});
+    if(exist) return res.json({success: false, error: "Mobile pehle se registered hai"});
+
+    let aadharUrl = null, dlUrl = null;
+    if(req.files['aadharImg']){
+      const result = await new Promise((resolve) => { cloudinary.uploader.upload_stream({folder:"riders"}, (err, result) => resolve(result)).end(req.files['aadharImg'][0].buffer); });
+      aadharUrl = result.secure_url;
+    }
+    if(req.files['dlProof']){
+      const result = await new Promise((resolve) => { cloudinary.uploader.upload_stream({folder:"riders"}, (err, result) => resolve(result)).end(req.files['dlProof'][0].buffer); });
+      dlUrl = result.secure_url;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newRider = new Rider({ name, mobile, email, password: hashedPassword, address, vehicleNo, aadharImg: aadharUrl, dlProof: dlUrl });
+    await newRider.save();
+    res.json({success:true, message: "Register ho gaya. Approval ka wait karein"});
+  }catch(e){ res.status(500).json({success: false, error: e.message}) }
+});
+
+router.post('/api/rider/login', async (req,res)=>{
+  try{
+    const {mobile, password} = req.body;
+    const rider = await Rider.findOne({mobile});
+    if(!rider) return res.status(400).json({success: false, error: "Rider not found"});
+    if(rider.status!== 'Approved') return res.status(400).json({success: false, error: "Admin se approval pending hai"});
+    const match = await bcrypt.compare(password, rider.password);
+    if(!match) return res.status(400).json({success: false, error: "Invalid password"});
+    res.json({success:true, riderId: rider._id, name: rider.name});
+  }catch(e){ res.status(500).json({success: false, error: e.message}) }
 });
 
 // ===== RESTAURANT DASHBOARD APIs =====
@@ -109,7 +145,7 @@ router.get('/api/restaurant/payout/:restaurantId', async (req,res)=>{
 router.get('/api/admin/pending-restaurants', async (req,res)=>{res.json(await RestaurantOwner.find({status:"Pending"}))});
 router.put('/api/admin/approve-restaurant/:id', async (req,res)=>{await RestaurantOwner.findByIdAndUpdate(req.params.id,{status:"Approved"}); res.json({success:true})});
 
-// ===== HOME PAGE API - NAYA =====
+// ===== HOME PAGE API =====
 router.get('/api/restaurants/approved', async (req,res)=>{
   try{
     const restaurants = await RestaurantOwner.find({status: "Approved"}).select('-password -email');
@@ -123,6 +159,10 @@ router.get('/admin', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'ad
 router.get('/restaurant-dashboard', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-dashboard.html')));
 router.get('/restaurant-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-register.html')));
 router.get('/restaurant-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'restaurant-login.html')));
+
+// ===== RIDER PAGE ROUTES - NAYA ADD KIYA =====
+router.get('/rider-register', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-register.html')));
+router.get('/rider-login', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'rider-login.html')));
 
 module.exports = (io) => {
   io.on('connection', (socket) => {
