@@ -1,35 +1,37 @@
+require('dotenv').config();
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const path = require('path');
-const cors = require('cors'); // 1. cors add kiya
+const fs = require('fs'); 
+const http = require('http');
+const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server, { cors: {origin: "*"} });
+const PORT = process.env.PORT || 10000;
 
-// 2. Socket.io me CORS allow kiya
-const io = new Server(server, {
-  cors: {
-    origin: "*", // production me apni frontend URL daal dena
-    methods: ["GET", "POST"]
-  }
-});
+// Upload folder
+if (!fs.existsSync('./uploads')){ fs.mkdirSync('./uploads'); }
 
-app.use(cors()); // 3. Express ke liye CORS
-app.use(express.json());
-app.use(express.static('public'));
+// Middleware
+app.use(cors({origin: "*"}));
+app.use(express.json({limit: '50mb'}));
+app.use(express.urlencoded({limit: '50mb', extended: true}));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static('uploads'));
 
-// DB Connect
-mongoose.connect(process.env.MONGO_URL)
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.log(err));
-
-// Socket.io ko routes me bhejne ke liye
+// Socket ko global set kiya
 app.set('io', io);
 
-// Routes
-app.use('/', require('./routes/index')(io));
+// DB CONNECT
+mongoose.connect(process.env.MONGO_URL)
+.then(()=>console.log('✅ MongoDB Connected v4.0 - FIXED'))
+.catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
-const PORT = process.env.PORT || 10000;
+// ROUTES ALAG FILE SE
+const routes = require('./routes');
+app.use('/api', routes(io));
+
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
