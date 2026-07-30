@@ -1,15 +1,19 @@
 const express = require('express');
 const router = express.Router();
 
-router.use('/', require('./customer'));
-router.use('/', require('./restaurant'));
-router.use('/', require('./rider'));
-router.use('/', require('./admin'));
-router.use('/', require('./pages'));
-
 module.exports = (io) => {
-  io.on('connection', (socket) => {
-    socket.on('joinOrderRoom', (trackId) => { socket.join(trackId); });
-  });
+  const customerRoutes = require('./customer')(io);
+  const restaurantRoutes = require('./restaurant')(io);
+  const riderRoutes = require('./rider')(io);
+  const adminRoutes = require('./admin')(io);
+  const pageRoutes = require('./pages');
+
+  router.use('/', pageRoutes);
+  router.use('/api/customer', customerRoutes);
+  router.use('/api/restaurant', restaurantRoutes);
+  router.use('/api/rider', riderRoutes);
+  router.use('/api/admin', adminRoutes);
+  
+  router.get('/', (req, res) => res.send('QuickBite API Running ✅'));
   return router;
-}
+};
