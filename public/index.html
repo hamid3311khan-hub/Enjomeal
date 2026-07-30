@@ -54,13 +54,12 @@ updateCartCount();
 
 async function loadRestaurants(){
   try{
-    // YE 2 LINE CHANGE KI HAI
-    let res = await fetch(`${API}/restaurants/approved`);
-    let data = await res.json();
+    // FIXED: restaurants -> restaurant
+    let res = await fetch(`${API}/restaurant/approved`);
     
-    if(!data.success) throw new Error("API failed");
+    if(!res.ok) throw new Error("API failed: " + res.status);
     
-    let shops = data.restaurants; // backend se {success: true, restaurants: []} aata hai
+    let shops = await res.json(); // FIXED: direct array
     
     if(shops.length === 0){
       document.getElementById('restaurantList').innerHTML = `
@@ -74,10 +73,10 @@ async function loadRestaurants(){
     }
 
     document.getElementById('restaurantList').innerHTML = shops.map(s => `
-      <div class="restaurant-card" onclick="openMenu('${s.restaurantId}')">
+      <div class="restaurant-card" onclick="openMenu('${s._id}')"> <!-- FIXED: _id -->
         <img src="${s.image || 'https://via.placeholder.com/90/CCCCCC/FFFFFF?text=Shop'}" alt="">
         <div>
-          <h3>${s.restaurantName}</h3>
+          <h3>${s.name}</h3> <!-- FIXED: name -->
           <p>📍 ${s.address}</p>
           <p>⭐ 4.5 | 30-40 min Delivery</p>
         </div>
