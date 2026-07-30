@@ -64,12 +64,12 @@ const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 
 // ========== 4. DB CONNECT ==========
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v9.4 FINAL'))
+.then(()=>console.log('✅ MongoDB Connected v9.5 FINAL'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ========== 5. ROUTES ==========
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/api', (req, res) => res.json({ success: true, message: "Eat4Bite API v9.4 Working ✅" }));
+app.get('/api', (req, res) => res.json({ success: true, message: "Eat4Bite API v9.5 Working ✅" }));
 
 // --- RESTAURANT ---
 app.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{
@@ -148,7 +148,7 @@ app.post('/api/order/place', async (req,res)=>{
   }catch(e){ res.status(500).json({success: false, message: e.message}); }
 });
 
-// ========== 6. ADMIN PANEL APIS - HTML KE HISAB SE MAPPED ==========
+// ========== 6. ADMIN PANEL APIS ==========
 app.get('/api/admin/pending-restaurants', async (req,res)=>{
   try{
     const restaurants = await Restaurant.find({status: 'pending'});
@@ -175,7 +175,7 @@ app.get('/api/admin-restaurants', async (req,res)=>{
     const data = await Promise.all(restaurants.map(async (r) => {
       const total = await Order.aggregate([
         { $match: { restaurantId: r._id, status: 'delivered' } },
-        { $group: { _id: null, sum: { $sum: "$grand_total" } } }
+        { $group: { _id: null, sum: { $sum: "$grand_total" } }
       ]);
       return {
         restaurantId: r._id, restaurantName: r.name, payout_due: total[0]?.sum || 0
@@ -185,18 +185,22 @@ app.get('/api/admin-restaurants', async (req,res)=>{
   }catch(e){ res.status(500).json({error: e.message}) }
 });
 
-// APPROVE / REJECT / PAYOUT
+// APPROVE / REJECT / PAYOUT - BRACKET FIXED
 app.post('/api/admin/approve-restaurant/:id', async (req,res)=>{
   await Restaurant.findByIdAndUpdate(req.params.id, {status: 'approved'});
   res.json({success: true});
-});
+}); // <- FIXED
+
 app.post('/api/admin/approve-rider/:id', async (req,res)=>{
   await Rider.findByIdAndUpdate(req.params.id, {status: 'approved'});
   res.json({success: true});
+}); // <- FIXED
+
 app.post('/api/admin/reject-restaurant', async (req,res)=>{
   await Restaurant.findByIdAndDelete(req.body.restaurantId);
   res.json({success: true});
 });
+
 app.post('/api/admin/pay-payout', async (req,res)=>{
   console.log(`Paid ₹${req.body.amount} to ${req.body.restaurantId}`);
   res.json({success: true, message: "Payout Marked as Paid"});
