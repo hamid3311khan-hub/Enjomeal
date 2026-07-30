@@ -10,26 +10,26 @@ function calculateBill(item_total) {
   return {item_total, commission_10, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total - commission_10};
 }
 
-router.get('/api/menu', async (req,res)=>{
+router.get('/menu', async (req,res)=>{
   const {restaurantId} = req.query;
   let filter = {inStock: true};
   if(restaurantId) filter.restaurantId = restaurantId;
   res.json(await MenuItem.find(filter))
 });
 
-router.post('/api/orders', async (req,res)=>{
+router.post('/orders', async (req,res)=>{
   try{
     const io = req.app.get('io');
     const bill=calculateBill(req.body.item_total);
     const trackId = 'EB' + Date.now();
-    const order=new Order({...req.body, trackId,...bill});
+    const order=new Order({...req.body, trackId,...bill, status: 'pending'});
     await order.save();
     io.emit('newOrder', order);
     res.json(order);
   }catch(e){res.status(500).json({error:e.message})}
 });
 
-router.get('/api/orders', async (req,res)=>{
+router.get('/orders', async (req,res)=>{
   const {restaurantId, status, riderId} = req.query;
   let filter = {};
   if(restaurantId) filter.restaurantId = restaurantId;
