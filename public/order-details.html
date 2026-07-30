@@ -33,9 +33,9 @@ nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:18px
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const API = '/api'; // FIX 1: Hardcoded URL hatao
+const API = '/api';
 const urlParams = new URLSearchParams(window.location.search);
-const trackId = urlParams.get('trackId'); // FIX 2: id -> trackId
+const trackId = urlParams.get('trackId');
 let orderData;
 let map, riderMarker;
 let lastStatus = "";
@@ -48,7 +48,6 @@ async function loadOrder(){
     }
     
     try{
-        // FIX 3: /orders/track -> /track
         const res = await fetch(`${API}/track/${trackId}`);
         if(!res.ok) throw new Error("Order not found");
         orderData = await res.json();
@@ -73,7 +72,7 @@ async function loadOrder(){
                 <h2>Order: ${orderData.trackId}</h2>
                 <p><b>Name:</b> ${orderData.name}</p>
                 <p><b>Address:</b> ${orderData.address}</p>
-                <p><b>Total:</b> ₹${orderData.grand_total} | <b>Payment:</b> ${orderData.paymentMode}</p> <!-- FIX 4: total -> grand_total -->
+                <p><b>Total:</b> ₹${orderData.grand_total} | <b>Payment:</b> ${orderData.paymentMode}</p>
                 <p><b>Rider:</b> ${orderData.riderName || 'Assign hone par dikhega'}</p>
                 <p><b>Current Status:</b> <span style="color:green;font-size:18px">${orderData.status}</span></p>
                 
@@ -88,7 +87,7 @@ async function loadOrder(){
             </div>
         `;
         
-        // MAP SIRF TAB JAB LOCATION HO
+        // MAP
         let lat = orderData.riderLat || 23.6357; // Barkagaon default
         let lng = orderData.riderLng || 85.1920;
         
@@ -100,8 +99,8 @@ async function loadOrder(){
         let popupText = orderData.riderLat ? `🏍️ Rider Live` : `📍 Default Location`;
         riderMarker = L.marker([lat, lng]).addTo(map).bindPopup(popupText).openPopup();
         
-        // WHATSAPP BUTTON
-        const waNumber = '91XXXXXXXXXX'; // TODO: restaurant phone save karo order me
+        // WHATSAPP BUTTON - FIX: restaurant ka number use karo
+        const waNumber = orderData.restaurantPhone || '91XXXXXXXXXX'; // TODO: order me restaurantPhone save karo
         const waLink = `https://wa.me/${waNumber}?text=Order ${orderData.trackId} ke baare me baat karni hai. Status: ${orderData.status}`;
         document.getElementById('waBtn').style.display = 'block';
         document.getElementById('waBtn').onclick = ()=> window.open(waLink, '_blank');
@@ -109,10 +108,12 @@ async function loadOrder(){
         // SMART REFRESH
         clearInterval(refreshInterval);
         let refreshTime = orderData.status === 'Out for Delivery' ? 5000 : 30000;
-        refreshInterval = setInterval(loadOrder, refreshTime);
+        if(orderData.status !== 'Delivered') {
+          refreshInterval = setInterval(loadOrder, refreshTime);
+        }
         
     } catch(e){
-        document.getElementById('orderBox').innerHTML = `<div class="alert alert-danger">Server Error. Refresh karo</div>`;
+        document.getElementById('orderBox').innerHTML = `<div class="error">Server Error. Refresh karo</div>`; // FIX
         console.log(e)
     }
 }
