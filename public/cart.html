@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
 <title>Cart - Eat4Bite</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{font-family:Arial; background:#f5f5f5; padding:10px}
-.header{background:#4caf50; color:#fff; padding:15px; border-radius:8px}
+body{font-family:Arial; background:#f5f5f5; padding:10px; margin:0}
+.header{background:#4caf50; color:#fff; padding:15px; border-radius:8px; display:flex; justify-content:space-between}
 .box{background:#fff; padding:15px; margin:10px 0; border-radius:8px}
 .item{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee}
-input,textarea{width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:5px}
+input,textarea,select{width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:5px; box-sizing:border-box}
 .btn{width:100%; padding:15px; background:#ff9800; color:#fff; border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer}
 .total-row{display:flex; justify-content:space-between; padding:5px 0}
 .total{font-size:20px; font-weight:bold; text-align:right; border-top:2px solid #4caf50; padding-top:10px; margin-top:10px}
@@ -30,25 +30,28 @@ input,textarea{width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; bo
 
 <div class="box">
   <h3>Delivery Details</h3>
-  <input type="text" id="name" placeholder="Your Name">
-  <input type="tel" id="phone" placeholder="Phone Number">
-  <textarea id="address" placeholder="Full Delivery Address"></textarea>
-  <select id="payment" style="width:100%; padding:10px">
+  <input type="text" id="name" placeholder="Your Name" required>
+  <input type="tel" id="phone" placeholder="10 Digit Mobile" pattern="[0-9]{10}" required>
+  <textarea id="address" placeholder="Full Delivery Address with Landmark" rows="2" required></textarea>
+  <select id="paymentMode"> <!-- FIX: name change -->
     <option value="COD">Cash on Delivery</option>
     <option value="Online">Pay Online</option>
   </select>
 </div>
 
-<button class="btn" onclick="placeOrder()">Place Order</button>
+<button class="btn" id="orderBtn" onclick="placeOrder()">Place Order</button>
+<div id="msg"></div>
 
 <script>
 const API = "/api";
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
+const restaurantId = localStorage.getItem('cart_restaurant'); // FIX: restaurant save
 loadCart();
 
 function loadCart(){
   if(cart.length === 0){
     document.getElementById('cartItems').innerHTML = "Your cart is empty";
+    document.getElementById('orderBtn').disabled = true;
     return;
   }
   
@@ -69,19 +72,19 @@ function loadCart(){
     `
   }).join('');
   
-  // BILL CALCULATION - SERVER KE HISAB SE
+  // BILL CALCULATION
   let commission_10 = Math.round(item_total * 0.10);
   let platform_fee = 10;
   let delivery_fee = 40;
   let grand_total = item_total + commission_10 + platform_fee + delivery_fee;
   
-  billDetails.innerHTML = `
+  document.getElementById('billDetails').innerHTML = `
     <div class="total-row"><span>Item Total</span><span>₹${item_total}</span></div>
     <div class="total-row"><span>Commission 10%</span><span>₹${commission_10}</span></div>
     <div class="total-row"><span>Platform Fee</span><span>₹${platform_fee}</span></div>
     <div class="total-row"><span>Delivery Fee</span><span>₹${delivery_fee}</span></div>
   `;
-  grandTotal.innerText = grand_total;
+  document.getElementById('grandTotal').innerText = grand_total;
 }
 
 function removeItem(index){
@@ -93,33 +96,59 @@ function removeItem(index){
 async function placeOrder(){
   if(cart.length === 0) return alert("Cart is empty");
   
+  const btn = document.getElementById('orderBtn');
+  btn.disabled = true; btn.innerText = "Placing Order...";
+  
   let item_total = cart.reduce((sum,i)=>sum + i.price * i.qty, 0);
+  let commission_10 = Math.round(item_total * 0.10);
+  let platform_fee = 10;
+  let delivery_fee = 40;
+  let grand_total = item_total + commission_10 + platform_fee + delivery_fee;
+  
+  // FIX: My Orders ke liye phone save karo
+  localStorage.setItem('userPhone', document.getElementById('phone').value);
   
   let orderData = {
-    name: name.value,
-    phone: phone.value,
-    address: address.value,
-    paymentMode: payment.value,
+    name: document.getElementById('name').value,
+    phone: document.getElementById('phone').value,
+    address: document.getElementById('address').value,
+    paymentMode: document.getElementById('paymentMode').value, // FIX
     items: cart,
-    item_total: item_total, // FIX: YE BHEJNA HAI
-    restaurantId: cart[0].restaurantId,
+    item_total: item_total,
+    grand_total: grand_total, // FIX: ye zaroori hai
+    restaurantId: restaurantId,
     custLat: 0, // abhi ke liye 0
     custLng: 0
   }
   
-  if(!orderData.name || !orderData.phone || !orderData.address) return alert("Fill all details");
-  
-  let res = await fetch(`${API}/orders`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(orderData)
-  });
-  
-  let data = await res.json();
-  if(res.ok){
-    localStorage.removeItem('cart');
-    alert("Order Placed! ID: " + data.trackId);
-    window.location = `/track.html?trackId=${data.trackId}`;
-  } else {
-    alert("Order Failed: " + data.error);
+  if(!orderData.name || !orderData.phone || !orderData.address) {
+    alert("Fill all details");
+    btn.disabled = false; btn.innerText = "Place Order";
+    return;
   }
+  
+  try{
+    // FIX: /orders -> /order/place
+    let res = await fetch(`${API}/order/place`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(orderData)
+    });
+    
+    let data = await res.json();
+    if(data.success){
+      localStorage.removeItem('cart');
+      localStorage.removeItem('cart_restaurant');
+      alert("✅ Order Placed! ID: " + data.trackId);
+      window.location = `/track.html?trackId=${data.trackId}`;
+    } else {
+      document.getElementById('msg').innerHTML = `<p style="color:red">Order Failed: ${data.error}</p>`;
+    }
+  }catch(e){
+    document.getElementById('msg').innerHTML = `<p style="color:red">Server Error</p>`;
+  }
+  btn.disabled = false; btn.innerText = "Place Order";
+}
+</script>
+</body>
+</html>
