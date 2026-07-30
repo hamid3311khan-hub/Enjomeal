@@ -1,43 +1,29 @@
 const express = require('express');
-const { MenuItem, Order } = require('../models');
-
-function calculateBill(item_total) {
-  const commission_10 = Math.round(item_total * 0.10);
-  const platform_fee = 10;
-  const delivery_fee = 40;
-  const grand_total = item_total + commission_10 + platform_fee + delivery_fee;
-  return {item_total, commission_10, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total - commission_10};
-}
+const router = express.Router();
+const bcrypt = require('bcryptjs');
+const { Restaurant } = require('../models');
 
 module.exports = (io) => {
-  const router = express.Router();
-
-  router.get('/menu', async (req,res)=>{
-    const {restaurantId} = req.query;
-    let filter = {inStock: true};
-    if(restaurantId) filter.restaurantId = restaurantId;
-    res.json(await MenuItem.find(filter))
+  router.get('/approved', async (req, res) => {
+    const restaurants = await Restaurant.find({}); 
+    res.json(restaurants);
   });
 
-  router.post('/orders', async (req,res)=>{
-    try{
-      const bill=calculateBill(req.body.item_total);
-      const trackId = 'EB' + Date.now();
-      const order=new Order({...req.body, trackId,...bill, status: 'pending'});
-      await order.save();
-      io.emit('newOrder', order);
-      res.json(order);
-    }catch(e){res.status(500).json({error:e.message})}
+  router.post('/register', async (req, res) => {
+    const { name, phone, password, address, image } = req.body;
+    const hash = await bcrypt.hash(password, 10);
+    await Restaurant.create({ name, phone, password: hash, address, image });
+    res.json({ message: "Restaurant Registered ✅" });
   });
 
-  router.get('/orders', async (req,res)=>{
-    const {restaurantId, status, riderId} = req.query;
-    let filter = {};
-    if(restaurantId) filter.restaurantId = restaurantId;
-    if(status) filter.status = status;
-    if(riderId) filter.riderId = riderId;
-    res.json(await Order.find(filter).sort({createdAt:-1}))
+  router.post('/login', async (req, res) => {
+    const { phone, password } = req.body;
+    const restaurant = await Restaurant.findOne({ phone });
+    if(!restaurant) return res.status(400).json({ error: "User not found" });
+    const match = await bcrypt.compare(password, restaurant.password);
+    if(!match) return res.status(400).json({ error: "Invalid password" });
+    res.json({ message: "Login Success ✅", restaurantId: restaurant._id, name: restaurant.name });
   });
 
   return router;
-};
+}
