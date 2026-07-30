@@ -148,7 +148,34 @@ app.post('/api/order/place', async (req,res)=>{
     res.json({success: true, trackId});
   }catch(e){ res.status(500).json({success: false, message: e.message}); }
 });
+// --- MENU MANAGEMENT ---
+app.post('/api/restaurant/menu', upload.single('image'), async (req,res)=>{
+  try{
+    const {restaurantId, name, price, description, category} = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : '';
+    const item = new MenuItem({restaurantId, name, price, image, description, category});
+    await item.save();
+    res.json({success: true});
+  }catch(e){ res.status(500).json({success: false, error: e.message}); }
+});
 
+app.delete('/api/restaurant/menu/:id', async (req,res)=>{
+  await MenuItem.findByIdAndDelete(req.params.id);
+  res.json({success: true});
+});
+
+// --- RESTAURANT ORDERS + PAYOUT ---
+app.get('/api/restaurant/orders/:id', async (req,res)=>{
+  const orders = await Order.find({restaurantId: req.params.id}).sort({createdAt: -1});
+  res.json({orders});
+});
+
+app.get('/api/restaurant/payout/:id', async (req,res)=>{
+  const total = await Order.aggregate([
+    { $match: { restaurantId: new mongoose.Types.ObjectId(req.params.id), status: 'delivered' } },
+    { $group: { _id: null, sum: { $sum: "$grand_total" } }
+  ]);
+  res.json({payout_due: total[0]?.sum || 0});
 // ========== 6.5 ADMIN PANEL APIS - 8X RECHECKED ==========
 app.get('/api/admin/pending-restaurants', async (req,res)=>{
   try{ const restaurants = await Restaurant.find({status: 'pending'}); res.json(restaurants); }catch(e){ res.status(500).json({error: e.message}) }
