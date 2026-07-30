@@ -158,7 +158,7 @@ app.post('/api/order/place', async (req,res)=>{
     const trackId = 'E4B' + Date.now();
     const order = new Order({...req.body, trackId});
     await order.save();
-    io.emit('new_order', order); // socket
+    io.emit('new_order', order);
     res.json({success: true, message: "Order Placed", trackId});
   }catch(e){
     res.status(500).json({success: false, message: e.message});
@@ -166,18 +166,7 @@ app.post('/api/order/place', async (req,res)=>{
 });
 
 
-// APPROVE KARNE KA API
-app.post('/api/admin/approve-restaurant/:id', async (req,res)=>{
-  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'approved'});
-  res.json({success: true});
-});
-app.post('/api/admin/approve-rider/:id', async (req,res)=>{
-  await Rider.findByIdAndUpdate(req.params.id, {status: 'approved'});
-  res.json({success: true});
-});
-
-
-// ADMIN PANEL APIS
+// ========== 6.5 ADMIN PANEL APIS ==========
 app.get('/api/admin/pending-restaurants', async (req,res)=>{
   try{
     const restaurants = await Restaurant.find({status: 'pending'});
@@ -195,9 +184,37 @@ app.get('/api/admin/pending-riders', async (req,res)=>{
 app.get('/api/admin/approved-restaurants', async (req,res)=>{
   try{
     const restaurants = await Restaurant.find({status: 'approved'});
-    res.json(restaurants);
+    
+    // Har restaurant ka total earning nikal
+    const data = await Promise.all(restaurants.map(async (r) => {
+      const total = await Order.aggregate([
+        { $match: { restaurantId: r._id, status: 'delivered' } },
+        { $group: { _id: null, sum: { $sum: "$grand_total" } } }
+      ]);
+      return {
+        _id: r._id,
+        name: r.name,
+        phone: r.phone,
+        address: r.address,
+        image: r.image,
+        total_earning: total[0]?.sum || 0
+      }
+    }));
+
+    res.json(data);
   }catch(e){ res.status(500).json({error: e.message}) }
 });
+
+// APPROVE KARNE KA API
+app.post('/api/admin/approve-restaurant/:id', async (req,res)=>{
+  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'approved'});
+  res.json({success: true});
+});
+app.post('/api/admin/approve-rider/:id', async (req,res)=>{
+  await Rider.findByIdAndUpdate(req.params.id, {status: 'approved'});
+  res.json({success: true});
+});
+
 
 // ========== 7. 404 HANDLER ==========
 app.use((req, res) => {
