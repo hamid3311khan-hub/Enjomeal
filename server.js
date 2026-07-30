@@ -197,5 +197,3 @@ app.use((req, res) => {
 
 // ========== 8. SERVER START ==========
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-Check kr isme mongo ni hai
