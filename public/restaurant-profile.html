@@ -18,7 +18,7 @@
 <nav class="navbar px-3">
     <a class="navbar-brand">🍴 <span id="shopName">My Restaurant</span></a>
     <div>
-        <a href="/restaurant-dashboard" class="btn btn-light btn-sm">Dashboard</a>
+        <a href="/restaurant-dashboard.html" class="btn btn-light btn-sm">Dashboard</a>
         <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
     </div>
 </nav>
@@ -32,14 +32,7 @@
                 <div class="text-center">
                     <img id="profilePic" src="https://via.placeholder.com/120/ff6600/ffffff" class="profile-img mb-2">
                 </div>
-                <form id="profileForm" enctype="multipart/form-data">
-                    <input type="text" name="restaurantName" id="restaurantName" class="form-control mb-2" placeholder="Restaurant Name" required>
-                    <textarea name="address" id="address" class="form-control mb-2" placeholder="Address" rows="2" required></textarea>
-                    <label class="small">Change Photo</label>
-                    <input type="file" name="image" class="form-control mb-2" accept="image/*">
-                    <button class="btn btn-warning w-100">Update Profile</button>
-                </form>
-                <div id="profileMsg" class="mt-2"></div>
+                <p><b>Note:</b> Profile update ke liye abhi Admin se contact karein. Ye feature jald aayega.</p>
             </div>
         </div>
 
@@ -52,7 +45,8 @@
                         <div class="col-8"><input type="text" name="name" class="form-control" placeholder="Item Name" required></div>
                         <div class="col-4"><input type="number" name="price" class="form-control" placeholder="Price" required></div>
                     </div>
-                    <textarea name="desc" class="form-control mt-2" placeholder="Description" rows="2"></textarea>
+                    <textarea name="description" class="form-control mt-2" placeholder="Description" rows="2"></textarea> <!-- FIX: desc -> description -->
+                    <select name="category" class="form-control mt-2"><option>Veg</option><option>Non-Veg</option><option>Beverages</option></select>
                     <input type="file" name="image" class="form-control mt-2" accept="image/*">
                     <button class="btn btn-success w-100 mt-2">Add Item</button>
                 </form>
@@ -68,38 +62,21 @@
 </div>
 
 <script>
-const API = window.location.origin;
+const API = "/api"; // FIXED
 const restaurantId = localStorage.getItem('restaurantId');
-const restaurantData = JSON.parse(localStorage.getItem('restaurantOwner') || '{}');
+const restaurantName = localStorage.getItem('restaurantName');
 
-if(!restaurantId) window.location.href = '/restaurant-login';
+if(!restaurantId) window.location.href = '/restaurant-login.html';
 
-document.getElementById('shopName').innerText = restaurantData.restaurantName;
-document.getElementById('restaurantName').value = restaurantData.restaurantName;
-document.getElementById('address').value = restaurantData.address;
-document.getElementById('profilePic').src = restaurantData.image || 'https://via.placeholder.com/120/ff6600/ffffff';
-
+document.getElementById('shopName').innerText = restaurantName;
 loadMenu();
 
-// 1. UPDATE PROFILE
-document.getElementById('profileForm').addEventListener('submit', async(e)=>{
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    formData.append('restaurantId', restaurantId);
-    const res = await fetch(`${API}/api/restaurant-update`, {method:'POST', body:formData});
-    const result = await res.json();
-    document.getElementById('profileMsg').innerHTML = result.success? 
-        `<div class="alert alert-success">✅ Updated!</div>` : 
-        `<div class="alert alert-danger">❌ ${result.error}</div>`;
-    if(result.success) localStorage.setItem('restaurantOwner', JSON.stringify(result.owner));
-});
-
-// 2. ADD MENU ITEM
+// 1. ADD MENU ITEM - FIXED API
 document.getElementById('addItemForm').addEventListener('submit', async(e)=>{
     e.preventDefault();
     const formData = new FormData(e.target);
     formData.append('restaurantId', restaurantId);
-    const res = await fetch(`${API}/api/menu-add`, {method:'POST', body:formData});
+    const res = await fetch(`${API}/restaurant/menu`, {method:'POST', body:formData}); // FIXED
     const result = await res.json();
     document.getElementById('itemMsg').innerHTML = result.success? 
         `<div class="alert alert-success">✅ Item Added!</div>` : 
@@ -107,9 +84,9 @@ document.getElementById('addItemForm').addEventListener('submit', async(e)=>{
     if(result.success){ e.target.reset(); loadMenu(); }
 });
 
-// 3. LOAD MENU
+// 2. LOAD MENU - FIXED API
 async function loadMenu(){
-    const res = await fetch(`${API}/api/menu/${restaurantId}`);
+    const res = await fetch(`${API}/restaurant/menu/${restaurantId}`); // FIXED
     const items = await res.json();
     if(items.length === 0) return document.getElementById('menuList').innerHTML = '<p class="text-muted">Koi item nahi hai</p>';
     document.getElementById('menuList').innerHTML = items.map(item=>`
@@ -118,7 +95,7 @@ async function loadMenu(){
                 <img src="${item.image}" width="60" height="60" style="object-fit:cover; border-radius:8px">
                 <div class="ms-2 flex-grow-1">
                     <h6 class="mb-0">${item.name} - ₹${item.price}</h6>
-                    <small class="text-muted">${item.desc}</small>
+                    <small class="text-muted">${item.description || ''}</small> <!-- FIXED -->
                 </div>
                 <button class="btn btn-danger btn-sm" onclick="deleteItem('${item._id}')">Delete</button>
             </div>
@@ -128,13 +105,13 @@ async function loadMenu(){
 
 async function deleteItem(id){
     if(!confirm('Delete this item?')) return;
-    await fetch(`${API}/api/menu-delete/${id}`, {method:'DELETE'});
+    await fetch(`${API}/restaurant/menu/${id}`, {method:'DELETE'}); // FIXED
     loadMenu();
 }
 
 function logout(){ 
     localStorage.clear(); 
-    window.location.href = '/restaurant-login'; 
+    window.location.href = '/restaurant-login.html'; 
 }
 </script>
 </body>
