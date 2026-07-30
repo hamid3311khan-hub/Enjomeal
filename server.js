@@ -22,16 +22,19 @@ app.use(express.urlencoded({limit: '50mb', extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static('uploads'));
 
-// YE LINE ADD KI HAI - BAHUT IMPORTANT HAI
+// Socket.io ko har route me bhejne ke liye
 app.set('io', io);
 
 // DB CONNECT
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v4.0 - FIXED'))
+.then(()=>console.log('✅ MongoDB Connected v5.0 - Modular'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
-// ROUTES ALAG FILE SE
-const routes = require('./routes');
-app.use('/', routes(io));
+// ===== YAHI 1 LINE CHANGE HUI HAI =====
+// Ab routes folder ke index.js se sab load hoga
+app.use('/', require('./routes/index')(io));
+
+// 404 agar koi page na mile
+app.use((req,res)=> res.status(404).send("Page Not Found"));
 
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
