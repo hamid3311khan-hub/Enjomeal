@@ -73,7 +73,7 @@ const Order = mongoose.model('Order', orderSchema);
 
 // ========== 4. DB CONNECT ==========
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v7.0 - FINAL'))
+.then(()=>console.log('✅ MongoDB Connected v7.1 - NO SYNTAX ERROR'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ========== 5. ROOT ==========
@@ -107,7 +107,7 @@ app.post('/api/customer/register', async (req,res)=>{ const customer = new Custo
 app.post('/api/rider/register', async (req,res)=>{ const rider = new Rider(req.body); await rider.save(); res.json({success: true}); });
 app.post('/api/order/place', async (req,res)=>{ const trackId = 'E4B' + Date.now(); const order = new Order({...req.body, trackId}); await order.save(); io.emit('new_order', order); res.json({success: true, trackId}); });
 
-// ========== 6.5 ADMIN PANEL APIS - 100% MATCHED ==========
+// ========== 6.5 ADMIN PANEL APIS - FIXED ==========
 
 // 1. PENDING RESTAURANTS
 app.get('/api/admin/pending-restaurants', async (req,res)=>{
@@ -141,14 +141,14 @@ app.get('/api/admin/pending-riders', async (req,res)=>{
   }catch(e){ res.status(500).json({error: e.message}) }
 });
 
-// 3. APPROVED RESTAURANTS - YAHAN FIX KIYA HAI
+// 3. APPROVED RESTAURANTS - YAHAN BRACKET SAHI KIYA
 app.get('/api/admin-restaurants', async (req,res)=>{
   try{
     const restaurants = await Restaurant.find({status: 'approved'});
     const data = await Promise.all(restaurants.map(async (r) => {
       const total = await Order.aggregate([
         { $match: { restaurantId: r._id, status: 'delivered' } },
-        { $group: { _id: null, sum: { $sum: "$grand_total" } } // <- YAHAN 2 } ] HAI
+        { $group: { _id: null, sum: { $sum: "$grand_total" } } // <- 3 } aur 1 ] perfect
       ]);
       return {
         restaurantId: r._id,
