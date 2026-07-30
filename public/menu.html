@@ -4,10 +4,10 @@
 <title>Menu - Eat4Bite</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{padding:15px; font-family:Arial; background:#f5f5f5}
+body{padding:15px; font-family:Arial; background:#f5f5f5; margin:0}
 .header{display:flex; justify-content:space-between; align-items:center; background:#ff5722; color:#fff; padding:10px; border-radius:8px; position:sticky; top:0}
 .cart-btn{background:#fff; color:#ff5722; padding:8px 15px; border-radius:20px; font-weight:bold; cursor:pointer}
-.item-card{background:#fff; padding:10px; margin:10px 0; border-radius:8px; display:flex; gap:10px}
+.item-card{background:#fff; padding:10px; margin:10px 0; border-radius:8px; display:flex; gap:10px; box-shadow:0 1px 3px #ccc}
 .item-card img{width:80px; height:80px; border-radius:8px; object-fit:cover}
 .btn-add{background:#4caf50; color:#fff; border:none; padding:6px 12px; border-radius:5px; cursor:pointer}
 </style>
@@ -22,46 +22,56 @@ body{padding:15px; font-family:Arial; background:#f5f5f5}
 <div id="menu">Loading...</div>
 
 <script>
-const API="/api";
 const restaurantId = new URLSearchParams(window.location.search).get('restaurantId');
-if(!restaurantId) { document.getElementById('menu').innerHTML = 'No restaurant selected'; }
 
-loadMenu(); updateCartCount();
+if(!restaurantId) { 
+  document.getElementById('menu').innerHTML = '<p style="color:red">No restaurant selected</p>'; 
+} else {
+  loadMenu(); 
+  updateCartCount();
+}
 
 async function loadMenu(){
-  let res = await fetch(`${API}/menu?restaurantId=${restaurantId}`);
-  let items = await res.json();
+  try{
+    // FIX 1: Sahi API URL
+    let res = await fetch(`/api/restaurant/menu/${restaurantId}`);
+    let data = await res.json();
+    let items = data.items;
 
-  if(items.length===0) { document.getElementById('menu').innerHTML = 'No items in menu'; return; }
+    if(!data.success) throw new Error("API error");
+    if(items.length===0) { 
+      document.getElementById('menu').innerHTML = 'No items in menu. Restaurant se item add karwao'; 
+      return; 
+    }
 
-  // Shop name bhi la lete hain
-  let res2 = await fetch(`${API}/restaurant-profile?restaurantId=${restaurantId}`);
-  let shop = await res2.json();
-  shopName.innerText = shop.restaurantName;
+    // FIX 2: Shop name ke liye alag API nahi hai, to hata diya. Baad me add karenge
+    document.getElementById('shopName').innerText = 'Menu';
 
-  document.getElementById('menu').innerHTML = items.map(i=>`
-    <div class="item-card">
-      <img src="${i.image || 'https://via.placeholder.com/80'}" />
-      <div style="flex:1">
-        <b>${i.name}</b> - ₹${i.price}<br>
-        <small>${i.desc}</small><br> <!-- FIX: desc tha -->
-        <button class="btn-add" onclick='addToCart(${JSON.stringify({...i, restaurantId})})'>Add</button>
+    document.getElementById('menu').innerHTML = items.map(i=>`
+      <div class="item-card">
+        <img src="${i.image || 'https://via.placeholder.com/80'}" />
+        <div style="flex:1">
+          <b>${i.name}</b> - ₹${i.price}<br>
+          <small>${i.desc || ''}</small><br>
+          <button class="btn-add" onclick='addToCart(${JSON.stringify({...i, restaurantId})'>Add</button>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+    
+  }catch(e){
+    document.getElementById('menu').innerHTML = '<p style="color:red">Menu load nahi ho pa raha</p>';
+    console.error("Menu Load Error:", e);
+  }
 }
 
 function addToCart(item){
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  // FIX: Ek hi restaurant ka saman rahe cart me
   if(cart.length > 0 && cart[0].restaurantId!== item.restaurantId){
     if(!confirm('Cart me dusre restaurant ka saman hai. Naya cart banaye?')){
       return;
     }
     cart = [];
   }
-
   let ex = cart.find(c=>c._id===item._id);
   if(ex) ex.qty++; else {item.qty=1; cart.push(item)}
   localStorage.setItem('cart', JSON.stringify(cart));
