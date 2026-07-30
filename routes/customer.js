@@ -1,44 +1,36 @@
 const express = require('express');
-const { MenuItem, Order } = require('../models');
+const router = express.Router();
+const { Customer } = require('../models'); 
+const bcrypt = require('bcrypt');
 
-function calculateBill(item_total) {
-  const commission_10 = Math.round(item_total * 0.10);
-  const platform_fee = 10;
-  const delivery_fee = 40;
-  const grand_total = item_total + commission_10 + platform_fee + delivery_fee;
-  return {item_total, commission_10, platform_fee, delivery_fee, grand_total, cash_to_restaurant: item_total - commission_10};
-}
-
-module.exports = (io) => { // <-- function me wrap kiya
-  const router = express.Router();
-
-  router.get('/menu', async (req,res)=>{
-    const {restaurantId} = req.query;
-    let filter = {inStock: true};
-    if(restaurantId) filter.restaurantId = restaurantId;
-    res.json(await MenuItem.find(filter))
+module.exports = (io) => {
+  router.post('/register', async (req, res) => {
+    try {
+      const { name, phone, password, address } = req.body;
+      const exist = await Customer.findOne({ phone });
+      if (exist) return res.status(400).json({ error: "Phone already registered" });
+      const hashedPass = await bcrypt.hash(password, 10);
+      const customer = new Customer({ name, phone, password: hashedPass, address });
+      await customer.save();
+      res.json({ message: "Registered Successfully ✅", customer });
+    } catch (e) { res.status(500).json({ error: e.message }) }
   });
 
-  router.post('/orders', async (req,res)=>{
-    try{
-      // const io = req.app.get('io'); // <-- ye line hata di, ab io parameter se aa raha
-      const bill=calculateBill(req.body.item_total);
-      const trackId = 'EB' + Date.now();
-      const order=new Order({...req.body, trackId,...bill, status: 'pending'});
-      await order.save();
-      io.emit('newOrder', order);
-      res.json(order);
-    }catch(e){res.status(500).json({error:e.message})}
+  router.post('/login', async (req, res) => {
+    try {
+      const { phone, password } = req.body;
+      const customer = await Customer.findOne({ phone });
+      if (!customer) return res.status(400).json({ error: "User not found" });
+      const match = await bcrypt.compare(password, customer.password);
+      if (!match) return res.status(400).json({ error: "Wrong password" });
+      res.json({ message: "Login Success ✅", customer });
+    } catch (e) { res.status(500).json({ error: e.message }) }
   });
 
-  router.get('/orders', async (req,res)=>{
-    const {restaurantId, status, riderId} = req.query;
-    let filter = {};
-    if(restaurantId) filter.restaurantId = restaurantId;
-    if(status) filter.status = status;
-    if(riderId) filter.riderId = riderId;
-    res.json(await Order.find(filter).sort({createdAt:-1}))
-  });
-
-  return router; // <-- return kiya
+  router.get('/profile/:id', async (req,res)=>{
+    const customer = await Customer.findById(req.params.id).select('-password');
+    res.json(customer);
+  })
+  
+  return router;
 };
