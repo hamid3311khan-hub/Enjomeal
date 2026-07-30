@@ -43,7 +43,7 @@ async function loadData(){
       <div class="box">
         <b>${r.restaurantName}</b> - ${r.ownerName}<br>
         Mobile: ${r.mobile} | Plan: ${r.plan_status}<br>
-        <img src="${r.image || 'https://via.placeholder.com/100'}" /><br>
+        <img src="${r.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" /><br> <!-- FIX: onerror add -->
         <button class="btn" onclick="approveRestaurant('${r._id}')">Approve</button>
         <button class="btn btn-red" onclick="rejectRestaurant('${r._id}')">Reject</button>
       </div>
@@ -58,15 +58,16 @@ async function loadData(){
       <div class="box">
         <b>${r.name}</b> - ${r.mobile}<br>
         Vehicle: ${r.vehicleNo}<br>
-        DL: <img src="${r.dlProof || 'https://via.placeholder.com/100'}" /> Aadhar: <img src="${r.aadharImg || 'https://via.placeholder.com/100'}" /><br>
+        DL: <img src="${r.dlProof || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" /> 
+        Aadhar: <img src="${r.aadharImg || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" /><br> <!-- FIX: onerror add -->
         <button class="btn" onclick="approveRider('${r._id}')">Approve</button>
       </div>
     `).join('');
   }catch(e){ document.getElementById('pendingRiders').innerHTML = '<p class="empty">Error</p>' }
 
-  // 3. APPROVED RESTAURANT + PAYOUT - YAHI FIX KIYA
+  // 3. APPROVED RESTAURANT + PAYOUT
   try{
-    res = await fetch(`${API}/admin-restaurants`); // FIX: /admin/restaurants -> /admin-restaurants
+    res = await fetch(`${API}/admin-restaurants`);
     let approved = await res.json();
     document.getElementById('approvedRestaurants').innerHTML = approved.length===0 ? '<p class="empty">No approved restaurants</p>' : approved.map(r => `
       <div class="box">
@@ -80,12 +81,12 @@ async function loadData(){
 
 // FUNCTIONS
 async function approveRestaurant(id){
-  await fetch(`${API}/admin/approve-restaurant/${id}`, {method:'PUT'});
+  await fetch(`${API}/admin/approve-restaurant/${id}`, {method:'POST'}); // FIX: PUT -> POST
   alert("Restaurant Approved");
   loadData();
 }
 
-async function rejectRestaurant(id){ // NAYA ADD KIYA
+async function rejectRestaurant(id){
   if(confirm("Reject this restaurant?")){
     await fetch(`${API}/admin/reject-restaurant`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({restaurantId:id})});
     alert("Restaurant Rejected");
@@ -94,7 +95,7 @@ async function rejectRestaurant(id){ // NAYA ADD KIYA
 }
 
 async function approveRider(id){
-  await fetch(`${API}/admin/approve-rider/${id}`, {method:'PUT'});
+  await fetch(`${API}/admin/approve-rider/${id}`, {method:'POST'}); // FIX: PUT -> POST
   alert("Rider Approved");
   loadData();
 }
