@@ -46,7 +46,7 @@ const restaurantSchema = new mongoose.Schema({
   password: {type: String, required: true},
   address: String,
   image: String,
-  status: {type: String, default: 'Pending'}, // Pending/Approved/Rejected
+  status: {type: String, default: 'Pending'},
   ownerName: String,
   payment_proof: String,
   trial_end_date: Date
@@ -76,7 +76,7 @@ const orderSchema = new mongoose.Schema({
   riderLat: Number, riderLng: Number,
   riderName: String,
   trackId: {type: String, unique: true},
-  status: {type: String, default: 'Pending'} // Pending, Accepted, Preparing, Out for Delivery, Delivered
+  status: {type: String, default: 'Pending'}
 }, { timestamps: true });
 
 const menuItemSchema = new mongoose.Schema({
@@ -97,7 +97,7 @@ const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 
 // ========== 4. DB CONNECT ==========
 mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v8.1'))
+.then(()=>console.log('✅ MongoDB Connected v8.2'))
 .catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // ========== 5. ROOT + API TEST ROUTE ==========
@@ -106,7 +106,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ success: true, message: "Eat4Bite API is working ✅ v8.1" });
+  res.json({ success: true, message: "Eat4Bite API is working ✅ v8.2" });
 });
 
 // ========== 6. API ROUTES ==========
@@ -186,7 +186,7 @@ app.post('/api/order/place', async (req,res)=>{
   }catch(e){ res.status(500).json({success: false, error: e.message}); }
 });
 
-// TRACK ORDER - for track.html
+// TRACK ORDER
 app.get('/api/track/:trackId', async (req,res)=>{
   try{
     const order = await Order.findOne({trackId: req.params.trackId});
@@ -195,7 +195,6 @@ app.get('/api/track/:trackId', async (req,res)=>{
   }catch(e){ res.status(500).json({error: e.message}); }
 });
 
-// TRACK ORDER - for bill.html
 app.get('/api/orders/track/:id', async (req,res)=>{
   try{
     const order = await Order.findOne({trackId: req.params.id});
@@ -211,11 +210,15 @@ app.get('/api/restaurant/orders/:id', async (req,res)=>{
 });
 
 app.get('/api/restaurant/payout/:id', async (req,res)=>{
-  const total = await Order.aggregate([
-    { $match: { restaurantId: new mongoose.Types.ObjectId(req.params.id), status: 'Delivered' } },
-    { $group: { _id: null, sum: { $sum: "$grand_total" } } }
-  ]);
-  res.json({payout_due: total[0]?.sum || 0});
+  try {
+    const total = await Order.aggregate([
+      { $match: { restaurantId: new mongoose.Types.ObjectId(req.params.id), status: 'Delivered' } },
+      { $group: { _id: null, sum: { $sum: "$grand_total" } }
+    ]);
+    res.json({payout_due: total[0]?.sum || 0});
+  } catch(e) {
+    res.status(500).json({error: e.message})
+  }
 });
 
 // ========== 6.5 ADMIN PANEL APIS ==========
@@ -234,7 +237,6 @@ app.get('/api/admin/pending-riders', async (req,res)=>{
   try{ const riders = await Rider.find({status: 'Pending'}); res.json(riders); }catch(e){ res.status(500).json({error: e.message}) }
 });
 
-// APPROVE API - PUT method for frontend
 app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{
   const trialDate = new Date();
   trialDate.setDate(trialDate.getDate() + 30);
@@ -254,7 +256,7 @@ app.post('/api/admin/approve-rider/:id', async (req,res)=>{
 
 // ========== 7. 404 HANDLER ==========
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ========== 8. SERVER START ==========
