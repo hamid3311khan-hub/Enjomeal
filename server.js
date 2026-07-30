@@ -1,40 +1,26 @@
-require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs'); 
 const http = require('http');
-const { Server } = require("socket.io");
+const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: {origin: "*"} });
-const PORT = process.env.PORT || 10000;
+const io = new Server(server);
 
-// Upload folder
-if (!fs.existsSync('./uploads')){ fs.mkdirSync('./uploads'); }
+app.use(express.json());
+app.use(express.static('public'));
 
-// Middleware
-app.use(cors({origin: "*"}));
-app.use(express.json({limit: '50mb'}));
-app.use(express.urlencoded({limit: '50mb', extended: true}));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static('uploads'));
+// DB Connect
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.log(err));
 
-// Socket.io ko har route me bhejne ke liye
+// Socket.io ko routes me bhejne ke liye
 app.set('io', io);
 
-// DB CONNECT
-mongoose.connect(process.env.MONGO_URL)
-.then(()=>console.log('✅ MongoDB Connected v5.0 - Modular'))
-.catch(err => { console.log('Mongo Error:', err); process.exit(1) });
-
-// ===== YAHI 1 LINE CHANGE HUI HAI =====
-// Ab routes folder ke index.js se sab load hoga
+// Routes
 app.use('/', require('./routes/index')(io));
 
-// 404 agar koi page na mile
-app.use((req,res)=> res.status(404).send("Page Not Found"));
-
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
