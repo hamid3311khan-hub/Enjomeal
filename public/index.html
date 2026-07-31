@@ -21,7 +21,6 @@ body{font-family:Arial; background:#f5f5f5; margin:0}
 </style>
 </head>
 <body>
-
 <div class="header">
   <h1>🍴 Eat4Bite</h1>
   <div class="btn-group">
@@ -33,79 +32,38 @@ body{font-family:Arial; background:#f5f5f5; margin:0}
   </div>
   <input type="text" class="search" id="search" placeholder="Search restaurants..." onkeyup="searchRestaurants()">
 </div>
-
 <div class="container">
   <h3>Approved Restaurants Near You</h3>
-  <div id="restaurantList">
-    <p style="text-align:center">Loading restaurants...</p>
-  </div>
+  <div id="restaurantList"><p style="text-align:center">Loading restaurants...</p></div>
 </div>
-
-<button class="cart-btn" onclick="window.location='/cart.html'">
-  🛒 Cart <span id="cartCount">0</span>
-</button>
-
+<button class="cart-btn" onclick="window.location='/cart.html'">🛒 Cart <span id="cartCount">0</span></button>
 <script>
 const API = "/api";
 loadRestaurants();
 updateCartCount();
-
 async function loadRestaurants(){
   try{
     let res = await fetch(`${API}/restaurant/approved`);
     if(!res.ok) throw new Error("API failed: " + res.status);
     let shops = await res.json();
-    
     if(shops.length === 0){
-      document.getElementById('restaurantList').innerHTML = `
-        <div class="empty-state">
-          <h3>😔 No Restaurants Yet</h3>
-          <p>We are adding new restaurants soon. Please check back later!</p>
-          <p><small>Restaurant Owner: Use "Restaurant Register" button above</small></p>
-        </div>
-      `;
+      document.getElementById('restaurantList').innerHTML = `<div class="empty-state"><h3>😔 No Restaurants Yet</h3><p>We are adding new restaurants soon.</p></div>`;
       return;
     }
-
     document.getElementById('restaurantList').innerHTML = shops.map(s => `
       <div class="restaurant-card" onclick="openMenu('${s._id}')">
-        <img src="${s.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" />  <!-- YAHI FIX HAI -->
-        <div>
-          <h3>${s.name}</h3>
-          <p>📍 ${s.address}</p>
-          <p>⭐ 4.5 | 30-40 min Delivery</p>
-        </div>
+        <img src="${s.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" />
+        <div><h3>${s.name}</h3><p>📍 ${s.address}</p><p>⭐ 4.5 | 30-40 min Delivery</p></div>
       </div>
     `).join('');
-    
   }catch(e){
-    document.getElementById('restaurantList').innerHTML = `
-      <div class="empty-state">
-        <h3>⚠️ Server Error</h3>
-        <p>Could not load restaurants. Please try again later.</p>
-      </div>
-    `;
+    document.getElementById('restaurantList').innerHTML = `<div class="empty-state"><h3>⚠️ Server Error</h3><p>Could not load restaurants.</p></div>`;
     console.log("API Error:", e);
   }
 }
-
-function searchRestaurants(){
-  let val = document.getElementById('search').value.toLowerCase();
-  document.querySelectorAll('.restaurant-card').forEach(c => {
-    c.style.display = c.innerText.toLowerCase().includes(val) ? 'flex' : 'none';
-  });
-}
-
-function openMenu(id){
-  window.location = `/restaurant.html?id=${id}`;
-}
-
-function updateCartCount(){
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  let total = cart.reduce((sum,i)=>sum+i.qty,0);
-  document.getElementById('cartCount').innerText = total;
-  if(total === 0) document.getElementById('cartCount').style.display = 'none';
-}
+function searchRestaurants(){ let val = document.getElementById('search').value.toLowerCase(); document.querySelectorAll('.restaurant-card').forEach(c => { c.style.display = c.innerText.toLowerCase().includes(val) ? 'flex' : 'none'; }); }
+function openMenu(id){ window.location = `/restaurant.html?id=${id}`; }
+function updateCartCount(){ let cart = JSON.parse(localStorage.getItem('cart')) || []; let total = cart.reduce((sum,i)=>sum+i.qty,0); document.getElementById('cartCount').innerText = total; if(total === 0) document.getElementById('cartCount').style.display = 'none'; }
 </script>
 </body>
 </html>
