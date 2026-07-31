@@ -1,132 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
-<title>Eat4Bite Admin Panel</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eat4Bite™ - Order Food in Barkagaon</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:Arial; background:#f4f4f4; padding:20px; margin:0}
-h1{text-align:center; color:#ff5722}
-.box{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc}
-.btn{background:#28a745; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; margin:3px}
-.btn-red{background:#dc3545} .btn-orange{background:#ff9800}
-h2{color:#333; border-bottom:2px solid #ff5722; padding-bottom:5px; margin-top:30px}
-img{width:100px; border-radius:5px; margin:5px 0}
-.empty{color:#777; text-align:center; padding:20px; background:#fff; border-radius:8px}
+body{font-family:Arial;background:#f5f5f5;margin:0}
+.header{background:#ff6600;color:#fff;padding:15px;text-align:center}
+.rest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;padding:15px}
+.card{background:#fff;border-radius:10px;padding:10px;cursor:pointer;box-shadow:0 2px 5px #ccc}
+.card img{width:100%;height:150px;object-fit:cover;border-radius:8px}
 </style>
 </head>
 <body>
-
-<h1>🔥 Eat4Bite Admin Panel</h1>
-
-<h2>1. Pending Restaurants</h2>
-<div id="pendingRestaurants"><p class="empty">Loading...</p></div>
-
-<h2>2. Pending Riders</h2>
-<div id="pendingRiders"><p class="empty">Loading...</p></div>
-
-<h2>3. Approved Restaurants - Payout</h2>
-<div id="approvedRestaurants"><p class="empty">Loading...</p></div>
-
+<div class="header"><h2>🍔 Eat4Bite™ Barkagaon</h2></div>
+<div id="restaurants" class="rest-grid">Loading...</div>
 <script>
-const API = "/api";
-loadData();
-
-async function loadData(){
-  // 1. PENDING RESTAURANT
-  try{
-    let res = await fetch(`${API}/admin/pending-restaurants`);
-    let restaurants = await res.json();
-    document.getElementById('pendingRestaurants').innerHTML = restaurants.length===0 ? '<p class="empty">No pending</p>' : restaurants.map(r => `
-      <div class="box">
-        <b>${r.name}</b><br>
-        Owner: ${r.ownerName || '-'}<br>
-        Mobile: ${r.phone}<br>
-        <img src="${r.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" /><br>
-        <button class="btn" onclick="approveRestaurant('${r._id}')">Approve 30 Days</button>
-        <button class="btn btn-red" onclick="rejectRestaurant('${r._id}')">Reject</button>
-      </div>
-    `).join('');
-  }catch(e){ document.getElementById('pendingRestaurants').innerHTML = '<p class="empty">Error</p>' }
-
-  // 2. PENDING RIDER
-  try{
-    let res = await fetch(`${API}/admin/pending-riders`);
-    let riders = await res.json();
-    document.getElementById('pendingRiders').innerHTML = riders.length===0 ? '<p class="empty">No pending</p>' : riders.map(r => `
-      <div class="box">
-        <b>${r.name}</b> - ${r.phone}<br>
-        Vehicle: ${r.vehicle}<br>
-        <button class="btn" onclick="approveRider('${r._id}')">Approve</button>
-      </div>
-    `).join('');
-  }catch(e){ document.getElementById('pendingRiders').innerHTML = '<p class="empty">Error</p>' }
-
-  // 3. APPROVED RESTAURANT + PAYOUT - FIXED
-  try{
-    let res = await fetch(`${API}/admin/all-restaurants`); // FIXED API
-    let all = await res.json();
-    let approved = all.filter(r => r.status === 'Approved');
-    
-    if(approved.length === 0){
-      document.getElementById('approvedRestaurants').innerHTML = '<p class="empty">No approved restaurants yet</p>';
-      return;
-    }
-
-    let html = '';
-    for(let r of approved){
-      let payoutRes = await fetch(`${API}/restaurant/payout/${r._id}`);
-      let payoutData = await payoutRes.json();
-      let payout = payoutData.payout_due || 0; // FIXED KEY
-
-      html += `
-        <div class="box">
-          <b>${r.name}</b><br>
-          Payout Due: <b>₹${payout.toFixed(2)}</b><br>
-          <button class="btn btn-orange" onclick="payPayout('${r._id}', ${payout})">Pay Payout</button>
-        </div>
-      `;
-    }
-    document.getElementById('approvedRestaurants').innerHTML = html;
-  }catch(e){ 
-    console.log(e);
-    document.getElementById('approvedRestaurants').innerHTML = '<p class="empty">Error loading</p>' 
-  }
-}
-
-// FUNCTIONS
-async function approveRestaurant(id){
-  await fetch(`${API}/admin/approve-restaurant/${id}`, {method:'PUT'}); // FIXED PUT
-  alert("✅ Restaurant Approved for 30 days");
-  loadData();
-}
-
-async function rejectRestaurant(id){
-  if(confirm("Reject this restaurant?")){
-    await fetch(`${API}/admin/reject-restaurant/${id}`, {method:'PUT'}); // FIXED URL + PUT
-    alert("Restaurant Rejected");
-    loadData();
-  }
-}
-
-async function approveRider(id){
-  await fetch(`${API}/admin/approve-rider/${id}`, {method:'POST'});
-  alert("✅ Rider Approved");
-  loadData();
-}
-
-async function payPayout(restaurantId, amount){
-  if(amount <= 0) return alert('No payout due');
-  if(confirm(`Pay ₹${amount.toFixed(2)}?`)){
-    await fetch(`${API}/admin/pay-payout`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({restaurantId, amount})
-    });
-    alert("✅ Payout Marked as Paid");
-    loadData();
-  }
-}
+const API="/api";
+fetch(`${API}/restaurants`).then(r=>r.json()).then(shops=>{
+document.getElementById('restaurants').innerHTML=shops.map(s=>`
+<div class="card" onclick="location.href='/menu.html?id=${s._id}'">
+<img src="${s.image || 'https://via.placeholder.com/300'}">
+<h3>${s.restaurantName}</h3><p>${s.address}</p>
+</div>`).join('')
+})
 </script>
-</body>
-</html>
+</body></html>
