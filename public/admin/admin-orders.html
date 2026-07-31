@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Orders - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="navbar">
+    <a href="/admin">← Dashboard</a>
+    <a href="/admin/admin-orders.html">📦 Orders</a>
+    <a href="/admin/admin-restaurants.html">🏪 Restaurants</a>
+  </div>
+  
+  <h2 style="padding:15px">All Orders</h2>
+  
+  <!-- FILTER BUTTONS -->
+  <div style="padding:0 15px; display:flex; gap:10px">
+    <button class="btn" onclick="filterOrders('all')">All</button>
+    <button class="btn" style="background:#ff9800" onclick="filterOrders('COD')">COD</button>
+    <button class="btn" style="background:#4caf50" onclick="filterOrders('UPI')">UPI Paid</button>
+    <button class="btn" style="background:#f44336" onclick="filterOrders('pending')">Pending</button>
+  </div>
+  
+  <div id="ordersList" style="padding:15px"></div>
+  
+  <script>
+    let allOrders = [];
+    
+    // Demo data - baad me API se aayega
+    allOrders = [
+      {id:"#QB001", name:"Rahul", amount:204, payment:"COD", status:"pending", proof:"-"},
+      {id:"#QB002", name:"Pooja", amount:350, payment:"UPI", status:"paid", proof:"https://via.placeholder.com/150"}
+    ];
+    
+    function loadOrders(data){
+      let html = '';
+      data.forEach(o => {
+        html += `
+        <div class="card">
+          <h3>Order ${o.id} - ₹${o.amount}</h3>
+          <p><b>Customer:</b> ${o.name}</p>
+          <p><b>Payment:</b> <span style="color:${o.payment==='UPI'?'green':'orange'}">${o.payment}</span></p>
+          <p><b>Status:</b> ${o.status}</p>
+          ${o.proof !== '-' ? `<p><b>Proof:</b> <a href="${o.proof}" target="_blank"><img src="${o.proof}" width="100"></a></p>` : ''}
+          <button class="btn">Accept</button>
+          <button class="btn" style="background:red">Cancel</button>
+        </div>`;
+      });
+      document.getElementById('ordersList').innerHTML = html;
+    }
+    
+    function filterOrders(type){
+      if(type === 'all') loadOrders(allOrders);
+      else loadOrders(allOrders.filter(o => o.payment === type || o.status === type));
+    }
+    
+    loadOrders(allOrders);
+  </script>
+</body>
+</html>
