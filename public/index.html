@@ -74,7 +74,7 @@ async function loadRestaurants(){
 
     document.getElementById('restaurantList').innerHTML = shops.map(s => `
       <div class="restaurant-card" onclick="openMenu('${s._id}')">
-        <img src="${s.image || 'https://via.placeholder.com/90/CCCCCC/FFFFFF?text=Shop'}" alt="">
+        <img src="${r.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" />
         <div>
           <h3>${s.name}</h3>
           <p>📍 ${s.address}</p>
