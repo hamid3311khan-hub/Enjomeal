@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-// Phone OTP login baad me add karenge
+// Temp route
 router.post('/login', (req, res) => {
-  res.json({ message: "Login API coming soon" });
+  res.json({ success: true, message: "Login API working" });
 });
 
 module.exports = router;
