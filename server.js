@@ -1,34 +1,29 @@
-require('dotenv').config(); // YE LINE SABSE UPAR ADD
+require('dotenv').config();
 const express = require('express'); 
 const mongoose = require('mongoose'); 
 const multer = require('multer'); 
 const http = require('http');
 const { Server } = require("socket.io");
-const Razorpay = require('razorpay');
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } }); // CORS add kiya
+const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.json()); 
 app.use(express.static('public')); 
 app.use('/uploads',express.static('uploads'));
 const upload = multer({dest:'uploads/'});
 
-// FIX 1: ATLAS URL + ENV USE KAR
+// ATLAS URL
 const mongoURL = process.env.MONGO_URL || 'mongodb+srv://quickbiteuser:Ahmad12@cluster0.kxs1sfd.mongodb.net/quickbite?retryWrites=true&w=majority';
 mongoose.connect(mongoURL)
 .then(()=>console.log("✅ MongoDB Connected"))
 .catch(err=>console.log("❌ MongoDB Error", err));
 
-// FIX 2: RAZORPAY KEYS ENV SE
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_XXXX', 
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'XXXX'
-}); 
+// RAZORPAY HATA DIYA
 
 const Restaurant = mongoose.model('Restaurant',{restaurantName:String,phone:String,address:String,password:String,image:String,status:String});
 const Rider = mongoose.model('Rider',{name:String,phone:String,email:String,password:String,vehicle:String,dlProof:String,aadharImg:String,status:String,riderLat:Number,riderLng:Number});
-const Order = mongoose.model('Order',{trackId:String,restaurantId:String,restaurantName:String,items:Array,address:String,phone:String,customerName:String,grand_total:Number,status:String,riderId:String,riderName:String,shopLat:Number,shopLng:Number,custLat:Number,custLng:Number,riderLat:Number,riderLng:Number});
+const Order = mongoose.model('Order',{trackId:String,restaurantId:String,restaurantName:String,items:Array,address:String,phone:String,customerName:String,grand_total:Number,status:String,riderId:String,riderName:String,shopLat:Number,shopLng:Number,custLat:Number,custLng:Number,riderLat:Number,riderLng:Number,paymentMode:String}); // paymentMode add kiya
 const MenuItem = mongoose.model('MenuItem',{restaurantId:String,name:String,price:Number});
 
 io.on('connection', (socket)=>{ socket.on('joinOrderRoom', (trackId)=>{ socket.join(trackId) }) });
@@ -50,12 +45,15 @@ app.get('/api/menu/:id', async(req,res)=>{const restaurant = await Restaurant.fi
 app.post('/api/menu/add',async(req,res)=>{const m=new MenuItem(req.body); await m.save(); res.json({success:true})});
 app.delete('/api/menu/delete/:id',async(req,res)=>{await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true})});
 
-app.post('/api/order/create-razorpay', async(req,res)=>{const options={amount:req.body.amount*100,currency:"INR"}; const order=await razorpay.orders.create(options); res.json(order)});
+// RAZORPAY WALI API HATA DI
+// app.post('/api/order/create-razorpay', ...)
 
-app.post('/api/order/place',async(req,res)=>{const trackId='EB'+Date.now();const o=new Order({...req.body,trackId,status:'pending',shopLat:23.6357,shopLng:85.1920,custLat:23.6357,custLng:85.1920});await o.save();res.json({success:true,trackId})});
+// DIRECT COD WALI API
+app.post('/api/order/place',async(req,res)=>{const trackId='EB'+Date.now();const o=new Order({...req.body,trackId,status:'pending',paymentMode:'COD',shopLat:23.6357,shopLng:85.1920,custLat:23.6357,custLng:85.1920});await o.save();res.json({success:true,trackId})});
+
 app.get('/api/track/:id',async(req,res)=>{res.json(await Order.findOne({trackId:req.params.id}))});
 app.get('/api/orders/phone/:phone',async(req,res)=>{res.json(await Order.find({phone:req.params.phone}).sort({_id:-1}))});
-app.get('/api/orders/restaurant/:id',async(req,res)=>{res.json(await Order.find({restaurantId:req.params.id,status:{$ne:'delivered'}}))});
+app.get('/api/orders/restaurant/:id',async(req,res)=>{res.json(await Restaurant.find({restaurantId:req.params.id,status:{$ne:'delivered'}}))});
 app.get('/api/orders/available',async(req,res)=>{res.json(await Order.find({status:'ready',riderId:null}))});
 
 app.post('/api/order/status',async(req,res)=>{const order = await Order.findByIdAndUpdate(req.body.orderId,{status:req.body.status},{new:true});io.to(order.trackId).emit('orderStatusUpdate', {trackId: order.trackId, status: order.status});res.json({success:true})});
@@ -69,6 +67,5 @@ app.post('/api/rider/update-location',async(req,res)=>{
   res.json({success:true})
 });
 
-// FIX 3: RENDER PORT
 const PORT = process.env.PORT || 3000;
 server.listen(PORT,()=>console.log(`Eat4Bite v2.0 Running on ${PORT}`));
