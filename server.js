@@ -52,7 +52,16 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 app.get('/api', (req, res) => res.json({ success: true, message: "Eat4Bite API v9.5" }));
 
 // RESTAURANT
-app.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{ try{ const {name, phone, password, address, ownerName} = req.body; const image = req.file? `/uploads/${req.file.filename}` : ''; await new Restaurant({name, phone, password, address, ownerName, image}).save(); res.json({success: true}); }catch(e){ res.status(500).json({success: false, message: e.message}); }});
+app.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{ 
+  try{ 
+    const {name, phone, password, address, ownerName} = req.body; 
+    const image = req.file? `/uploads/${req.file.filename}` : ''; 
+    const newR = await new Restaurant({name, phone, password, address, ownerName, image}).save(); 
+    res.json({success: true, restaurant: newR}) // <-- ID ab wapas jayega
+  }catch(e){ 
+    res.status(500).json({success: false, message: e.message})
+  }
+});
 app.post('/api/restaurant/login', async (req,res)=>{ const {phone, password} = req.body; const r = await Restaurant.findOne({phone, password}); if(!r) return res.status(400).json({success: false}); if(r.status!== 'Approved') return res.status(400).json({success: false, message: "Not approved"}); res.json({success: true, restaurant: r});});
 app.get('/api/restaurant/approved', async (req,res)=>{ res.json(await Restaurant.find({status: 'Approved'})); });
 
