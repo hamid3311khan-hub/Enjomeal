@@ -1,14 +1,23 @@
-<!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><title>Order Details</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<style>body{font-family:Arial;background:#f5f5f5}.card{background:#fff;padding:20px;border-radius:10px;max-width:600px;margin:auto}</style></head><body>
-<div class="card"><h2>📄 Order Receipt</h2>
-<p><b>Order ID:</b> <span id="trackId"></span></p><p><b>Restaurant:</b> <span id="rest"></span></p><p><b>Status:</b> <span id="status"></span></p>
-<div id="items"></div><h3>Total: ₹<span id="total"></span></h3>
-<button onclick="location.href='/track.html?trackId='+trackId">Track Order</button>
-<button onclick="location.href='/bill.html?trackId='+trackId">Download Bill</button></div>
+<!DOCTYPE html>
+<html lang="hi"><head><meta charset="UTF-8"><title>My Orders</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{font-family:Arial;background:#f5f5f5;padding:10px}.card{background:#fff;padding:15px;margin:10px 0;border-radius:8px}</style></head><body>
+<h2>📦 My Orders</h2>
+<input id="phone" placeholder="Enter Mobile to see orders"><button onclick="loadOrders()">Search</button>
+<div id="orders"></div>
 <script>
-const trackId=new URLSearchParams(location.search).get('trackId'); document.getElementById('trackId').innerText=trackId;
-fetch(`/api/track/${trackId}`).then(r=>r.json()).then(o=>{
-document.getElementById('rest').innerText=o.restaurantName; document.getElementById('status').innerText=o.status;
-document.getElementById('total').innerText=o.grand_total; document.getElementById('items').innerHTML=o.items.map(i=>`<p>${i.name} - ₹${i.price}</p>`).join('');
-});
+const API="/api";
+function loadOrders(){
+  const phone=document.getElementById('phone').value;
+  fetch(`${API}/orders/phone/${phone}`).then(r=>r.json()).then(data=>{
+    document.getElementById('orders').innerHTML=data.map(o=>`
+    <div class="card">
+      <h3>Order: ${o.trackId}</h3>
+      <p>Restaurant: ${o.restaurantName}</p>
+      <p>Status: <b>${o.status}</b></p>
+      <p>Total: ₹${o.grand_total}</p>
+      <button onclick="location.href='/track.html?trackId=${o.trackId}'">Track</button>
+      <button onclick="location.href='/bill.html?trackId=${o.trackId}'">Bill</button>
+    </div>`).join('')
+  })
+}
 </script></body></html>
