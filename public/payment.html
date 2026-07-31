@@ -1,75 +1,16 @@
-<!DOCTYPE html><html lang="hi"><head><title>Payment - Eat4Bite™</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>*{margin:0;font-family:Arial} nav{background:#ff6600;color:white;padding:15px} nav a{color:white;text-decoration:none;margin:0 10px;font-weight:bold} .container{max-width:500px;margin:30px auto;background:white;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)} h2{color:#ff6600;margin-bottom:20px} .order-summary{background:#f8f8f8;padding:15px;border-radius:8px;margin-bottom:20px} .payment-option{border:2px solid #ddd;padding:15px;margin:10px 0;border-radius:8px} .btn{width:100%;padding:15px;background:#28a745;color:white;border:none;border-radius:8px;font-size:18px;font-weight:bold;cursor:pointer;margin-top:20px} .btn:disabled{background:#ccc}</style></head><body>
-<nav><a href="/">🍴 Eat4Bite™ Home</a> <a href="/">🍔 Restaurants</a></nav>
-
-<div class="container">
-  <h2>💳 Payment</h2>
-  <div class="order-summary" id="summary"></div>
-  <h3>Select Payment Method</h3>
-  <div class="payment-option"><input type="radio" name="pay" value="COD" checked> <b>Cash on Delivery</b></div>
-  <div class="payment-option"><input type="radio" name="pay" value="Online"> <b>Online Payment</b></div>
-  
-  <button class="btn" id="orderBtn" onclick="placeOrder()" disabled>📍 Location Le rahe hain...</button>
-  <button class="btn" style="background:#666" onclick="window.location='/cart.html'">⬅ Back to Cart</button>
-</div>
-
+<!DOCTYPE html>
+<html lang="hi"><head><meta charset="UTF-8"><title>Payment</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{font-family:Arial;background:#f5f5f5;padding:10px}.card{background:#fff;padding:20px;border-radius:10px;max-width:500px;margin:auto}input,textarea{width:95%;padding:10px;margin:5px 0}</style></head><body>
+<div class="card"><h2>💳 Payment</h2><div id="summary"></div>
+<input id="name" placeholder="Your Name" required><textarea id="address" placeholder="Full Address" required></textarea><input id="phone" placeholder="Mobile" required>
+<button onclick="placeOrder()" style="width:100%;padding:12px;background:#ff6600;color:#fff;border:none">Place Order ₹<span id="total"></span></button></div>
 <script>
-const API = '/api'; // FIX 1: Hardcoded URL hatao
-const orderData = JSON.parse(localStorage.getItem('orderData'));
-
-if(!orderData){ alert("Cart khali hai"); window.location='/'; }
-
-document.getElementById('summary').innerHTML = `
-  <h4>Order Summary</h4>
-  <p><b>Name:</b> ${orderData.name}</p>
-  <p><b>Phone:</b> ${orderData.phone}</p>
-  <p><b>Address:</b> ${orderData.address}</p>
-  <p><b>Items:</b> ${orderData.items.map(i=>`${i.name} x${i.qty}`).join(', ')}</p>
-  <h3 style="color:#ff6600">Total: ₹${orderData.grand_total}</h3> <!-- FIX 2: total -> grand_total -->
-`;
-
-let custLat = null; let custLng = null;
-navigator.geolocation.getCurrentPosition(
-  (pos) => { custLat = pos.coords.latitude; custLng = pos.coords.longitude; orderBtn.innerText = "✅ Order Place Karein"; orderBtn.disabled = false; },
-  (err) => { alert("Location allow karo warna rider ko dhoondhne me dikkat hogi"); orderBtn.innerText = "✅ Order Place Karein"; orderBtn.disabled = false; }
-)
-
-function placeOrder(){ 
-    orderBtn.disabled = true; orderBtn.innerText = "Order Place ho raha hai...";
-    
-    // FIX 3: My Orders ke liye phone save karo
-    localStorage.setItem('userPhone', orderData.phone);
-    
-    const paymentMode = document.querySelector('input[name="pay"]:checked').value; // FIX 4: paymentMode
-    const finalOrder = {
-      ...orderData, 
-      paymentMode: paymentMode, // FIX 4
-      custLat: custLat || 0, 
-      custLng: custLng || 0
-    }; 
-    
-    // FIX 5: /orders -> /order/place
-    fetch(`${API}/order/place`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(finalOrder)
-    })
-    .then(res=>res.json())
-    .then(d=>{
-      if(d.success){
-        localStorage.removeItem('cart');
-        localStorage.removeItem('orderData');
-        localStorage.removeItem('cart_restaurant');
-        alert('✅ Order Placed! Track ID: '+d.trackId); 
-        window.location=`/track.html?trackId=${d.trackId}` // FIX 6: ?trackId=
-      } else {
-        alert("Order Failed: " + d.error);
-        orderBtn.disabled = false; orderBtn.innerText = "✅ Order Place Karein";
-      }
-    })
-    .catch(err=>{
-      alert("Server Error. Try again"); 
-      orderBtn.disabled = false; orderBtn.innerText = "✅ Order Place Karein";
-    })
+const API="/api"; let cart=JSON.parse(localStorage.getItem('cart')||'[]');
+let total=cart.reduce((a,b)=>a+b.price,0); document.getElementById('total').innerText=total;
+document.getElementById('summary').innerHTML=cart.map(i=>`<p>${i.name} - ₹${i.price}</p>`).join('')+`<hr><h3>Total: ₹${total}</h3>`;
+async function placeOrder(){
+const res=await fetch(`${API}/order/place`,{method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({items:cart,restaurantId:cart[0].restaurantId,restaurantName:"Barkagaon Biryani",customerName:name.value,address:address.value,phone:phone.value,grand_total:total})});
+const data=await res.json(); if(data.success){localStorage.removeItem('cart');location.href=`/order.html?trackId=${data.trackId}`}else alert("Error")
 }
 </script></body></html>
