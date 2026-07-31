@@ -1,82 +1,11 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bill - Eat4Bite™</title>
-<style>
-*{margin:0;font-family:Arial} 
-nav{background:#ff6600;color:white;padding:15px;text-align:center;font-weight:bold}
-.container{max-width:600px;margin:20px auto;background:white;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
-.row{display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #ddd}
-.total{font-size:18px; font-weight:bold; border-top:2px solid #000; margin-top:10px; padding-top:10px}
-.btn{width:100%;padding:12px;background:#28a745;color:white;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:15px}
-</style>
-</head>
-<body>
-<nav>📄 Eat4Bite™ Bill</nav>
-
-<div class="container">
-  <h2>Order Bill</h2>
-  <p><b>Order ID:</b> <span id="orderId"></span></p>
-  <p><b>Date:</b> <span id="orderDate"></span></p>
-  <p><b>Payment:</b> <span id="paymentMode"></span></p>
-  <p><b>Rider:</b> <span id="riderId"></span></p>
-  <hr>
-  <h3>Items</h3>
-  <div id="itemList"></div>
-  <hr>
-  <div class="row"><span>Item Total</span> <span>₹<span id="subTotal">0</span></span></div>
-  <div class="row"><span>Commission 10%</span> <span>₹<span id="gst">0</span></span></div> <!-- FIX: 5% -> 10% -->
-  <div class="row"><span>Platform Fee</span> <span>₹<span id="platform">0</span></span></div>
-  <div class="row"><span>Delivery Fee</span> <span>₹<span id="delivery">0</span></span></div>
-  <div class="row total"><span>Grand Total</span> <span>₹<span id="grandTotal">0</span></span></div>
-  
-  <button class="btn" onclick="downloadPDF()">📥 Download Invoice</button>
-  <button class="btn" style="background:#ff6600" onclick="window.location='/my-orders.html'">⬅ Back to Orders</button>
-</div>
-
+<!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><title>Bill</title><style>body{font-family:'Courier New';max-width:400px;margin:auto}.center{text-align:center}.line{border-top:1px dashed #000}</style></head><body onload="window.print()">
+<div class="center"><h2>🍔 Eat4Bite™</h2><p>Barkagaon<br>Ph: 62000-12345</p></div><div class="line"></div>
+<p><b>Order:</b> <span id="trackId"></span><br><b>Restaurant:</b> <span id="rest"></span></p><div id="items"></div><div class="line"></div>
+<p><b>TOTAL: ₹<span id="total"></span></b></p><div class="line"></div><p class="center">Thank You! 🙏</p>
 <script>
-const API = "/api"; // FIX 1: window.location.origin se
-const params = new URLSearchParams(window.location.search); 
-const orderId = params.get('trackId'); // FIX 2: id -> trackId
-
-async function loadBill(){
-    if(!orderId) {
-      document.querySelector('.container').innerHTML = "<h2 style='color:red'>Invalid Order ID</h2>";
-      return;
-    }
-    try{
-      // FIX 3: /orders/track -> /track
-      const res = await fetch(`${API}/track/${orderId}`); 
-      const order = await res.json();
-
-      document.getElementById('orderId').innerText = order.trackId;
-      document.getElementById('orderDate').innerText = new Date(order.createdAt).toLocaleString('hi-IN');
-      document.getElementById('paymentMode').innerText = order.paymentMode;
-      document.getElementById('riderId').innerText = order.riderName || 'N/A';
-      
-      let itemsHTML = ''; 
-      order.items.forEach(i=>{ 
-        itemsHTML += `<div class="row"><span>${i.name} x ${i.qty}</span> <span>₹${i.price * i.qty}</span></div>`; 
-      });
-      document.getElementById('itemList').innerHTML = itemsHTML;
-
-      document.getElementById('subTotal').innerText = order.item_total;
-      document.getElementById('gst').innerText = order.commission_10; // FIX 4: commission_5 -> commission_10
-      document.getElementById('delivery').innerText = order.delivery_fee;
-      document.getElementById('platform').innerText = order.platform_fee;
-      document.getElementById('grandTotal').innerText = order.grand_total;
-    }catch(e){
-      console.log(e);
-      alert("Bill load nahi hua");
-    }
-}
-
-function downloadPDF(){ 
-  alert("PDF feature baad me add hoga. Abhi screenshot le lo");
-  // window.location.href = `${API}/invoice/${orderId}`; // TODO: server me banana padega
-}
-
-loadBill();
+const trackId=new URLSearchParams(location.search).get('trackId'); document.getElementById('trackId').innerText=trackId;
+fetch(`/api/track/${trackId}`).then(r=>r.json()).then(o=>{
+document.getElementById('rest').innerText=o.restaurantName; document.getElementById('total').innerText=o.grand_total;
+document.getElementById('items').innerHTML=o.items.map(i=>`<p>${i.name}......₹${i.price}</p>`).join('');
+});
 </script></body></html>
