@@ -63,9 +63,21 @@
       });
     });
     
-    function placeOrder() {
-      alert("Order Placed! COD ya QR screenshot ke saath");
-      // Yaha API call lagega baad me
+    async function placeOrder() {
+  const formData = new FormData();
+  formData.append('items', JSON.stringify([{name:"Samosa", price:39, qty:2}]));
+  formData.append('totalAmount', 204);
+  formData.append('paymentMethod', document.querySelector('input[name="payment"]:checked').value);
+  formData.append('address', document.getElementById('address').value);
+  formData.append('phone', document.getElementById('phone').value);
+
+  if(document.getElementById('screenshot').files[0]){
+    formData.append('screenshot', document.getElementById('screenshot').files[0]);
+  }
+
+  const res = await fetch('/api/order/place', { method: 'POST', body: formData });
+  const data = await res.json();
+  alert(data.message);
     }
   </script>
 </body>
