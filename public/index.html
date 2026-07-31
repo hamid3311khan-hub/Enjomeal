@@ -38,12 +38,16 @@ body{font-family:Arial; background:#f5f5f5; margin:0}
 </div>
 <button class="cart-btn" onclick="window.location='/cart.html'">🛒 Cart <span id="cartCount">0</span></button>
 <script>
-const API = "/api";
+// FIX 1: RENDER KA URL DAAL DIYA
+const API = "https://quickbite-ymqk.onrender.com/api"; 
+
 loadRestaurants();
 updateCartCount();
+
 async function loadRestaurants(){
   try{
-    let res = await fetch(`${API}/restaurant/approved`);
+    // FIX 2: /restaurants KI JAGAH /restaurants
+    let res = await fetch(`${API}/restaurants`); 
     if(!res.ok) throw new Error("API failed: " + res.status);
     let shops = await res.json();
     if(shops.length === 0){
@@ -53,7 +57,7 @@ async function loadRestaurants(){
     document.getElementById('restaurantList').innerHTML = shops.map(s => `
       <div class="restaurant-card" onclick="openMenu('${s._id}')">
         <img src="${s.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" />
-        <div><h3>${s.name}</h3><p>📍 ${s.address}</p><p>⭐ 4.5 | 30-40 min Delivery</p></div>
+        <div><h3>${s.restaurantName}</h3><p>📍 ${s.address}</p><p>⭐ 4.5 | 30-40 min Delivery</p></div>
       </div>
     `).join('');
   }catch(e){
@@ -61,6 +65,7 @@ async function loadRestaurants(){
     console.log("API Error:", e);
   }
 }
+
 function searchRestaurants(){ let val = document.getElementById('search').value.toLowerCase(); document.querySelectorAll('.restaurant-card').forEach(c => { c.style.display = c.innerText.toLowerCase().includes(val) ? 'flex' : 'none'; }); }
 function openMenu(id){ window.location = `/restaurant.html?id=${id}`; }
 function updateCartCount(){ let cart = JSON.parse(localStorage.getItem('cart')) || []; let total = cart.reduce((sum,i)=>sum+i.qty,0); document.getElementById('cartCount').innerText = total; if(total === 0) document.getElementById('cartCount').style.display = 'none'; }
