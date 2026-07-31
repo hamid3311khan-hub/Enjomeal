@@ -1,66 +1,14 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-<title>Rider Login - Eat4Bite™</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{font-family:Arial;background:#FF5722;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-.card{background:white;padding:30px;border-radius:15px;box-shadow:0 5px 20px rgba(0,0,0,0.2);width:90%;max-width:400px}
-h2{text-align:center;color:#FF5722;margin-bottom:20px}
-input{width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;font-size:15px}
-button{width:100%;padding:14px;background:#FF5722;color:white;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:10px}
-button:hover{background:#E64A19}
-a{color:#FF5722;text-decoration:none;font-weight:bold}
-.center{text-align:center;margin-top:15px}
-#msg{margin-top:10px}
-</style>
-</head>
-<body>
-<div class="card">
-  <h2>🏍️ Rider Login</h2>
-  <input id="phone" placeholder="Mobile Number" type="tel" required> <!-- FIX: mobile -> phone -->
-  <input id="password" placeholder="Password" type="password" required>
-  <button onclick="riderLogin()" id="loginBtn">Login</button>
-  <div id="msg"></div>
-  <div class="center">Account nahi hai? <a href="/rider-register.html">Register Kare</a></div> <!-- FIXED -->
-</div>
-
+<!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><title>Rider Login</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{background:#f5f5f5}.card{background:#fff;padding:20px;max-width:400px;margin:50px auto;border-radius:10px}input{width:95%;padding:10px;margin:8px 0}</style></head><body>
+<div class="card"><h2>🚚 Rider Login</h2>
+<input id="phone" placeholder="Phone">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()" style="width:100%;padding:12px;background:#ff6600;color:#fff;border:none">Login</button></div>
 <script>
-const API = "/api"; // FIXED
-
-async function riderLogin(){
-  const btn = document.getElementById('loginBtn');
-  const phone = document.getElementById('phone').value;
-  const password = document.getElementById('password').value;
-  
-  if(!phone || !password) return alert('Sab bharo');
-  
-  btn.disabled = true; btn.innerText = "Logging in...";
-  
-  try{
-    const res = await fetch(`${API}/rider/login`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({phone, password}) // FIX: mobile -> phone
-    });
-    const data = await res.json();
-    
-    if(data.success){
-      // FIX: server se data.rider.name aata hai
-      localStorage.setItem('riderId', data.rider._id);
-      localStorage.setItem('riderName', data.rider.name);
-      localStorage.setItem('riderPhone', data.rider.phone);
-      
-      document.getElementById('msg').innerHTML = `<p style="color:green">✅ Login Success! Redirecting...</p>`;
-      setTimeout(()=>{ window.location.href = '/rider-dashboard.html'; }, 1500); // FIXED
-    } else {
-      document.getElementById('msg').innerHTML = `<p style="color:red">❌ ${data.error || 'Login Failed'}</p>`;
-    }
-  }catch(e){
-    document.getElementById('msg').innerHTML = `<p style="color:red">Server Error</p>`;
-  }
-  btn.disabled = false; btn.innerText = "Login";
+const API="/api";
+async function login(){
+  let res=await fetch(`${API}/rider/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone.value,password:pass.value})});
+  let data=await res.json();
+  if(data.success){localStorage.setItem('rider',JSON.stringify(data.rider)); location.href='/rider-dashboard.html'} else alert("Invalid or Not Approved")
 }
-</script>
-</body>
-</html>
+</script></body></html>
