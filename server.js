@@ -101,7 +101,30 @@ app.put('/api/rider/update-location/:orderId', async (req,res)=>{
   io.emit('location_update', {orderId: req.params.orderId, riderLat, riderLng});
   res.json({success: true});
 });
+// ADMIN
+app.get('/api/admin/all-restaurants', async (req,res)=>{ res.json(await Restaurant.find({})); });
+app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await Restaurant.find({status: 'Pending'})); });
+app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: 'Pending'})); });
 
+app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ 
+  const d=new Date(); d.setDate(d.getDate()+30); 
+  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Approved', trial_end_date: d}); 
+  res.json({success: true}); 
+});
+
+app.put('/api/admin/reject-restaurant/:id', async (req,res)=>{ 
+  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Rejected'}); 
+  res.json({success: true}); 
+});
+
+app.post('/api/admin/approve-rider/:id', async (req,res)=>{ 
+  await Rider.findByIdAndUpdate(req.params.id, {status: 'Approved'}); 
+  res.json({success: true}); 
+});
+
+app.post('/api/admin/pay-payout', async (req,res)=>{
+  const {restaurantId, amount} = req.body;
+  res.json({success: true, message: `₹${amount} payout processed`});
 // 404 + SERVER
 app.use((req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
