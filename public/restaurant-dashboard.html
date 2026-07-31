@@ -1,13 +1,23 @@
 <!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><title>Restaurant Panel</title><meta name="viewport" content="width=device-width, initial-scale=1">
-<style>body{background:#f5f5f5}.card{background:#fff;padding:15px;margin:10px;border-radius:8px}</style></head><body>
-<h2>📋 New Orders</h2><div id="orders"></div>
+<style>body{background:#f5f5f5}.card{background:#fff;padding:15px;margin:10px;border-radius:8px}input{padding:8px}</style></head><body>
+<h2>📋 Orders</h2><div id="orders"></div>
+<h2>🍽️ Manage Menu</h2>
+<input id="itemName" placeholder="Item Name"><input id="itemPrice" type="number" placeholder="Price">
+<button onclick="addItem()">Add Item</button><div id="menu"></div>
+
 <script>
 const API="/api"; const rest=JSON.parse(localStorage.getItem('restaurant'));
-setInterval(()=>{fetch(`${API}/orders/restaurant/${rest._id}`).then(r=>r.json()).then(data=>{
+loadMenu(); setInterval(loadOrders,3000);
+
+function loadOrders(){fetch(`${API}/orders/restaurant/${rest._id}`).then(r=>r.json()).then(data=>{
 document.getElementById('orders').innerHTML=data.map(o=>`
 <div class="card"><h3>${o.trackId}</h3><p>${o.customerName} - ${o.phone}</p><p>${o.address}</p><p>₹${o.grand_total}</p>
-<button onclick="update('${o._id}','preparing')">Accept</button>
-<button onclick="update('${o._id}','ready')">Ready</button>
-</div>`).join('')})},3000);
+<button onclick="update('${o._id}','preparing')">Accept</button><button onclick="update('${o._id}','ready')">Ready</button></div>`).join('')})}
+
+function loadMenu(){fetch(`${API}/menu/${rest._id}`).then(r=>r.json()).then(data=>{
+document.getElementById('menu').innerHTML=data.items.map(i=>`<p>${i.name} - ₹${i.price} <button onclick="delItem('${i._id}')">Delete</button></p>`).join('')})}
+
+function addItem(){fetch(`${API}/menu/add`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({restaurantId:rest._id,name:itemName.value,price:itemPrice.value})}).then(()=>loadMenu())}
+function delItem(id){fetch(`${API}/menu/delete/${id}`,{method:'DELETE'}).then(()=>loadMenu())}
 function update(id,status){fetch(`${API}/order/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:id,status})})}
 </script></body></html>
