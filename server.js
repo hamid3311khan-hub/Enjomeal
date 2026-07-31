@@ -125,6 +125,7 @@ app.post('/api/admin/approve-rider/:id', async (req,res)=>{
 app.post('/api/admin/pay-payout', async (req,res)=>{
   const {restaurantId, amount} = req.body;
   res.json({success: true, message: `₹${amount} payout processed`});
+});
 // 404 + SERVER
 app.use((req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
