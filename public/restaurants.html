@@ -5,99 +5,100 @@
 <title>Admin - Restaurant Management - Eat4Bite</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{font-family:Arial; background:#f5f5f5; padding:15px}
+body{font-family:Arial; background:#f5f5f5; padding:15px; margin:0}
 .header{background:#4caf50; color:#fff; padding:15px; border-radius:8px; margin-bottom:15px}
-.card{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc; border-left:5px solid #ff9800}
-.card.approved{border-left-color:#4caf50}
-.card.pending{border-left-color:#ffc107}
-.top{display:flex; justify-content:space-between; align-items:center}
+.header a{color:#fff; text-decoration:none}
+.card{background:#fff; padding:15px; margin:10px 0; border-radius:8px; box-shadow:0 2px 5px #ccc; border-left:5px solid #ffc107}
+.card.Approved{border-left-color:#4caf50}
+.card.Pending{border-left-color:#ffc107}
+.card.Rejected{border-left-color:#f44336}
+.top{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px}
+.left{display:flex; gap:10px}
+.left img{width:80px; height:80px; border-radius:8px; object-fit:cover}
 .btn{padding:8px 15px; border:none; border-radius:5px; cursor:pointer; margin:3px; font-weight:bold}
 .btn-green{background:#4caf50; color:#fff}
 .btn-red{background:#f44336; color:#fff}
-.btn-blue{background:#2196f3; color:#fff}
 .btn-orange{background:#ff9800; color:#fff}
-.payout{font-size:18px; color:#f44336; font-weight:bold}
+.loading{text-align:center; padding:40px; color:#777}
+.empty-state{text-align:center; padding:40px 20px; color:#777}
 </style>
 </head>
 <body>
 
 <div class="header">
   <h2>🏪 Restaurant Management</h2>
-  <a href="/admin" style="color:#fff">← Back to Dashboard</a>
+  <a href="/admin.html">← Back to Dashboard</a>
 </div>
 
-<div id="restaurants">Loading...</div>
+<div id="restaurants" class="loading">Loading restaurants...</div>
 
 <script>
-const API = "/api";
+// RENDER KA URL
+const API = "https://quickbite-ymqk.onrender.com/api";
+
 loadRestaurants();
 
 async function loadRestaurants(){
-  let res = await fetch(`${API}/admin-restaurants`);
-  let shops = await res.json();
-  
-  if(shops.length === 0){
-    document.getElementById('restaurants').innerHTML = "No restaurants found";
-    return;
-  }
+  try{
+    let res = await fetch(`${API}/admin/restaurants`);
+    if(!res.ok) throw new Error("Failed to fetch");
+    let shops = await res.json();
+    
+    if(shops.length === 0){
+      document.getElementById('restaurants').innerHTML = `<div class="empty-state"><h3>No restaurants found</h3><p>New registrations will appear here</p></div>`;
+      return;
+    }
 
-  document.getElementById('restaurants').innerHTML = shops.map(s => `
-    <div class="card ${s.status}">
-      <div class="top">
-        <div>
-          <h3>${s.restaurantName}</h3>
-          <p><b>Owner:</b> ${s.ownerName} | <b>Mobile:</b> ${s.mobile}</p>
-          <p><b>Address:</b> ${s.address}</p>
-          <p><b>Commission:</b> ${s.commission}% | <b>Status:</b> ${s.status}</p>
-        </div>
-        <div style="text-align:right">
-          <p class="payout">Payout Due: ₹${s.payout_due}</p>
-          ${s.status === 'pending' ? `
-            <button class="btn btn-green" onclick="approve('${s._id}')">Approve</button>
-            <button class="btn btn-red" onclick="reject('${s._id}')">Reject</button>
-          ` : ''}
-          ${s.payout_due > 0 ? `<button class="btn btn-blue" onclick="markPaid('${s._id}')">Mark Paid</button>` : ''}
-          <button class="btn btn-orange" onclick="viewMenu('${s._id}')">View Menu</button>
+    document.getElementById('restaurants').innerHTML = shops.map(s => `
+      <div class="card ${s.status}">
+        <div class="top">
+          <div class="left">
+            <img src="${s.image || 'https://via.placeholder.com/80'}" onerror="this.src='https://via.placeholder.com/80'" />
+            <div>
+              <h3 style="margin:0 0 5px 0">${s.restaurantName}</h3>
+              <p style="margin:3px 0"><b>Mobile:</b> ${s.phone}</p>
+              <p style="margin:3px 0"><b>Address:</b> ${s.address}</p>
+              <p style="margin:3px 0"><b>Status:</b> <span style="font-weight:bold">${s.status}</span></p>
+            </div>
+          </div>
+          <div style="text-align:right">
+            ${s.status === 'Pending' ? `
+              <button class="btn btn-green" onclick="approve('${s._id}')">Approve</button>
+              <button class="btn btn-red" onclick="reject('${s._id}')">Reject</button>
+            ` : ''}
+            <button class="btn btn-orange" onclick="viewMenu('${s._id}')">View Menu</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+  }catch(e){
+    document.getElementById('restaurants').innerHTML = `<div class="empty-state"><h3>⚠️ Error</h3><p>Could not load restaurants</p></div>`;
+    console.log("Error:", e);
+  }
 }
 
 async function approve(id){
-  await fetch(`${API}/approve-restaurant`, {
+  await fetch(`${API}/admin/restaurant/approve`, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({restaurantId: id})
   });
-  alert("Restaurant Approved");
+  alert("✅ Restaurant Approved");
   loadRestaurants();
 }
 
 async function reject(id){
-  await fetch(`${API}/reject-restaurant`, {
+  await fetch(`${API}/admin/restaurant/reject`, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({restaurantId: id})
   });
-  alert("Restaurant Rejected");
+  alert("❌ Restaurant Rejected");
   loadRestaurants();
 }
 
-async function markPaid(id){
-  if(confirm("Are you sure you want to mark payout as paid?")){
-    await fetch(`${API}/mark-payout-paid`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({restaurantId: id})
-    });
-    alert("Payout Marked as Paid");
-    loadRestaurants();
-  }
-}
-
 function viewMenu(id){
-  alert("Menu page coming soon for: " + id);
+  window.location = `/restaurant.html?id=${id}`;
 }
 </script>
 </body>
