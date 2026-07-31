@@ -45,11 +45,11 @@ const Order = mongoose.model('Order', orderSchema);
 const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 
 // DB
-mongoose.connect(process.env.MONGO_URL).then(()=>console.log('✅ MongoDB Connected v8.7')).catch(err => { console.log('Mongo Error:', err); process.exit(1) });
+mongoose.connect(process.env.MONGO_URL).then(()=>console.log('✅ MongoDB Connected v9.5')).catch(err => { console.log('Mongo Error:', err); process.exit(1) });
 
 // BASIC
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/api', (req, res) => res.json({ success: true, message: "Eat4Bite API v8.7" }));
+app.get('/api', (req, res) => res.json({ success: true, message: "Eat4Bite API v9.5" }));
 
 // RESTAURANT
 app.post('/api/restaurant/register', upload.single('image'), async (req,res)=>{ try{ const {name, phone, password, address, ownerName} = req.body; const image = req.file? `/uploads/${req.file.filename}` : ''; await new Restaurant({name, phone, password, address, ownerName, image}).save(); res.json({success: true}); }catch(e){ res.status(500).json({success: false, message: e.message}); }});
@@ -70,9 +70,8 @@ app.post('/api/rider/register', async (req,res)=>{ try{ await new Rider(req.body
 app.post('/api/order/place', async (req,res)=>{ try{ const trackId = 'E4B' + Date.now(); const order = await new Order({...req.body, trackId}).save(); io.emit('new_order', order); res.json({success: true, trackId}); }catch(e){ res.status(500).json({success: false}); }});
 app.get('/api/track/:trackId', async (req,res)=>{ const o = await Order.findOne({trackId: req.params.trackId}); if(!o) return res.status(404).json({error: "Not found"}); res.json(o); });
 
-// RESTAURANT ORDERS + PAYOUT - AGGREGATE HATA DIYA
+// RESTAURANT ORDERS + PAYOUT
 app.get('/api/restaurant/orders/:id', async (req,res)=>{ res.json({orders: await Order.find({restaurantId: req.params.id}).sort({createdAt: -1})}); });
-
 app.get('/api/restaurant/payout/:id', async (req,res)=>{
   try {
     const orders = await Order.find({ restaurantId: req.params.id, status: 'Delivered' });
@@ -84,48 +83,25 @@ app.get('/api/restaurant/payout/:id', async (req,res)=>{
   }
 });
 
-// ADMIN
-app.get('/api/admin/all-restaurants', async (req,res)=>{ res.json(await Restaurant.find({})); });
-app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await Restaurant.find({status: 'Pending'})); });
-app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: 'Pending'})); });
-app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ const d=new Date(); d.setDate(d.getDate()+30); await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Approved', trial_end_date: d}); res.json({success: true}); });
-app.put('/api/admin/reject-restaurant/:id', async (req,res)=>{ await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Rejected'}); res.json({success: true}); });
-app.post('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status: 'Approved'}); res.json({success: true}); });
-
 // RIDER
 app.get('/api/rider/orders', async (req,res)=>{ const orders = await Order.find({status: 'Accepted', riderId: null}).sort({createdAt: -1}); res.json({orders}); });
-
 app.put('/api/rider/update-location/:orderId', async (req,res)=>{
   const {riderLat, riderLng} = req.body;
   await Order.findByIdAndUpdate(req.params.orderId, {riderLat, riderLng});
   io.emit('location_update', {orderId: req.params.orderId, riderLat, riderLng});
   res.json({success: true});
 });
-// ADMIN
+
+// ====== ADMIN - SIRF 1 BAAR ======
 app.get('/api/admin/all-restaurants', async (req,res)=>{ res.json(await Restaurant.find({})); });
 app.get('/api/admin/pending-restaurants', async (req,res)=>{ res.json(await Restaurant.find({status: 'Pending'})); });
 app.get('/api/admin/pending-riders', async (req,res)=>{ res.json(await Rider.find({status: 'Pending'})); });
+app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ const d=new Date(); d.setDate(d.getDate()+30); await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Approved', trial_end_date: d}); res.json({success: true}); });
+app.put('/api/admin/reject-restaurant/:id', async (req,res)=>{ await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Rejected'}); res.json({success: true}); });
+app.post('/api/admin/approve-rider/:id', async (req,res)=>{ await Rider.findByIdAndUpdate(req.params.id, {status: 'Approved'}); res.json({success: true}); });
+app.post('/api/admin/pay-payout', async (req,res)=>{ const {restaurantId, amount} = req.body; res.json({success: true, message: `₹${amount} payout processed`}); });
+// ====== ADMIN END ======
 
-app.put('/api/admin/approve-restaurant/:id', async (req,res)=>{ 
-  const d=new Date(); d.setDate(d.getDate()+30); 
-  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Approved', trial_end_date: d}); 
-  res.json({success: true}); 
-});
-
-app.put('/api/admin/reject-restaurant/:id', async (req,res)=>{ 
-  await Restaurant.findByIdAndUpdate(req.params.id, {status: 'Rejected'}); 
-  res.json({success: true}); 
-});
-
-app.post('/api/admin/approve-rider/:id', async (req,res)=>{ 
-  await Rider.findByIdAndUpdate(req.params.id, {status: 'Approved'}); 
-  res.json({success: true}); 
-});
-
-app.post('/api/admin/pay-payout', async (req,res)=>{
-  const {restaurantId, amount} = req.body;
-  res.json({success: true, message: `₹${amount} payout processed`});
-});
 // 404 + SERVER
 app.use((req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
