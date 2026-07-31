@@ -1,106 +1,24 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-<meta charset="UTF-8">
-<title>Restaurant Dashboard - Eat4Bite</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{font-family:Arial; background:#f5f5f5; margin:0}
-.header{background:#4caf50; color:#fff; padding:15px; display:flex; justify-content:space-between}
-.container{padding:15px}
-.tabs{display:flex; gap:10px; margin:15px 0}
-.tab{padding:10px 15px; background:#fff; border-radius:8px; cursor:pointer; border:2px solid #4caf50}
-.tab.active{background:#4caf50; color:#fff}
-.box{background:#fff; padding:15px; border-radius:8px; margin:10px 0; box-shadow:0 2px 5px #ccc}
-input,textarea,select{width:95%; padding:8px; margin:5px 0; border:1px solid #ddd; border-radius:5px}
-.btn{background:#4caf50; color:#fff; padding:10px 15px; border:none; border-radius:5px; cursor:pointer}
-.btn-red{background:#f44336}
-.menu-item{display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee}
-.order-card{background:#fff8e1; padding:10px; margin:10px 0; border-left:4px solid #ff9800}
-</style>
-</head>
-<body>
-<div class="header">
-  <h2>🏪 Restaurant Panel - <span id="resName"></span></h2>
-  <button class="btn btn-red" onclick="logout()">Logout</button>
-</div>
-<div class="container">
-  <div class="tabs">
-    <div class="tab active" onclick="showTab('menu')">1. Menu</div>
-    <div class="tab" onclick="showTab('orders')">2. Orders</div>
-    <div class="tab" onclick="showTab('payout')">3. Payout</div>
-  </div>
-  <div id="menuTab">
-    <h3>Add New Item</h3>
-    <div class="box">
-      <input type="text" id="itemName" placeholder="Item Name" required>
-      <input type="number" id="price" placeholder="Price ₹" required>
-      <textarea id="desc" placeholder="Description"></textarea>
-      <select id="category"><option>Veg</option><option>Non-Veg</option><option>Beverages</option></select>
-      <input type="file" id="itemImage" accept="image/*">
-      <button class="btn" onclick="addMenuItem()">Add Item</button>
-    </div>
-    <h3>Your Menu</h3>
-    <div id="menuList">Loading...</div>
-  </div>
-  <div id="ordersTab" style="display:none"><h3>New Orders</h3><div id="ordersList">Loading...</div></div>
-  <div id="payoutTab" style="display:none"><h3>Your Earnings</h3><div class="box"><h2>Total Due: ₹<span id="payoutDue">0</span></h2></div></div>
-</div>
+
+<!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><title>Restaurant Panel</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{background:#f5f5f5}.card{background:#fff;padding:15px;margin:10px;border-radius:8px}input{padding:8px}</style></head><body>
+<h2>📋 Orders</h2><div id="orders"></div>
+<h2>🍽️ Manage Menu</h2>
+<input id="itemName" placeholder="Item Name"><input id="itemPrice" type="number" placeholder="Price">
+<button onclick="addItem()">Add Item</button><div id="menu"></div>
+
 <script>
-const API = "/api";
-const restaurantId = localStorage.getItem('restaurantId');
-const restaurantName = localStorage.getItem('restaurantName');
-if(!restaurantId) window.location = '/restaurant-login';
-document.getElementById('resName').innerText = restaurantName;
-loadMenu(); loadOrders(); loadPayout();
-function showTab(tab){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('#menuTab, #ordersTab, #payoutTab').forEach(d=>d.style.display='none');
-  if(tab==='menu'){menuTab.style.display='block'; document.querySelectorAll('.tab')[0].classList.add('active')}
-  if(tab==='orders'){ordersTab.style.display='block'; document.querySelectorAll('.tab')[1].classList.add('active'); loadOrders()}
-  if(tab==='payout'){payoutTab.style.display='block'; document.querySelectorAll('.tab')[2].classList.add('active'); loadPayout()}
-}
-async function addMenuItem(){
-  if(!itemName.value ||!price.value){ alert('Name and Price required'); return; }
-  const formData = new FormData();
-  formData.append('restaurantId', restaurantId);
-  formData.append('name', itemName.value);
-  formData.append('price', price.value);
-  formData.append('description', desc.value);
-  formData.append('category', category.value);
-  if(itemImage.files[0]) formData.append('image', itemImage.files[0]);
-  let res = await fetch(`${API}/restaurant/menu`, {method:'POST', body:formData});
-  let data = await res.json();
-  if(data.success){ alert('Item Added ✅'); loadMenu(); itemName.value=''; price.value=''; desc.value=''; itemImage.value='' }
-  else alert('Error: ' + data.error)
-}
-async function loadMenu(){
-  let res = await fetch(`${API}/restaurant/menu/${restaurantId}`);
-  let data = await res.json();
-  let items = data.items || [];
-  menuList.innerHTML = items.length===0? 'No items yet' : items.map(i=>`
-    <div class="menu-item">
-      <div style="display:flex; gap:10px">
-        ${i.image? `<img src="${i.image}" width="60" height="60" style="border-radius:8px">` : ''}
-        <div><b>${i.name}</b> - ₹${i.price}<br><small>${i.category}</small></div>
-      </div>
-      <button class="btn btn-red" onclick="deleteItem('${i._id}')">Delete</button>
-    </div>
-  `).join('');
-}
-async function deleteItem(id){ await fetch(`${API}/restaurant/menu/${id}`, {method:'DELETE'}); loadMenu(); }
-async function loadOrders(){
-  let res = await fetch(`${API}/restaurant/orders/${restaurantId}`);
-  let data = await res.json();
-  let orders = data.orders || [];
-  ordersList.innerHTML = orders.length===0? 'No new orders' : orders.map(o=>`<div class="order-card"><b>Order #${o.trackId}</b> - ₹${o.grand_total}<br>Customer: ${o.name} | ${o.phone}</div>`).join('');
-}
-async function loadPayout(){
-  let res = await fetch(`${API}/restaurant/payout/${restaurantId}`);
-  let data = await res.json();
-  payoutDue.innerText = data.payout_due || 0;
-}
-function logout(){ localStorage.clear(); window.location = '/restaurant-login'; }
-</script>
-</body>
-</html>
+const API="/api"; const rest=JSON.parse(localStorage.getItem('restaurant'));
+loadMenu(); setInterval(loadOrders,3000);
+
+function loadOrders(){fetch(`${API}/orders/restaurant/${rest._id}`).then(r=>r.json()).then(data=>{
+document.getElementById('orders').innerHTML=data.map(o=>`
+<div class="card"><h3>${o.trackId}</h3><p>${o.customerName} - ${o.phone}</p><p>${o.address}</p><p>₹${o.grand_total}</p>
+<button onclick="update('${o._id}','preparing')">Accept</button><button onclick="update('${o._id}','ready')">Ready</button></div>`).join('')})}
+
+function loadMenu(){fetch(`${API}/menu/${rest._id}`).then(r=>r.json()).then(data=>{
+document.getElementById('menu').innerHTML=data.items.map(i=>`<p>${i.name} - ₹${i.price} <button onclick="delItem('${i._id}')">Delete</button></p>`).join('')})}
+
+function addItem(){fetch(`${API}/menu/add`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({restaurantId:rest._id,name:itemName.value,price:itemPrice.value})}).then(()=>loadMenu())}
+function delItem(id){fetch(`${API}/menu/delete/${id}`,{method:'DELETE'}).then(()=>loadMenu())}
+function update(id,status){fetch(`${API}/order/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:id,status})})}
+</script></body></html>
