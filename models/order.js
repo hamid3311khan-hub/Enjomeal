@@ -1,34 +1,15 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-  customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
-  riderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Rider' },
-  
-  items: [{
-    name: String,
-    price: Number,
-    qty: Number,
-    image: String
-  }],
-  
-  totalAmount: Number,
-  
-  // === PAYMENT SECTION - COD + QR ===
-  paymentMethod: { type: String, enum: ['COD', 'UPI'], default: 'COD' },
-  paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
-  paymentProof: { type: String }, // UPI screenshot ka Cloudinary URL
-  
-  // === ORDER STATUS ===
-  status: { type: String, enum: ['pending','accepted','cooking','ready','picked','delivered','cancelled'], default: 'pending' },
-  address: String,
+  customerName: String,
   phone: String,
-  
-  // === EARNINGS SPLIT ===
-  restaurantEarning: Number, // 90%
-  platformFee: Number,       // 10%
-  riderFee: { type: Number, default: 50 }
-  
-}, { timestamps: true });
+  address: String,
+  items: Array,
+  total: Number,
+  payment: { type: String, default: 'COD' },
+  status: { type: String, default: 'Pending' },
+  restaurantShare: Number, // 90%
+  createdAt: { type: Date, default: Date.now }
+});
 
 module.exports = mongoose.model('Order', orderSchema);
