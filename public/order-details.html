@@ -1,124 +1,14 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-<title>Eat4Bite™ Order Tracking</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>
-*{margin:0;font-family:Arial} 
-nav{background:#ff6600;color:white;padding:15px;text-align:center;font-size:18px;font-weight:bold}
-.container{max-width:700px;margin:20px auto;padding:15px}
-.card{border:2px solid #ff6600;padding:20px;border-radius:10px;margin-bottom:20px;background:white} 
-.wabtn{background:#25D366;color:white;padding:15px;width:100%;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:10px;font-weight:bold}
-#map{height:300px;border-radius:10px;margin-top:15px;border:2px solid #ddd; background:#f5f5f5}
-.steps{display:flex;justify-content:space-between;margin:20px 0}
-.step{text-align:center;flex:1}
-.step .circle{width:30px;height:30px;border-radius:50%;background:#ddd;margin:0 auto 5px;line-height:30px;color:white}
-.step.active .circle{background:#ff6600}
-.error{border:2px solid red;padding:15px;border-radius:10px;background:#ffe6e6;font-weight:bold}
-.small{font-size:12px; color:#666;}
-</style>
-</head>
-<body>
-<nav>🔥 Eat4Bite™ Order Tracking</nav>
-
-<div class="container">
-<div id="orderBox">Loading...</div>
-
-<button id="waBtn" class="wabtn" style="display:none">📞 Contact Us on WhatsApp</button>
-
-<div id="map"></div>
-<p class="small">* Rider location live update hoti hai</p>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><title>Order Details</title><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{font-family:Arial;background:#f5f5f5}.card{background:#fff;padding:20px;border-radius:10px;max-width:600px;margin:auto}</style></head><body>
+<div class="card"><h2>📄 Order Receipt</h2>
+<p><b>Order ID:</b> <span id="trackId"></span></p><p><b>Restaurant:</b> <span id="rest"></span></p><p><b>Status:</b> <span id="status"></span></p>
+<div id="items"></div><h3>Total: ₹<span id="total"></span></h3>
+<button onclick="location.href='/track.html?trackId='+trackId">Track Order</button>
+<button onclick="location.href='/bill.html?trackId='+trackId">Download Bill</button></div>
 <script>
-const API = '/api';
-const urlParams = new URLSearchParams(window.location.search);
-const trackId = urlParams.get('trackId');
-let orderData;
-let map, riderMarker;
-let lastStatus = "";
-let refreshInterval;
-
-async function loadOrder(){
-    if(!trackId) {
-        document.getElementById('orderBox').innerHTML = `<div class="error">Invalid Order ID</div>`;
-        return;
-    }
-    
-    try{
-        const res = await fetch(`${API}/track/${trackId}`);
-        if(!res.ok) throw new Error("Order not found");
-        orderData = await res.json();
-        
-        if(!orderData || orderData.error) {
-            document.getElementById('orderBox').innerHTML = `<div class="error">Order nahi mila</div>`;
-            return;
-        }
-        
-        // POPUP AGAR STATUS CHANGE HUA
-        if(lastStatus && lastStatus !== orderData.status){
-            alert(`🔔 Update: Aapka order ab "${orderData.status}" hai`);
-        }
-        lastStatus = orderData.status;
-        
-        // STEPS
-        const steps = ['Pending','Accepted','Preparing','Out for Delivery','Delivered'];
-        const currentStep = steps.indexOf(orderData.status);
-        
-        document.getElementById('orderBox').innerHTML = `
-            <div class="card">
-                <h2>Order: ${orderData.trackId}</h2>
-                <p><b>Name:</b> ${orderData.name}</p>
-                <p><b>Address:</b> ${orderData.address}</p>
-                <p><b>Total:</b> ₹${orderData.grand_total} | <b>Payment:</b> ${orderData.paymentMode}</p>
-                <p><b>Rider:</b> ${orderData.riderName || 'Assign hone par dikhega'}</p>
-                <p><b>Current Status:</b> <span style="color:green;font-size:18px">${orderData.status}</span></p>
-                
-                <div class="steps">
-                    ${steps.map((s,i)=>`
-                        <div class="step ${i<=currentStep?'active':''}">
-                            <div class="circle">${i+1}</div>
-                            <div class="small">${s}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        
-        // MAP
-        let lat = orderData.riderLat || 23.6357; // Barkagaon default
-        let lng = orderData.riderLng || 85.1920;
-        
-        if(!map){
-            map = L.map('map').setView([lat, lng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        }
-        if(riderMarker) map.removeLayer(riderMarker);
-        let popupText = orderData.riderLat ? `🏍️ Rider Live` : `📍 Default Location`;
-        riderMarker = L.marker([lat, lng]).addTo(map).bindPopup(popupText).openPopup();
-        
-        // WHATSAPP BUTTON - FIX: restaurant ka number use karo
-        const waNumber = orderData.restaurantPhone || '91XXXXXXXXXX'; // TODO: order me restaurantPhone save karo
-        const waLink = `https://wa.me/${waNumber}?text=Order ${orderData.trackId} ke baare me baat karni hai. Status: ${orderData.status}`;
-        document.getElementById('waBtn').style.display = 'block';
-        document.getElementById('waBtn').onclick = ()=> window.open(waLink, '_blank');
-
-        // SMART REFRESH
-        clearInterval(refreshInterval);
-        let refreshTime = orderData.status === 'Out for Delivery' ? 5000 : 30000;
-        if(orderData.status !== 'Delivered') {
-          refreshInterval = setInterval(loadOrder, refreshTime);
-        }
-        
-    } catch(e){
-        document.getElementById('orderBox').innerHTML = `<div class="error">Server Error. Refresh karo</div>`; // FIX
-        console.log(e)
-    }
-}
-
-loadOrder();
-</script>
-</body>
-</html>
+const trackId=new URLSearchParams(location.search).get('trackId'); document.getElementById('trackId').innerText=trackId;
+fetch(`/api/track/${trackId}`).then(r=>r.json()).then(o=>{
+document.getElementById('rest').innerText=o.restaurantName; document.getElementById('status').innerText=o.status;
+document.getElementById('total').innerText=o.grand_total; document.getElementById('items').innerHTML=o.items.map(i=>`<p>${i.name} - ₹${i.price}</p>`).join('');
+});
+</script></body></html>
