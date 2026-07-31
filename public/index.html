@@ -24,7 +24,6 @@ body{font-family:Arial; background:#f5f5f5; margin:0}
 
 <div class="header">
   <h1>🍴 Eat4Bite</h1>
-  
   <div class="btn-group">
     <a href="/restaurant-register.html" class="btn">Restaurant Register</a>
     <a href="/restaurant-login.html" class="btn">Restaurant Login</a>
@@ -32,7 +31,6 @@ body{font-family:Arial; background:#f5f5f5; margin:0}
     <a href="/rider-login.html" class="btn">Rider Login</a>
     <a href="/admin.html" class="btn admin">Admin</a>
   </div>
-
   <input type="text" class="search" id="search" placeholder="Search restaurants..." onkeyup="searchRestaurants()">
 </div>
 
@@ -54,11 +52,8 @@ updateCartCount();
 
 async function loadRestaurants(){
   try{
-    // FIXED: /restaurant -> /restaurant/approved
     let res = await fetch(`${API}/restaurant/approved`);
-    
     if(!res.ok) throw new Error("API failed: " + res.status);
-    
     let shops = await res.json();
     
     if(shops.length === 0){
@@ -74,7 +69,7 @@ async function loadRestaurants(){
 
     document.getElementById('restaurantList').innerHTML = shops.map(s => `
       <div class="restaurant-card" onclick="openMenu('${s._id}')">
-        <img src="${r.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" />
+        <img src="${s.image || 'https://via.placeholder.com/100'}" onerror="this.src='https://via.placeholder.com/100'" />  <!-- YAHI FIX HAI -->
         <div>
           <h3>${s.name}</h3>
           <p>📍 ${s.address}</p>
