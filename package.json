@@ -18,7 +18,8 @@
     "bcryptjs": "^2.4.3",
     "axios": "^1.7.2",
     "cloudinary": "^2.5.1",
-    "socket.io": "^4.7.2"
+    "socket.io": "^4.7.2",
+    "razorpay": "^2.9.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
