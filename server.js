@@ -1,26 +1,35 @@
+require('dotenv').config(); // YE LINE SABSE UPAR ADD
 const express = require('express'); 
 const mongoose = require('mongoose'); 
 const multer = require('multer'); 
 const http = require('http');
 const { Server } = require("socket.io");
-const Razorpay = require('razorpay'); // upar le aaya
+const Razorpay = require('razorpay');
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*" } }); // CORS add kiya
 
 app.use(express.json()); 
-app.use(express.static('public')); // . ki jagah public kar de
+app.use(express.static('public')); 
 app.use('/uploads',express.static('uploads'));
 const upload = multer({dest:'uploads/'});
 
-mongoose.connect('mongodb://127.0.0.1:27017/eat4bite');
+// FIX 1: ATLAS URL + ENV USE KAR
+const mongoURL = process.env.MONGO_URL || 'mongodb+srv://quickbiteuser:Ahmad12@cluster0.kxs1sfd.mongodb.net/quickbite?retryWrites=true&w=majority';
+mongoose.connect(mongoURL)
+.then(()=>console.log("✅ MongoDB Connected"))
+.catch(err=>console.log("❌ MongoDB Error", err));
 
-const razorpay = new Razorpay({key_id: 'rzp_test_XXXX', key_secret: 'XXXX'}); // key yaha
+// FIX 2: RAZORPAY KEYS ENV SE
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_XXXX', 
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'XXXX'
+}); 
 
 const Restaurant = mongoose.model('Restaurant',{restaurantName:String,phone:String,address:String,password:String,image:String,status:String});
 const Rider = mongoose.model('Rider',{name:String,phone:String,email:String,password:String,vehicle:String,dlProof:String,aadharImg:String,status:String,riderLat:Number,riderLng:Number});
 const Order = mongoose.model('Order',{trackId:String,restaurantId:String,restaurantName:String,items:Array,address:String,phone:String,customerName:String,grand_total:Number,status:String,riderId:String,riderName:String,shopLat:Number,shopLng:Number,custLat:Number,custLng:Number,riderLat:Number,riderLng:Number});
-const MenuItem = mongoose.model('MenuItem',{restaurantId:String,name:String,price:Number}); // DB menu
+const MenuItem = mongoose.model('MenuItem',{restaurantId:String,name:String,price:Number});
 
 io.on('connection', (socket)=>{ socket.on('joinOrderRoom', (trackId)=>{ socket.join(trackId) }) });
 
@@ -37,7 +46,6 @@ app.get('/api/admin/riders',async(req,res)=>{res.json(await Rider.find())});
 app.post('/api/admin/rider/approve',async(req,res)=>{await Rider.findByIdAndUpdate(req.body.riderId,{status:'Approved'});res.json({success:true})});
 app.post('/api/admin/rider/reject',async(req,res)=>{await Rider.findByIdAndUpdate(req.body.riderId,{status:'Rejected'});res.json({success:true})});
 
-// MENU - Sirf DB wala rakha, hardcoded hata diya
 app.get('/api/menu/:id', async(req,res)=>{const restaurant = await Restaurant.findById(req.params.id); const items = await MenuItem.find({restaurantId:req.params.id}); res.json({...restaurant._doc, items})});
 app.post('/api/menu/add',async(req,res)=>{const m=new MenuItem(req.body); await m.save(); res.json({success:true})});
 app.delete('/api/menu/delete/:id',async(req,res)=>{await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true})});
@@ -53,7 +61,6 @@ app.get('/api/orders/available',async(req,res)=>{res.json(await Order.find({stat
 app.post('/api/order/status',async(req,res)=>{const order = await Order.findByIdAndUpdate(req.body.orderId,{status:req.body.status},{new:true});io.to(order.trackId).emit('orderStatusUpdate', {trackId: order.trackId, status: order.status});res.json({success:true})});
 app.post('/api/rider/accept-order',async(req,res)=>{const order = await Order.findByIdAndUpdate(req.body.orderId,{riderId:req.body.riderId,riderName:req.body.riderName,status:'outfordelivery'},{new:true});io.to(order.trackId).emit('orderStatusUpdate', {trackId: order.trackId, status: 'outfordelivery'});res.json({success:true})});
 
-// RIDER LOCATION - Sirf riderId wala rakha. Auto GPS ke liye
 app.post('/api/rider/update-location',async(req,res)=>{
   const {riderId, lat, lng} = req.body; 
   await Rider.findByIdAndUpdate(riderId, {riderLat: lat, riderLng: lng}); 
@@ -62,4 +69,6 @@ app.post('/api/rider/update-location',async(req,res)=>{
   res.json({success:true})
 });
 
-server.listen(3000,()=>console.log("Eat4Bite v2.0 Running on http://localhost:3000"));
+// FIX 3: RENDER PORT
+const PORT = process.env.PORT || 3000;
+server.listen(PORT,()=>console.log(`Eat4Bite v2.0 Running on ${PORT}`));
