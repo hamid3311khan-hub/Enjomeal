@@ -43,5 +43,14 @@ app.get('/api/orders/available',async(req,res)=>{res.json(await Order.find({stat
 app.post('/api/order/status',async(req,res)=>{const order = await Order.findByIdAndUpdate(req.body.orderId,{status:req.body.status},{new:true});io.to(order.trackId).emit('orderStatusUpdate', {trackId: order.trackId, status: order.status});res.json({success:true})});
 app.post('/api/rider/accept-order',async(req,res)=>{const order = await Order.findByIdAndUpdate(req.body.orderId,{riderId:req.body.riderId,riderName:req.body.riderName,status:'outfordelivery'},{new:true});io.to(order.trackId).emit('orderStatusUpdate', {trackId: order.trackId, status: 'outfordelivery'});res.json({success:true})});
 app.post('/api/rider/update-location',async(req,res)=>{const {orderId, lat, lng} = req.body;const order = await Order.findByIdAndUpdate(orderId, {riderLat: lat, riderLng: lng},{new:true});io.to(order.trackId).emit('riderLocationUpdate', {trackId: order.trackId, lat, lng});res.json({success:true})});
+const Razorpay = require('razorpay');
+const razorpay = new Razorpay({key_id: 'rzp_test_XXXX', key_secret: 'XXXX'});
 
+const MenuItem = mongoose.model('MenuItem',{restaurantId:String,name:String,price:Number});
+
+app.post('/api/order/create-razorpay', async(req,res)=>{const options={amount:req.body.amount*100,currency:"INR"}; const order=await razorpay.orders.create(options); res.json(order)});
+app.post('/api/menu/add',async(req,res)=>{const m=new MenuItem(req.body); await m.save(); res.json({success:true})});
+app.get('/api/menu/:id', async(req,res)=>{const restaurant = await Restaurant.findById(req.params.id); const items = await MenuItem.find({restaurantId:req.params.id}); res.json({...restaurant._doc, items})});
+app.delete('/api/menu/delete/:id',async(req,res)=>{await MenuItem.findByIdAndDelete(req.params.id); res.json({success:true})});
+app.post('/api/rider/update-location',async(req,res)=>{const {riderId, lat, lng} = req.body; await Rider.findByIdAndUpdate(riderId, {riderLat: lat, riderLng: lng}); const orders = await Order.find({riderId, status:'outfordelivery'}); orders.forEach(o=>io.to(o.trackId).emit('riderLocationUpdate', {trackId: o.trackId, lat, lng})); res.json({success:true})});
 server.listen(3000,()=>console.log("Eat4Bite Running on http://localhost:3000"));
