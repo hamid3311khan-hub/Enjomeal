@@ -46,13 +46,15 @@ app.use(requestIdMiddleware);
 // CORS
 // =====================================================
 
-const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL
-      .split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean)
-  : [];
-
+const allowedOrigins = [
+  "https://enjomeal-customer-web.onrender.com",
+  ...(process.env.CLIENT_URL
+    ? process.env.CLIENT_URL
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+    : []),
+];
 app.use(
   cors({
     origin: (origin, callback) => {
