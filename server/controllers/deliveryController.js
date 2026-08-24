@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Delivery = require("../models/deliveryModel");
 const Order = require("../models/orderModel");
-const User = require("../models/User");
+const User = require("../models/user");
 
 // =====================================================
 // HELPER: VALIDATE OBJECT ID

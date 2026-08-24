@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Restaurant = require("../models/restaurant");
-const User = require("../models/User");
+const User = require("../models/user");
 
 // ===============================
 // HELPER: CHECK RESTAURANT ACCESS
