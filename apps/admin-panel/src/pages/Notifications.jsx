@@ -12,7 +12,7 @@ function Notifications() {
   // API BASE URL
   // =====================================================
 
-  const API_URL = "http://localhost:5000/api/notifications";
+  const API_URL = "https://enjomeal-api.onrender.com/api/notifications";
 
   // =====================================================
   // GET TOKEN

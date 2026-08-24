@@ -39,7 +39,7 @@ function Dashboard() {
       // ============================================
 
       const response = await fetch(
-        "http://localhost:5000/api/admin/dashboard-stats",
+        "https://enjomeal-api.onrender.com/api/admin/dashboard-stats",
         {
           method: "GET",
 

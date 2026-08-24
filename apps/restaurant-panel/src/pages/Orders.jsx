@@ -32,7 +32,7 @@ function Orders() {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/orders/restaurant/my-orders",
+        "https://enjomeal-api.onrender.com/api/orders/restaurant/my-orders",
         {
           method: "GET",
           headers: {
@@ -81,7 +81,7 @@ function Orders() {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/delivery/available",
+        "https://enjomeal-api.onrender.com/api/delivery/available",
         {
           method: "GET",
           headers: {
@@ -143,7 +143,7 @@ function Orders() {
       );
 
       const response = await fetch(
-        `http://localhost:5000/api/orders/${orderId}/status`,
+        `https://enjomeal-api.onrender.com/api/orders/${orderId}/status`,
         {
           method: "PUT",
           headers: {
@@ -235,7 +235,7 @@ function Orders() {
       );
 
       const response = await fetch(
-        `http://localhost:5000/api/orders/${orderId}/assign-delivery`,
+        `https://enjomeal-api.onrender.com/api/orders/${orderId}/assign-delivery`,
         {
           method: "PUT",
           headers: {

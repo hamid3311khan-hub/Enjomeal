@@ -89,7 +89,7 @@ useEffect(() => {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/delivery/my-profile",
+        "https://enjomeal-api.onrender.com/api/delivery/my-profile",
         {
           method: "GET",
           headers: {
@@ -171,7 +171,7 @@ useEffect(() => {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/delivery/${deliveryPartnerId}/orders`,
+        `https://enjomeal-api.onrender.com/api/delivery/${deliveryPartnerId}/orders`,
         {
           method: "GET",
           headers: {
@@ -326,7 +326,7 @@ const updateOrderStatus = async (
     }
 
     const response = await fetch(
-      `http://localhost:5000/api/orders/${orderId}/status`,
+      `https://enjomeal-api.onrender.com/api/orders/${orderId}/status`,
       {
         method: "PUT",
         headers: {
@@ -400,7 +400,7 @@ const updateOrderStatus = async (
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/delivery/${delivery._id}/availability`,
+        `https://enjomeal-api.onrender.com/api/delivery/${delivery._id}/availability`,
         {
           method: "PUT",
           headers: {

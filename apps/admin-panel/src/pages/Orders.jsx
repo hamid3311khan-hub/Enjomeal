@@ -50,7 +50,7 @@ const getToken = () => {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/orders/all",
+        "https://enjomeal-api.onrender.com/api/orders/all",
         {
           method: "GET",
           headers: {
@@ -102,7 +102,7 @@ const fetchDeliveryPartners = async () => {
     }
 
     const response = await fetch(
-      "http://localhost:5000/api/delivery/all",
+      "https://enjomeal-api.onrender.com/api/delivery/all",
       {
         method: "GET",
         headers: {
@@ -184,7 +184,7 @@ const assignDeliveryPartner = async (
     }
 
     const response = await fetch(
-      `http://localhost:5000/api/orders/${orderId}/assign-delivery`,
+      `https://enjomeal-api.onrender.com/api/orders/${orderId}/assign-delivery`,
       {
         method: "PUT",
         headers: {
@@ -263,7 +263,7 @@ const fetchOrderDetails = async (orderId) => {
     }
 
     const response = await fetch(
-      `http://localhost:5000/api/orders/${orderId}`,
+      `https://enjomeal-api.onrender.com/api/orders/${orderId}`,
       {
         method: "GET",
         headers: {
@@ -320,7 +320,7 @@ const updateOrderStatus = async (
     }
 
     const response = await fetch(
-      `http://localhost:5000/api/orders/${orderId}/status`,
+      `https://enjomeal-api.onrender.com/api/orders/${orderId}/status`,
       {
         method: "PUT",
         headers: {
@@ -485,7 +485,7 @@ const cancelOrder = async (orderId) => {
     }
 
     const response = await fetch(
-      `http://localhost:5000/api/orders/${orderId}/cancel`,
+      `https://enjomeal-api.onrender.com/api/orders/${orderId}/cancel`,
       {
         method: "PUT",
         headers: {
@@ -555,7 +555,7 @@ const updatePaymentStatus = async (
     }
 
     const response = await fetch(
-      `http://localhost:5000/api/orders/${orderId}/payment-status`,
+      `https://enjomeal-api.onrender.com/api/orders/${orderId}/payment-status`,
       {
         method: "PUT",
         headers: {

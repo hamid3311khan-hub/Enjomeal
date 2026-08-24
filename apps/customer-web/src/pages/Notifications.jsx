@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = "http://localhost:5000/api/notifications";
+const API_URL = "https://enjomeal-api.onrender.com/api/notifications";
 
 function Notifications() {
   const navigate = useNavigate();

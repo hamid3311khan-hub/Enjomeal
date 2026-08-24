@@ -42,7 +42,7 @@ function Menu() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/foods/restaurant/${restaurantId}`
+        `https://enjomeal-api.onrender.com/api/v1/foods/restaurant/${restaurantId}`
       );
 
       const data = await response.json();
@@ -126,7 +126,7 @@ function Menu() {
 
       if (editingFood) {
         const response = await fetch(
-          `http://localhost:5000/api/v1/foods/${editingFood._id}`,
+          `https://enjomeal-api.onrender.com/api/v1/foods/${editingFood._id}`,
           {
             method: "PUT",
             headers: {
@@ -163,7 +163,7 @@ function Menu() {
       // =================================================
 
       const response = await fetch(
-        "http://localhost:5000/api/v1/foods/create",
+        "https://enjomeal-api.onrender.com/api/v1/foods/create",
         {
           method: "POST",
           headers: {
@@ -250,7 +250,7 @@ function Menu() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/foods/${foodId}`,
+        `https://enjomeal-api.onrender.com/api/v1/foods/${foodId}`,
         {
           method: "DELETE",
           headers: {
@@ -296,7 +296,7 @@ function Menu() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/foods/${food._id}`,
+        `https://enjomeal-api.onrender.com/api/v1/foods/${food._id}`,
         {
           method: "PUT",
           headers: {

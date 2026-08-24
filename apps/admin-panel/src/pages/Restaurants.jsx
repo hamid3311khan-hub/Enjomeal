@@ -42,7 +42,7 @@ function Restaurants() {
       const token = getToken();
 
       const response = await fetch(
-        "http://localhost:5000/api/admin/restaurants",
+        "https://enjomeal-api.onrender.com/api/admin/restaurants",
         {
           method: "GET",
 
@@ -130,29 +130,29 @@ function Restaurants() {
 
       if (action === "approve") {
         url =
-          `http://localhost:5000/api/admin/restaurants/${restaurantId}/approve`;
+          `https://enjomeal-api.onrender.com/api/admin/restaurants/${restaurantId}/approve`;
       }
 
       if (action === "reject") {
         url =
-          `http://localhost:5000/api/admin/restaurants/${restaurantId}/reject`;
+          `https://enjomeal-api.onrender.com/api/admin/restaurants/${restaurantId}/reject`;
       }
 
       if (action === "activate") {
         url =
-          `http://localhost:5000/api/admin/restaurants/${restaurantId}/activate`;
+          `https://enjomeal-api.onrender.com/api/admin/restaurants/${restaurantId}/activate`;
       }
 
       if (action === "deactivate") {
         url =
-          `http://localhost:5000/api/admin/restaurants/${restaurantId}/deactivate`;
+          `https://enjomeal-api.onrender.com/api/admin/restaurants/${restaurantId}/deactivate`;
       }
 
       if (action === "delete") {
         method = "DELETE";
 
         url =
-          `http://localhost:5000/api/admin/restaurants/${restaurantId}`;
+          `https://enjomeal-api.onrender.com/api/admin/restaurants/${restaurantId}`;
       }
 
       // =================================

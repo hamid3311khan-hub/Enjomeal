@@ -54,7 +54,7 @@ function Delivery() {
       }
 
       const response = await fetch(
-        "http://localhost:5000/api/delivery/all",
+        "https://enjomeal-api.onrender.com/api/delivery/all",
         {
           method: "GET",
           headers: {
@@ -145,7 +145,7 @@ function Delivery() {
 
       if (action === "activate") {
         url =
-          `http://localhost:5000/api/delivery/${partnerId}/active-status`;
+          `https://enjomeal-api.onrender.com/api/delivery/${partnerId}/active-status`;
 
         body = {
           isActive: true,
@@ -154,7 +154,7 @@ function Delivery() {
 
       if (action === "deactivate") {
         url =
-          `http://localhost:5000/api/delivery/${partnerId}/active-status`;
+          `https://enjomeal-api.onrender.com/api/delivery/${partnerId}/active-status`;
 
         body = {
           isActive: false,
@@ -167,7 +167,7 @@ function Delivery() {
 
       if (action === "available") {
         url =
-          `http://localhost:5000/api/delivery/${partnerId}/availability`;
+          `https://enjomeal-api.onrender.com/api/delivery/${partnerId}/availability`;
 
         body = {
           isAvailable: true,
@@ -176,7 +176,7 @@ function Delivery() {
 
       if (action === "unavailable") {
         url =
-          `http://localhost:5000/api/delivery/${partnerId}/availability`;
+          `https://enjomeal-api.onrender.com/api/delivery/${partnerId}/availability`;
 
         body = {
           isAvailable: false,

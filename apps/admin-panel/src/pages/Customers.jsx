@@ -17,7 +17,7 @@ function Customers() {
       const token = localStorage.getItem("enjoMealToken");
 
       const response = await fetch(
-        "http://localhost:5000/api/admin/customers",
+        "https://enjomeal-api.onrender.com/api/admin/customers",
         {
           method: "GET",
           headers: {
