@@ -5,7 +5,7 @@ const {
   login,
   profile,
   resetUserPassword,
-} = require("../controllers/auth.Controller");
+} = require("../controllers/auth.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
