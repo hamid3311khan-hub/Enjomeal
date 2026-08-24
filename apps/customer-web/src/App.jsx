@@ -153,7 +153,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        {/* CUSTOMER PROFILE */}
+	{/* CUSTOMER PROFILE */}
 <Route
   path="/profile"
   element={
