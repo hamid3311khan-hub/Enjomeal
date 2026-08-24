@@ -15,7 +15,7 @@ import Checkout from "./pages/Checkout";
 import OrderDetails from "./pages/OrderDetails";
 import MyOrders from "./pages/MyOrders";
 import Notifications from "./pages/Notifications";
-
+import CustomerProfile from "./pages/CustomerProfile";
 // =====================================================
 // LOGIN PAGE
 // =====================================================
@@ -153,6 +153,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* CUSTOMER PROFILE */}
+<Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <CustomerProfile />
+    </ProtectedRoute>
+  }
+/>
 
         {/* UNKNOWN ROUTE */}
         <Route
