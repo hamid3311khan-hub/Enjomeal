@@ -43,7 +43,7 @@ function Dashboard() {
       "enjoMealRestaurantUser"
     );
 
-    window.location.href = "/login";
+    navigate("/login");
   };
 
   return (
@@ -68,7 +68,7 @@ function Dashboard() {
       {/* Manage Orders */}
       <button
         onClick={() => {
-          window.location.href = "/orders";
+          navigate("/orders");
         }}
         style={{
           padding: "12px 20px",
@@ -87,7 +87,7 @@ function Dashboard() {
       {/* View Orders */}
       <button
         onClick={() => {
-          window.location.href = "/orders";
+          navigate("/orders");
         }}
         style={{
           padding: "12px 20px",
@@ -105,7 +105,7 @@ function Dashboard() {
         
         <button
         onClick={() => {
-          window.location.href = "/menu";
+          navigate("/menu");
       }}
       style={{
         padding: "12px 20px",
