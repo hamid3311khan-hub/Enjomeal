@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
-function Login({onLogin}) {
+function Login({ onLogin }) {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,10 +25,6 @@ function Login({onLogin}) {
     event.preventDefault();
 
     console.log("LOGIN BUTTON CLICKED");
-    console.log("Sending data:", {
-      email: formData.email,
-      password: "********",
-    });
 
     setLoading(true);
     setMessage("");
@@ -39,6 +38,10 @@ function Login({onLogin}) {
 
       const { token, user } = response.data;
 
+      if (!token) {
+        throw new Error("Login successful but token was not received.");
+      }
+
       localStorage.setItem("enjoMealToken", token);
       localStorage.setItem(
         "enjoMealUser",
@@ -49,10 +52,11 @@ function Login({onLogin}) {
 
       console.log("LOGIN SUCCESS");
       console.log("Logged-in user:", user);
+      console.log("Token saved:", !!token);
+
       if (onLogin) {
         onLogin();
       }
-      console.log("Token saved:", !!token);
     } catch (error) {
       console.error("LOGIN ERROR:", error);
       console.error("ERROR RESPONSE:", error.response);
@@ -67,6 +71,10 @@ function Login({onLogin}) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRegister = () => {
+    navigate("/register");
   };
 
   return (
@@ -96,8 +104,10 @@ function Login({onLogin}) {
           Login to your EnjoMeal account
         </p>
 
+        {/* EMAIL */}
         <label>
           Email
+
           <input
             type="email"
             name="email"
@@ -117,8 +127,10 @@ function Login({onLogin}) {
           />
         </label>
 
+        {/* PASSWORD */}
         <label>
           Password
+
           <input
             type="password"
             name="password"
@@ -138,6 +150,7 @@ function Login({onLogin}) {
           />
         </label>
 
+        {/* LOGIN */}
         <button
           type="submit"
           disabled={loading}
@@ -155,30 +168,41 @@ function Login({onLogin}) {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        <p style={{ marginTop: "18px", textAlign: "center", color: "#777",
+        {/* REGISTER */}
+        <p
+          style={{
+            marginTop: "18px",
+            textAlign: "center",
+            color: "#777",
           }}
-          >
-              Don't have an account?{" "}
-        <button
+        >
+          Don't have an account?{" "}
+
+          <button
             type="button"
-            onClick={() => {
-            window.location.href = "/register";
-          }}
-            style={{ border: "none", background: "transparent", color: "#e85d04", fontWeight: "700",
-                  cursor: "pointer",
-                  padding: 0,
-          }}
+            onClick={handleRegister}
+            style={{
+              border: "none",
+              background: "transparent",
+              color: "#e85d04",
+              fontWeight: "700",
+              cursor: "pointer",
+              padding: 0,
+              fontSize: "inherit",
+            }}
           >
-              Register
-        </button>
+            Register
+          </button>
         </p>
 
+        {/* SUCCESS */}
         {message && (
           <p style={{ color: "green" }}>
             {message}
           </p>
         )}
 
+        {/* ERROR */}
         {error && (
           <p style={{ color: "red" }}>
             {error}
