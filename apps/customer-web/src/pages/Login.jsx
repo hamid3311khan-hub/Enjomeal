@@ -24,8 +24,6 @@ function Login({ onLogin }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    console.log("LOGIN BUTTON CLICKED");
-
     setLoading(true);
     setMessage("");
     setError("");
@@ -33,8 +31,7 @@ function Login({ onLogin }) {
     try {
       const response = await API.post("/auth/login", formData);
 
-      console.log("LOGIN API RESPONSE:", response);
-      console.log("LOGIN RESPONSE DATA:", response.data);
+      console.log("LOGIN API RESPONSE:", response.data);
 
       const { token, user } = response.data;
 
@@ -43,10 +40,7 @@ function Login({ onLogin }) {
       }
 
       localStorage.setItem("enjoMealToken", token);
-      localStorage.setItem(
-        "enjoMealUser",
-        JSON.stringify(user)
-      );
+      localStorage.setItem("enjoMealUser", JSON.stringify(user));
 
       setMessage("Login successful!");
 
@@ -56,12 +50,11 @@ function Login({ onLogin }) {
 
       if (onLogin) {
         onLogin();
+      } else {
+        navigate("/restaurants", { replace: true });
       }
     } catch (error) {
       console.error("LOGIN ERROR:", error);
-      console.error("ERROR RESPONSE:", error.response);
-      console.error("ERROR DATA:", error.response?.data);
-      console.error("ERROR STATUS:", error.response?.status);
 
       setError(
         error.response?.data?.message ||
@@ -104,7 +97,6 @@ function Login({ onLogin }) {
           Login to your EnjoMeal account
         </p>
 
-        {/* EMAIL */}
         <label>
           Email
 
@@ -127,7 +119,6 @@ function Login({ onLogin }) {
           />
         </label>
 
-        {/* PASSWORD */}
         <label>
           Password
 
@@ -150,7 +141,6 @@ function Login({ onLogin }) {
           />
         </label>
 
-        {/* LOGIN */}
         <button
           type="submit"
           disabled={loading}
@@ -168,7 +158,6 @@ function Login({ onLogin }) {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* REGISTER */}
         <p
           style={{
             marginTop: "18px",
@@ -195,14 +184,12 @@ function Login({ onLogin }) {
           </button>
         </p>
 
-        {/* SUCCESS */}
         {message && (
           <p style={{ color: "green" }}>
             {message}
           </p>
         )}
 
-        {/* ERROR */}
         {error && (
           <p style={{ color: "red" }}>
             {error}
