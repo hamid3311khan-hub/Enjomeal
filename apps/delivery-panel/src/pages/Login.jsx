@@ -220,21 +220,22 @@ function Login() {
 >
   Don't have a delivery account?{" "}
   <button
-    type="button"
-    onClick={() => {
-      window.location.href = "/register";
-    }}
-    style={{
-      border: "none",
-      background: "transparent",
-      color: "#e85d04",
-      fontWeight: "700",
-      cursor: "pointer",
-      padding: 0,
-    }}
-  >
-    Register
-  </button>
+  type="button"
+  onClick={() => {
+    window.location.href = "/delivery/register";
+  }}
+  style={{
+    border: "none",
+    background: "transparent",
+    color: "#e85d04",
+    fontWeight: "700",
+    cursor: "pointer",
+    padding: 0,
+    fontSize: "inherit",
+  }}
+>
+  Register
+</button>
 </p>
       </div>
     </div>
