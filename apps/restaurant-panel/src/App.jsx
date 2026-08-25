@@ -1,8 +1,4 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
+import { BrowserRouter, Routes, Route, Navigate,
 } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -28,7 +24,8 @@ function ProtectedRoute({ children }) {
 }
 
 function Dashboard() {
-  const user = JSON.parse(
+    const navigate = useNavigate();
+    const user = JSON.parse(
     localStorage.getItem(
       "enjoMealRestaurantUser"
     ) || "null"
