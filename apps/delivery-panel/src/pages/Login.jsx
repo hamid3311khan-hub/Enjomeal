@@ -211,6 +211,31 @@ function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+	<p
+  style={{
+    textAlign: "center",
+    color: "#666",
+    marginTop: "20px",
+  }}
+>
+  Don't have a delivery account?{" "}
+  <button
+    type="button"
+    onClick={() => {
+      window.location.href = "/register";
+    }}
+    style={{
+      border: "none",
+      background: "transparent",
+      color: "#e85d04",
+      fontWeight: "700",
+      cursor: "pointer",
+      padding: 0,
+    }}
+  >
+    Register
+  </button>
+</p>
       </div>
     </div>
   );
