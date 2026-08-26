@@ -53,7 +53,19 @@ const createNotificationController = async (req, res) => {
     if (notification.order) {
       await notification.populate("order");
     }
+const io = req.app.get("io");
 
+if (io) {
+  const userId = notification.user._id.toString();
+
+  io.to(`user:${userId}`).emit(
+    "notification:new",
+    {
+      success: true,
+      notification,
+    }
+  );
+}
     return res.status(201).json({
       success: true,
       message: "Notification created successfully",
