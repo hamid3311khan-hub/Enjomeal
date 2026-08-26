@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
-
+import { connectSocket } from "../api/socket";
 function Notifications() {
   const navigate = useNavigate();
 
@@ -35,8 +35,56 @@ function Notifications() {
   };
 
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+  fetchNotifications();
+
+  const socket = connectSocket();
+
+  if (!socket) {
+    return;
+  }
+
+  const handleNewNotification = (data) => {
+    const newNotification = data?.notification;
+
+    if (!newNotification?._id) {
+      return;
+    }
+
+    setNotifications((currentNotifications) => {
+      const alreadyExists = currentNotifications.some(
+        (notification) =>
+          notification._id === newNotification._id
+      );
+
+      if (alreadyExists) {
+        return currentNotifications;
+      }
+
+      return [
+        newNotification,
+        ...currentNotifications,
+      ];
+    });
+
+    if (!newNotification.isRead) {
+      setUnreadCount((currentCount) =>
+        currentCount + 1
+      );
+    }
+  };
+
+  socket.on(
+    "notification:new",
+    handleNewNotification
+  );
+
+  return () => {
+    socket.off(
+      "notification:new",
+      handleNewNotification
+    );
+  };
+}, []);
 
   const markAsRead = async (notificationId) => {
     try {
