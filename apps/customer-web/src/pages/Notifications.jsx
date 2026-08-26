@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = "https://enjomeal-api.onrender.com/api/notifications";
+import API from "../api/api";
 
 function Notifications() {
   const navigate = useNavigate();
@@ -11,105 +10,76 @@ function Notifications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const token = localStorage.getItem("enjoMealToken");
-
   const fetchNotifications = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/my`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await API.get("/notifications/my");
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to fetch notifications"
-        );
-      }
+      const data = response.data;
 
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch (error) {
       console.error("Notification Error:", error);
-      setError(error.message);
+
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch notifications"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (token) {
-      fetchNotifications();
-    } else {
-      setError("Authentication token not found. Please login again.");
-      setLoading(false);
-    }
+    fetchNotifications();
   }, []);
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(
-        `${API_URL}/${notificationId}/read`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      setError("");
+
+      await API.put(
+        `/notifications/${notificationId}/read`
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to mark notification as read"
-        );
-      }
 
       await fetchNotifications();
     } catch (error) {
       console.error("Mark Read Error:", error);
-      setError(error.message);
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to mark notification as read"
+      );
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch(`${API_URL}/read-all`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      setError("");
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to mark all notifications as read"
-        );
-      }
+      await API.put("/notifications/read-all");
 
       await fetchNotifications();
     } catch (error) {
       console.error("Mark All Read Error:", error);
-      setError(error.message);
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to mark all notifications as read"
+      );
     }
   };
 
   const handleNotificationClick = async (notification) => {
     try {
-      // Notification ko read mark karo
       if (!notification.isRead) {
         await markAsRead(notification._id);
       }
 
-      // Order notification hai aur order available hai
       if (notification.order) {
         const orderId =
           typeof notification.order === "object"
@@ -127,28 +97,20 @@ function Notifications() {
 
   const deleteNotification = async (notificationId) => {
     try {
-      const response = await fetch(
-        `${API_URL}/${notificationId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      setError("");
+
+      await API.delete(
+        `/notifications/${notificationId}`
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to delete notification"
-        );
-      }
 
       await fetchNotifications();
     } catch (error) {
       console.error("Delete Notification Error:", error);
-      setError(error.message);
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to delete notification"
+      );
     }
   };
 
@@ -165,7 +127,10 @@ function Notifications() {
     <div style={styles.container}>
       <div style={styles.header}>
         <div>
-          <h1 style={styles.title}>Notifications</h1>
+          <h1 style={styles.title}>
+            Notifications
+          </h1>
+
           <p style={styles.subtitle}>
             Stay updated with your EnjoMeal orders
           </p>
@@ -188,12 +153,16 @@ function Notifications() {
       <div style={styles.stats}>
         <div style={styles.statCard}>
           <h3>Total Notifications</h3>
-          <strong>{notifications.length}</strong>
+          <strong>
+            {notifications.length}
+          </strong>
         </div>
 
         <div style={styles.statCard}>
           <h3>Unread</h3>
-          <strong>{unreadCount}</strong>
+          <strong>
+            {unreadCount}
+          </strong>
         </div>
       </div>
 
@@ -209,8 +178,12 @@ function Notifications() {
       {notifications.length === 0 ? (
         <div style={styles.empty}>
           <div style={styles.icon}>🔔</div>
+
           <h2>No Notifications</h2>
-          <p>You don't have any notifications yet.</p>
+
+          <p>
+            You don't have any notifications yet.
+          </p>
         </div>
       ) : (
         <div style={styles.list}>
@@ -226,8 +199,11 @@ function Notifications() {
             >
               <div style={styles.cardTop}>
                 <div>
-                  <h3 style={styles.notificationTitle}>
+                  <h3
+                    style={styles.notificationTitle}
+                  >
                     🔔 {notification.title}
+
                     {!notification.isRead && (
                       <span style={styles.newBadge}>
                         NEW
@@ -252,41 +228,43 @@ function Notifications() {
                     ).toLocaleString()
                   : ""}
               </p>
+
               <div style={styles.actions}>
-  {!notification.isRead && (
-    <button
-      onClick={() =>
-        markAsRead(notification._id)
-      }
-      style={styles.readButton}
-    >
-      ✓ Mark as Read
-    </button>
-  )}
+                {!notification.isRead && (
+                  <button
+                    onClick={() =>
+                      markAsRead(notification._id)
+                    }
+                    style={styles.readButton}
+                  >
+                    ✓ Mark as Read
+                  </button>
+                )}
 
-  {notification.order && (
-    <button
-      onClick={() =>
-        handleNotificationClick(notification)
-      }
-      style={styles.orderButton}
-    >
-      View Order →
-    </button>
-  )}
+                {notification.order && (
+                  <button
+                    onClick={() =>
+                      handleNotificationClick(
+                        notification
+                      )
+                    }
+                    style={styles.orderButton}
+                  >
+                    View Order →
+                  </button>
+                )}
 
-  <button
-    onClick={() =>
-      deleteNotification(notification._id)
-    }
-    style={styles.deleteButton}
-  >
-    Delete
-    </button>
-    
-</div>
-            
-
+                <button
+                  onClick={() =>
+                    deleteNotification(
+                      notification._id
+                    )
+                  }
+                  style={styles.deleteButton}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -419,6 +397,7 @@ const styles = {
     display: "flex",
     gap: "10px",
     marginTop: "12px",
+    flexWrap: "wrap",
   },
 
   readButton: {
@@ -434,6 +413,7 @@ const styles = {
     padding: "8px 12px",
     cursor: "pointer",
   },
+
   orderButton: {
     border: "none",
     borderRadius: "6px",
