@@ -3,7 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-
+const http = require("http");
+const { Server } = require("socket.io");
 const connectDB = require("./database/db");
 
 const requestIdMiddleware = require("./middleware/requestId.middleware");
@@ -20,11 +21,56 @@ const adminRoutes = require("./routes/adminRoutes");
 // APP CONFIG
 // =====================================================
 
-const app = express();
-
 const PORT = Number(process.env.PORT) || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
+const app = express();
+
+const httpServer = http.createServer(app);
+
+const socketOrigins = [
+  "https://enjomeal-customer-web.onrender.com",
+  ...(process.env.CLIENT_URL
+    ? process.env.CLIENT_URL
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+    : []),
+];
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (
+        NODE_ENV !== "production" ||
+        socketOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error("Socket CORS origin not allowed")
+      );
+    },
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+app.set("io", io);
+io.on("connection", (socket) => {
+  console.log(`Socket connected: ${socket.id}`);
+
+  socket.on("disconnect", (reason) => {
+    console.log(
+      `Socket disconnected: ${socket.id} | Reason: ${reason}`
+    );
+  });
+});
 app.disable("x-powered-by");
 
 // =====================================================
@@ -233,7 +279,7 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    server = app.listen(PORT, () => {
+    server = httpServer.listen(PORT, () => {
       console.log("======================================");
       console.log("          EnjoMeal API Server");
       console.log("======================================");
