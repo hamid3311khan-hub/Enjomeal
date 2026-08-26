@@ -10,7 +10,8 @@ const {
   updateDeliveryAvailabilityController,
   getAssignedOrdersController,
   updateDeliveryActiveStatusController,
-  getMyDeliveryProfileController
+  getMyDeliveryProfileController,
+  updateMyLiveLocationController
 } = require("../controllers/deliveryController");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -60,6 +61,17 @@ router.get(
   authMiddleware,
   roleMiddleware("delivery"),
   getMyDeliveryProfileController
+);
+
+// =====================================================
+// UPDATE MY LIVE LOCATION
+// DELIVERY PARTNER ONLY
+// =====================================================
+router.put(
+  "/my-location",
+  authMiddleware,
+  roleMiddleware("delivery"),
+  updateMyLiveLocationController
 );
 
 

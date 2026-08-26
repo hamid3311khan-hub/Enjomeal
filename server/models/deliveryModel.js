@@ -93,6 +93,36 @@ const deliverySchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    // ===================================================
+    // LIVE LOCATION
+    // ===================================================
+
+    currentLocation: {
+      latitude: {
+        type: Number,
+        default: null,
+        min: [-90, "Latitude must be between -90 and 90"],
+        max: [90, "Latitude must be between -90 and 90"],
+      },
+
+      longitude: {
+        type: Number,
+        default: null,
+        min: [-180, "Longitude must be between -180 and 180"],
+        max: [180, "Longitude must be between -180 and 180"],
+      },
+
+      accuracy: {
+        type: Number,
+        default: null,
+        min: [0, "Accuracy cannot be negative"],
+      },
+    },
+
+    lastLocationUpdate: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

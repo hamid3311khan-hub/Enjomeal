@@ -948,6 +948,181 @@ const getMyDeliveryProfileController = async (
     });
   }
 };
+// =====================================================
+// UPDATE MY LIVE LOCATION
+// DELIVERY PARTNER ONLY
+// =====================================================
+
+const updateMyLiveLocationController = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      latitude,
+      longitude,
+      accuracy,
+    } = req.body;
+
+    // =================================================
+    // VALIDATE LOCATION
+    // =================================================
+
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Valid latitude and longitude are required",
+      });
+    }
+
+    if (
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Latitude or longitude is out of range",
+      });
+    }
+
+    let locationAccuracy = null;
+
+    if (
+      accuracy !== undefined &&
+      accuracy !== null &&
+      accuracy !== ""
+    ) {
+      locationAccuracy = Number(accuracy);
+
+      if (
+        !Number.isFinite(locationAccuracy) ||
+        locationAccuracy < 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Accuracy must be a valid positive number",
+        });
+      }
+    }
+
+    // =================================================
+    // FIND ONLY LOGGED-IN DELIVERY PARTNER
+    // =================================================
+
+    const delivery =
+      await Delivery.findOne({
+        user: req.user.id,
+      });
+
+    if (!delivery) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Delivery profile not found",
+      });
+    }
+
+    if (!delivery.isActive) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Delivery partner account is inactive",
+      });
+    }
+
+    // =================================================
+    // UPDATE LOCATION
+    // =================================================
+
+    delivery.currentLocation = {
+      latitude: lat,
+      longitude: lng,
+      accuracy: locationAccuracy,
+    };
+
+    delivery.lastLocationUpdate =
+      new Date();
+
+    await delivery.save();
+
+    // =================================================
+    // GET ACTIVE ASSIGNED ORDERS
+    // =================================================
+
+    const activeOrders =
+      await Order.find({
+        deliveryPartner: delivery._id,
+        orderStatus: {
+          $in: [
+            "READY",
+            "OUT_FOR_DELIVERY",
+          ],
+        },
+      }).select("_id user orderStatus");
+
+    // =================================================
+    // REAL-TIME SOCKET EVENT
+    // =================================================
+
+    const io = req.app.get("io");
+
+    if (io) {
+      activeOrders.forEach((order) => {
+        io.to(`order:${order._id}`).emit(
+          "delivery:location",
+          {
+            orderId:
+              order._id.toString(),
+            deliveryPartnerId:
+              delivery._id.toString(),
+            latitude: lat,
+            longitude: lng,
+            accuracy: locationAccuracy,
+            updatedAt:
+              delivery.lastLocationUpdate,
+          }
+        );
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Live location updated successfully",
+      location: delivery.currentLocation,
+      lastLocationUpdate:
+        delivery.lastLocationUpdate,
+      activeOrders:
+        activeOrders.map((order) =>
+          order._id.toString()
+        ),
+    });
+  } catch (error) {
+    console.error(
+      "Update Live Location Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error updating live location",
+      error: error.message,
+    });
+  }
+};
+
   // =====================================================
 // EXPORT
 // =====================================================
@@ -962,4 +1137,5 @@ module.exports = {
   deleteDeliveryController,
   updateDeliveryAvailabilityController,
   updateDeliveryActiveStatusController,
+  updateMyLiveLocationController,
 };
