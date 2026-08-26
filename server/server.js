@@ -5,6 +5,8 @@ const cors = require("cors");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
+const User = require("./models/user");
 const connectDB = require("./database/db");
 
 const requestIdMiddleware = require("./middleware/requestId.middleware");
@@ -62,12 +64,107 @@ const io = new Server(httpServer, {
 });
 
 app.set("io", io);
+io.use(async (socket, next) => {
+  try {
+    const token =
+      socket.handshake.auth?.token ||
+      socket.handshake.headers?.authorization
+        ?.replace(/^Bearer\s+/i, "")
+        ?.trim();
+
+    if (!token) {
+      return next(
+        new Error("Authentication token is required")
+      );
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return next(
+        new Error("Socket authentication is not configured")
+      );
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    const userId =
+      decoded.id ||
+      decoded.userId ||
+      decoded._id;
+
+    if (!userId) {
+      return next(
+        new Error("Invalid authentication token")
+      );
+    }
+
+    const user = await User.findById(userId).select(
+      "-password"
+    );
+
+    if (!user) {
+      return next(
+        new Error("User account no longer exists")
+      );
+    }
+
+    if (user.isActive === false) {
+      return next(
+        new Error("User account is inactive")
+      );
+    }
+
+    if (
+      ["restaurant", "delivery"].includes(user.role) &&
+      user.approvalStatus &&
+      user.approvalStatus !== "APPROVED"
+    ) {
+      return next(
+        new Error("User account is not approved")
+      );
+    }
+
+    socket.user = {
+      id: user._id.toString(),
+      role: user.role,
+      name: user.name,
+    };
+
+    return next();
+  } catch (error) {
+    console.error(
+      "Socket authentication error:",
+      error.message
+    );
+
+    return next(
+      new Error("Socket authentication failed")
+    );
+  }
+});
 io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+  const userRoom = `user:${socket.user.id}`;
+  const roleRoom = `role:${socket.user.role}`;
+
+  socket.join(userRoom);
+  socket.join(roleRoom);
+
+  console.log(
+    `Socket connected: ${socket.id} | User: ${socket.user.id} | Role: ${socket.user.role}`
+  );
+
+  socket.emit("socket:connected", {
+    success: true,
+    message: "Real-time connection established",
+    userId: socket.user.id,
+    role: socket.user.role,
+  });
 
   socket.on("disconnect", (reason) => {
     console.log(
-      `Socket disconnected: ${socket.id} | Reason: ${reason}`
+      `Socket disconnected: ${socket.id} | User: ${socket.user.id} | Reason: ${reason}`
     );
   });
 });
