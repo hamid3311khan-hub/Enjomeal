@@ -45,7 +45,20 @@ function Menu() {
     "Dessert",
     "Beverages",
     "Snacks",
-    "Other",
+    "Indian Main",
+    "Breads",
+    "Indian Dal & Rice",
+    "Momos",
+    "Fries",
+    "Combo",
+    "BreakFast",
+    "Soup",
+    "Starters",
+    "Gravies",
+    "Rice",
+    "Noodles",
+    "Other"
+    
   ];
 
   // =====================================================
