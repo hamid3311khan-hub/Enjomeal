@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 function Menu() {
@@ -12,6 +11,10 @@ function Menu() {
   // Edit mode
   const [editingFood, setEditingFood] = useState(null);
 
+  // Category filter
+  const [selectedCategory, setSelectedCategory] =
+    useState("ALL");
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -24,6 +27,26 @@ function Menu() {
   const restaurantId = localStorage.getItem(
     "enjoMealRestaurantId"
   );
+
+  // =====================================================
+  // FOOD CATEGORIES
+  // =====================================================
+
+  const categories = [
+    "Biryani",
+    "Pizza",
+    "Burger",
+    "Chinese",
+    "Indian",
+    "North Indian",
+    "South Indian",
+    "Starter",
+    "Main Course",
+    "Dessert",
+    "Beverages",
+    "Snacks",
+    "Other",
+  ];
 
   // =====================================================
   // FETCH RESTAURANT FOODS
@@ -49,13 +72,18 @@ function Menu() {
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to fetch menu."
+          data.message ||
+            "Failed to fetch menu."
         );
       }
 
       setFoods(data.foods || []);
     } catch (error) {
-      console.error("Fetch Menu Error:", error);
+      console.error(
+        "Fetch Menu Error:",
+        error
+      );
+
       setError(error.message);
     } finally {
       setLoading(false);
@@ -71,7 +99,12 @@ function Menu() {
   // =====================================================
 
   const handleChange = (event) => {
-    const { name, value, type, checked } = event.target;
+    const {
+      name,
+      value,
+      type,
+      checked,
+    } = event.target;
 
     setFormData({
       ...formData,
@@ -116,7 +149,9 @@ function Menu() {
       );
 
       if (!token) {
-        setError("Restaurant login required.");
+        setError(
+          "Restaurant login required."
+        );
         return;
       }
 
@@ -131,28 +166,37 @@ function Menu() {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
+              "Content-Type":
+                "application/json",
             },
             body: JSON.stringify({
               name: formData.name,
-              description: formData.description,
-              price: Number(formData.price),
-              category: formData.category,
+              description:
+                formData.description,
+              price: Number(
+                formData.price
+              ),
+              category:
+                formData.category,
               image: formData.image,
-              isAvailable: formData.isAvailable,
+              isAvailable:
+                formData.isAvailable,
             }),
           }
         );
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.message || "Failed to update food."
+            data.message ||
+              "Failed to update food."
           );
         }
 
         resetForm();
+
         await fetchFoods();
 
         return;
@@ -168,32 +212,46 @@ function Menu() {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
             name: formData.name,
-            description: formData.description,
-            price: Number(formData.price),
-            category: formData.category,
+            description:
+              formData.description,
+            price: Number(
+              formData.price
+            ),
+            category:
+              formData.category,
             image: formData.image,
-            isAvailable: formData.isAvailable,
-            restaurant: restaurantId,
+            isAvailable:
+              formData.isAvailable,
+            restaurant:
+              restaurantId,
           }),
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to create food."
+          data.message ||
+            "Failed to create food."
         );
       }
 
       resetForm();
+
       await fetchFoods();
     } catch (error) {
-      console.error("Save Food Error:", error);
+      console.error(
+        "Save Food Error:",
+        error
+      );
+
       setError(error.message);
     } finally {
       setSaving(false);
@@ -209,11 +267,14 @@ function Menu() {
 
     setFormData({
       name: food.name || "",
-      description: food.description || "",
+      description:
+        food.description || "",
       price: food.price || "",
-      category: food.category || "",
+      category:
+        food.category || "",
       image: food.image || "",
-      isAvailable: food.isAvailable !== false,
+      isAvailable:
+        food.isAvailable !== false,
     });
 
     setShowForm(true);
@@ -229,9 +290,10 @@ function Menu() {
   // =====================================================
 
   const deleteFood = async (foodId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this food?"
-    );
+    const confirmDelete =
+      window.confirm(
+        "Are you sure you want to delete this food?"
+      );
 
     if (!confirmDelete) {
       return;
@@ -245,7 +307,9 @@ function Menu() {
       );
 
       if (!token) {
-        setError("Restaurant login required.");
+        setError(
+          "Restaurant login required."
+        );
         return;
       }
 
@@ -259,21 +323,29 @@ function Menu() {
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to delete food."
+          data.message ||
+            "Failed to delete food."
         );
       }
 
-      setFoods((currentFoods) =>
-        currentFoods.filter(
-          (food) => food._id !== foodId
-        )
+      setFoods(
+        (currentFoods) =>
+          currentFoods.filter(
+            (food) =>
+              food._id !== foodId
+          )
       );
     } catch (error) {
-      console.error("Delete Food Error:", error);
+      console.error(
+        "Delete Food Error:",
+        error
+      );
+
       setError(error.message);
     }
   };
@@ -282,7 +354,9 @@ function Menu() {
   // TOGGLE AVAILABILITY
   // =====================================================
 
-  const toggleAvailability = async (food) => {
+  const toggleAvailability = async (
+    food
+  ) => {
     try {
       setError("");
 
@@ -291,7 +365,9 @@ function Menu() {
       );
 
       if (!token) {
-        setError("Restaurant login required.");
+        setError(
+          "Restaurant login required."
+        );
         return;
       }
 
@@ -301,15 +377,18 @@ function Menu() {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
-            isAvailable: !food.isAvailable,
+            isAvailable:
+              !food.isAvailable,
           }),
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -318,16 +397,18 @@ function Menu() {
         );
       }
 
-      setFoods((currentFoods) =>
-        currentFoods.map((item) =>
-          item._id === food._id
-            ? {
-                ...item,
-                isAvailable:
-                  !item.isAvailable,
-              }
-            : item
-        )
+      setFoods(
+        (currentFoods) =>
+          currentFoods.map(
+            (item) =>
+              item._id === food._id
+                ? {
+                    ...item,
+                    isAvailable:
+                      !item.isAvailable,
+                  }
+                : item
+          )
       );
     } catch (error) {
       console.error(
@@ -338,6 +419,34 @@ function Menu() {
       setError(error.message);
     }
   };
+
+  // =====================================================
+  // GET UNIQUE CATEGORIES
+  // =====================================================
+
+  const availableCategories = [
+    ...new Set(
+      foods
+        .map(
+          (food) =>
+            food.category?.trim()
+        )
+        .filter(Boolean)
+    ),
+  ];
+
+  // =====================================================
+  // FILTER FOODS
+  // =====================================================
+
+  const filteredFoods =
+    selectedCategory === "ALL"
+      ? foods
+      : foods.filter(
+          (food) =>
+            food.category?.toLowerCase() ===
+            selectedCategory.toLowerCase()
+        );
 
   // =====================================================
   // LOADING
@@ -369,12 +478,15 @@ function Menu() {
         background: "#fff8f3",
       }}
     >
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent:
+            "space-between",
           alignItems: "center",
           marginBottom: "25px",
           gap: "15px",
@@ -382,11 +494,15 @@ function Menu() {
         }}
       >
         <div>
-          <h1>Menu Management</h1>
+          <h1>
+            Menu Management
+          </h1>
 
           <p>
             Total Food Items:{" "}
-            <strong>{foods.length}</strong>
+            <strong>
+              {foods.length}
+            </strong>
           </p>
         </div>
 
@@ -414,7 +530,9 @@ function Menu() {
         </button>
       </div>
 
-      {/* ERROR */}
+      {/* =================================================
+          ERROR
+      ================================================= */}
 
       {error && (
         <div
@@ -429,6 +547,109 @@ function Menu() {
           {error}
         </div>
       )}
+
+      {/* =================================================
+          CATEGORY FILTER
+      ================================================= */}
+
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "12px",
+          marginBottom: "25px",
+          boxShadow:
+            "0 2px 8px rgba(0,0,0,0.06)",
+        }}
+      >
+        <h3
+          style={{
+            marginTop: 0,
+            marginBottom: "15px",
+          }}
+        >
+          Menu Categories
+        </h3>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <button
+            onClick={() =>
+              setSelectedCategory("ALL")
+            }
+            style={{
+              padding: "9px 16px",
+              border: "none",
+              borderRadius: "20px",
+              background:
+                selectedCategory ===
+                "ALL"
+                  ? "#e85d04"
+                  : "#eee",
+              color:
+                selectedCategory ===
+                "ALL"
+                  ? "#fff"
+                  : "#333",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            All ({foods.length})
+          </button>
+
+          {availableCategories.map(
+            (category) => {
+              const count =
+                foods.filter(
+                  (food) =>
+                    food.category
+                      ?.toLowerCase() ===
+                    category.toLowerCase()
+                ).length;
+
+              return (
+                <button
+                  key={category}
+                  onClick={() =>
+                    setSelectedCategory(
+                      category
+                    )
+                  }
+                  style={{
+                    padding:
+                      "9px 16px",
+                    border: "none",
+                    borderRadius:
+                      "20px",
+                    background:
+                      selectedCategory.toLowerCase() ===
+                      category.toLowerCase()
+                        ? "#e85d04"
+                        : "#eee",
+                    color:
+                      selectedCategory.toLowerCase() ===
+                      category.toLowerCase()
+                        ? "#fff"
+                        : "#333",
+                    fontWeight:
+                      "700",
+                    cursor:
+                      "pointer",
+                  }}
+                >
+                  {category} ({count})
+                </button>
+              );
+            }
+          )}
+        </div>
+      </div>
 
       {/* =================================================
           ADD / EDIT FOOD FORM
@@ -451,8 +672,14 @@ function Menu() {
               : "Add Food"}
           </h2>
 
-          <form onSubmit={handleSubmit}>
-            <label>Food Name</label>
+          <form
+            onSubmit={handleSubmit}
+          >
+            {/* FOOD NAME */}
+
+            <label>
+              Food Name
+            </label>
 
             <input
               type="text"
@@ -464,11 +691,17 @@ function Menu() {
               style={inputStyle}
             />
 
-            <label>Description</label>
+            {/* DESCRIPTION */}
+
+            <label>
+              Description
+            </label>
 
             <textarea
               name="description"
-              value={formData.description}
+              value={
+                formData.description
+              }
               onChange={handleChange}
               placeholder="Food description"
               required
@@ -478,7 +711,11 @@ function Menu() {
               }}
             />
 
-            <label>Price</label>
+            {/* PRICE */}
+
+            <label>
+              Price
+            </label>
 
             <input
               type="number"
@@ -491,19 +728,40 @@ function Menu() {
               style={inputStyle}
             />
 
-            <label>Category</label>
+            {/* CATEGORY */}
 
-            <input
-              type="text"
+            <label>
+              Category
+            </label>
+
+            <select
               name="category"
               value={formData.category}
               onChange={handleChange}
-              placeholder="Biryani"
               required
               style={inputStyle}
-            />
+            >
+              <option value="">
+                Select Category
+              </option>
 
-            <label>Image URL</label>
+              {categories.map(
+                (category) => (
+                  <option
+                    key={category}
+                    value={category}
+                  >
+                    {category}
+                  </option>
+                )
+              )}
+            </select>
+
+            {/* IMAGE */}
+
+            <label>
+              Image URL
+            </label>
 
             <input
               type="text"
@@ -531,7 +789,9 @@ function Menu() {
                 <img
                   src={formData.image}
                   alt="Food Preview"
-                  onError={(event) => {
+                  onError={(
+                    event
+                  ) => {
                     event.currentTarget.style.display =
                       "none";
                   }}
@@ -539,12 +799,16 @@ function Menu() {
                     width: "180px",
                     height: "130px",
                     objectFit: "cover",
-                    borderRadius: "10px",
-                    border: "1px solid #ddd",
+                    borderRadius:
+                      "10px",
+                    border:
+                      "1px solid #ddd",
                   }}
                 />
               </div>
             )}
+
+            {/* AVAILABLE */}
 
             <label
               style={{
@@ -560,11 +824,16 @@ function Menu() {
                 checked={
                   formData.isAvailable
                 }
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
               />
 
               Available
             </label>
+
+            {/* SAVE */}
+
             <button
               type="submit"
               disabled={saving}
@@ -590,18 +859,26 @@ function Menu() {
                 : "Save Food"}
             </button>
 
+            {/* CANCEL EDIT */}
+
             {editingFood && (
               <button
                 type="button"
-                onClick={resetForm}
+                onClick={
+                  resetForm
+                }
                 style={{
-                  padding: "12px 20px",
+                  padding:
+                    "12px 20px",
                   border: "none",
                   borderRadius: "8px",
-                  background: "#6c757d",
+                  background:
+                    "#6c757d",
                   color: "#fff",
-                  fontWeight: "700",
-                  cursor: "pointer",
+                  fontWeight:
+                    "700",
+                  cursor:
+                    "pointer",
                 }}
               >
                 Cancel Edit
@@ -624,12 +901,53 @@ function Menu() {
             textAlign: "center",
           }}
         >
-          <h2>No food items</h2>
+          <h2>
+            No food items
+          </h2>
 
           <p>
-            Add your first food item using
-            the button above.
+            Add your first food
+            item using the button
+            above.
           </p>
+        </div>
+      ) : filteredFoods.length ===
+        0 ? (
+        <div
+          style={{
+            background: "#fff",
+            padding: "30px",
+            borderRadius: "12px",
+            textAlign: "center",
+          }}
+        >
+          <h2>
+            No food in this category
+          </h2>
+
+          <p>
+            Try another category.
+          </p>
+
+          <button
+            onClick={() =>
+              setSelectedCategory(
+                "ALL"
+              )
+            }
+            style={{
+              padding: "10px 18px",
+              border: "none",
+              borderRadius: "8px",
+              background:
+                "#e85d04",
+              color: "#fff",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            Show All Foods
+          </button>
         </div>
       ) : (
         <div
@@ -640,159 +958,244 @@ function Menu() {
             gap: "20px",
           }}
         >
-          {foods.map((food) => (
-            <div
-              key={food._id}
-              style={{
-                background: "#fff",
-                padding: "20px",
-                borderRadius: "12px",
-                boxShadow:
-                  "0 2px 8px rgba(0,0,0,0.08)",
-              }}
-            >
-              {/* FOOD IMAGE */}
-
-              {food.image ? (
-                <img
-                  src={food.image}
-                  alt={food.name}
-                  onError={(event) => {
-                    event.currentTarget.style.display =
-                      "none";
-                  }}
-                  style={{
-                    width: "100%",
-                    height: "180px",
-                    objectFit: "cover",
-                    borderRadius: "10px",
-                    marginBottom: "15px",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "180px",
-                    background: "#f1f1f1",
-                    borderRadius: "10px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: "15px",
-                    color: "#777",
-                  }}
-                >
-                  No Image
-                </div>
-              )}
-
-              <h3>{food.name}</h3>
-
-              <p>{food.description}</p>
-
-              <p>
-                <strong>Category:</strong>{" "}
-                {food.category}
-              </p>
-
-              <h3>₹{food.price}</h3>
-
-              {/* STATUS */}
-
-              <p>
-                <strong>Status:</strong>{" "}
-                <span
-                  style={{
-                    color: food.isAvailable
-                      ? "#198754"
-                      : "#dc3545",
-                    fontWeight: "700",
-                  }}
-                >
-                  {food.isAvailable
-                    ? "Available"
-                    : "Unavailable"}
-                </span>
-              </p>
-
-              {/* ACTION BUTTONS */}
-
+          {filteredFoods.map(
+            (food) => (
               <div
+                key={food._id}
                 style={{
-                  display: "flex",
-                  gap: "8px",
-                  flexWrap: "wrap",
-                  marginTop: "15px",
+                  background:
+                    "#fff",
+                  padding: "20px",
+                  borderRadius:
+                    "12px",
+                  boxShadow:
+                    "0 2px 8px rgba(0,0,0,0.08)",
                 }}
               >
-                {/* EDIT */}
+                {/* FOOD IMAGE */}
 
-                <button
-                  onClick={() =>
-                    editFood(food)
-                  }
+                {food.image ? (
+                  <img
+                    src={food.image}
+                    alt={food.name}
+                    onError={(
+                      event
+                    ) => {
+                      event.currentTarget.style.display =
+                        "none";
+                    }}
+                    style={{
+                      width: "100%",
+                      height:
+                        "180px",
+                      objectFit:
+                        "cover",
+                      borderRadius:
+                        "10px",
+                      marginBottom:
+                        "15px",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height:
+                        "180px",
+                      background:
+                        "#f1f1f1",
+                      borderRadius:
+                        "10px",
+                      display:
+                        "flex",
+                      alignItems:
+                        "center",
+                      justifyContent:
+                        "center",
+                      marginBottom:
+                        "15px",
+                      color: "#777",
+                    }}
+                  >
+                    No Image
+                  </div>
+                )}
+
+                {/* NAME */}
+
+                <h3>
+                  {food.name}
+                </h3>
+
+                {/* DESCRIPTION */}
+
+                <p>
+                  {food.description}
+                </p>
+
+                {/* CATEGORY */}
+
+                <p>
+                  <strong>
+                    Category:
+                  </strong>{" "}
+                  <span
+                    style={{
+                      display:
+                        "inline-block",
+                      padding:
+                        "5px 10px",
+                      background:
+                        "#fff0e6",
+                      color:
+                        "#e85d04",
+                      borderRadius:
+                        "15px",
+                      fontSize:
+                        "13px",
+                      fontWeight:
+                        "700",
+                    }}
+                  >
+                    {food.category ||
+                      "Other"}
+                  </span>
+                </p>
+
+                {/* PRICE */}
+
+                <h3>
+                  ₹{food.price}
+                </h3>
+
+                {/* STATUS */}
+
+                <p>
+                  <strong>
+                    Status:
+                  </strong>{" "}
+                  <span
+                    style={{
+                      color:
+                        food.isAvailable
+                          ? "#198754"
+                          : "#dc3545",
+                      fontWeight:
+                        "700",
+                    }}
+                  >
+                    {food.isAvailable
+                      ? "Available"
+                      : "Unavailable"}
+                  </span>
+                </p>
+
+                {/* ACTION BUTTONS */}
+
+                <div
                   style={{
-                    padding: "9px 15px",
-                    border: "none",
-                    borderRadius: "7px",
-                    background: "#0d6efd",
-                    color: "#fff",
-                    fontWeight: "700",
-                    cursor: "pointer",
+                    display:
+                      "flex",
+                    gap: "8px",
+                    flexWrap:
+                      "wrap",
+                    marginTop:
+                      "15px",
                   }}
                 >
-                  Edit
-                </button>
+                  {/* EDIT */}
 
-                {/* AVAILABILITY */}
+                  <button
+                    onClick={() =>
+                      editFood(
+                        food
+                      )
+                    }
+                    style={{
+                      padding:
+                        "9px 15px",
+                      border:
+                        "none",
+                      borderRadius:
+                        "7px",
+                      background:
+                        "#0d6efd",
+                      color:
+                        "#fff",
+                      fontWeight:
+                        "700",
+                      cursor:
+                        "pointer",
+                    }}
+                  >
+                    Edit
+                  </button>
 
-                <button
-                  onClick={() =>
-                    toggleAvailability(food)
-                  }
-                  style={{
-                    padding: "9px 15px",
-                    border: "none",
-                    borderRadius: "7px",
-                    background:
-                      food.isAvailable
-                        ? "#ffc107"
-                        : "#198754",
-                    color:
-                      food.isAvailable
-                        ? "#000"
-                        : "#fff",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                  }}
-                >
-                  {food.isAvailable
-                    ? "Turn OFF"
-                    : "Turn ON"}
-                </button>
+                  {/* AVAILABILITY */}
 
-                {/* DELETE */}
+                  <button
+                    onClick={() =>
+                      toggleAvailability(
+                        food
+                      )
+                    }
+                    style={{
+                      padding:
+                        "9px 15px",
+                      border:
+                        "none",
+                      borderRadius:
+                        "7px",
+                      background:
+                        food.isAvailable
+                          ? "#ffc107"
+                          : "#198754",
+                      color:
+                        food.isAvailable
+                          ? "#000"
+                          : "#fff",
+                      fontWeight:
+                        "700",
+                      cursor:
+                        "pointer",
+                    }}
+                  >
+                    {food.isAvailable
+                      ? "Turn OFF"
+                      : "Turn ON"}
+                  </button>
 
-                <button
-                  onClick={() =>
-                    deleteFood(food._id)
-                  }
-                  style={{
-                    padding: "9px 15px",
-                    border: "none",
-                    borderRadius: "7px",
-                    background: "#dc3545",
-                    color: "#fff",
-                    fontWeight: "700",
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete
-                </button>
+                  {/* DELETE */}
+
+                  <button
+                    onClick={() =>
+                      deleteFood(
+                        food._id
+                      )
+                    }
+                    style={{
+                      padding:
+                        "9px 15px",
+                      border:
+                        "none",
+                      borderRadius:
+                        "7px",
+                      background:
+                        "#dc3545",
+                      color:
+                        "#fff",
+                      fontWeight:
+                        "700",
+                      cursor:
+                        "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
     </div>
