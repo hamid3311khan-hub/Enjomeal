@@ -45,7 +45,7 @@ function Menu() {
     "Dessert",
     "Beverages",
     "Snacks",
-    "Indian Main",
+    "Indian Main Course",
     "Breads",
     "Indian Dal & Rice",
     "Momos",
