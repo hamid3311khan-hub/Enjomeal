@@ -425,16 +425,24 @@ function Menu() {
   // =====================================================
 
   const availableCategories = [
-    ...new Set(
-      foods
-        .map(
-          (food) =>
-            food.category?.trim()
-        )
-        .filter(Boolean)
-    ),
-  ];
+  ...new Map(
+    foods
+      .map((food) => {
+        const category =
+          food.category?.trim();
 
+        if (!category) {
+          return null;
+        }
+
+        return [
+          category.toLowerCase(),
+          category,
+        ];
+      })
+      .filter(Boolean)
+  ).values(),
+];
   // =====================================================
   // FILTER FOODS
   // =====================================================
