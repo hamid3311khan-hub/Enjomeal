@@ -27,7 +27,18 @@ function Checkout() {
 
   const fetchCart = async () => {
     try {
-      const response = await API.get("/cart");
+      const token = localStorage.getItem("enjoMealToken");
+
+      if (!token) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      const response = await API.get("/cart", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (response.data.success) {
         const cartData = response.data.cart;
@@ -47,6 +58,10 @@ function Checkout() {
       console.error("Checkout Cart Error:", err);
 
       if (err.response?.status === 401) {
+        localStorage.removeItem("enjoMealToken");
+        localStorage.removeItem("enjoMealUser");
+
+        navigate("/login", { replace: true });
         return;
       }
 
@@ -87,10 +102,6 @@ function Checkout() {
 
     setError("");
 
-    // ---------------------------------------------
-    // CART VALIDATION
-    // ---------------------------------------------
-
     if (!cart?._id) {
       setError("Cart information is missing.");
       return;
@@ -109,18 +120,13 @@ function Checkout() {
       return;
     }
 
-    // ---------------------------------------------
+    // ===================================================
     // ADDRESS VALIDATION
-    // ---------------------------------------------
+    // ===================================================
 
-    const address =
-      formData.address.trim();
-
-    const city =
-      formData.city.trim();
-
-    const pincode =
-      formData.pincode.trim();
+    const address = formData.address.trim();
+    const city = formData.city.trim();
+    const pincode = formData.pincode.trim();
 
     if (address.length < 5) {
       setError(
@@ -141,9 +147,9 @@ function Checkout() {
       return;
     }
 
-    // ---------------------------------------------
+    // ===================================================
     // PAYMENT VALIDATION
-    // ---------------------------------------------
+    // ===================================================
 
     if (
       !["COD", "ONLINE"].includes(
@@ -153,11 +159,6 @@ function Checkout() {
       setError("Invalid payment method.");
       return;
     }
-
-    // ---------------------------------------------
-    // ONLINE PAYMENT
-    // MVP: NOT INTEGRATED YET
-    // ---------------------------------------------
 
     if (
       formData.paymentMethod === "ONLINE"
@@ -171,20 +172,12 @@ function Checkout() {
     try {
       setPlacingOrder(true);
 
-      // -------------------------------------------
-      // PREPARE ORDER ITEMS
-      // -------------------------------------------
-
       const items = cart.items.map(
         (item) => ({
           food: item.food?._id,
           quantity: Number(item.quantity),
         })
       );
-
-      // -------------------------------------------
-      // CHECK FOOD IDS
-      // -------------------------------------------
 
       const invalidItem = items.some(
         (item) =>
@@ -200,10 +193,6 @@ function Checkout() {
         setPlacingOrder(false);
         return;
       }
-
-      // -------------------------------------------
-      // CREATE ORDER
-      // -------------------------------------------
 
       const response = await API.post(
         "/orders/create",
@@ -223,10 +212,6 @@ function Checkout() {
             formData.paymentMethod,
         }
       );
-
-      // -------------------------------------------
-      // SUCCESS
-      // -------------------------------------------
 
       if (response.data.success) {
         const orderId =
@@ -259,6 +244,17 @@ function Checkout() {
         err
       );
 
+      if (err.response?.status === 401) {
+        localStorage.removeItem("enjoMealToken");
+        localStorage.removeItem("enjoMealUser");
+
+        navigate("/login", {
+          replace: true,
+        });
+
+        return;
+      }
+
       setError(
         err.response?.data?.message ||
           "Failed to place order. Please try again."
@@ -276,10 +272,28 @@ function Checkout() {
     return (
       <div
         style={{
-          padding: "30px",
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#fff8f3",
+          padding: "20px",
         }}
       >
-        <h2>Loading checkout...</h2>
+        <div
+          style={{
+            background: "#fff",
+            padding: "30px",
+            borderRadius: "16px",
+            boxShadow:
+              "0 10px 30px rgba(0,0,0,0.08)",
+            textAlign: "center",
+          }}
+        >
+          <h2>Loading checkout...</h2>
+          <p style={{ color: "#777" }}>
+            Please wait.
+          </p>
+        </div>
       </div>
     );
   }
@@ -292,26 +306,32 @@ function Checkout() {
     return (
       <div
         style={{
-          padding: "30px",
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#fff8f3",
+          padding: "20px",
         }}
       >
-        <h2>Your cart is empty.</h2>
-
-        <button
-          onClick={() =>
-            navigate("/cart")
-          }
+        <div
           style={{
-            padding: "12px 20px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#e85d04",
-            color: "#fff",
-            cursor: "pointer",
+            background: "#fff",
+            padding: "30px",
+            borderRadius: "16px",
+            textAlign: "center",
           }}
         >
-          Go to Cart
-        </button>
+          <h2>Your cart is empty.</h2>
+
+          <button
+            onClick={() =>
+              navigate("/cart")
+            }
+            style={primaryButtonStyle}
+          >
+            Go to Cart
+          </button>
+        </div>
       </div>
     );
   }
@@ -324,280 +344,492 @@ function Checkout() {
     <div
       style={{
         minHeight: "100vh",
-        padding: "30px",
         background: "#fff8f3",
+        padding: "20px",
       }}
     >
-      {/* BACK */}
+      {/* =================================================
+          TOP BAR
+      ================================================= */}
 
-      <button
-        onClick={() =>
-          navigate("/cart")
-        }
+      <div
         style={{
-          marginBottom: "20px",
-          padding: "10px 16px",
-          border: "1px solid #ddd",
-          borderRadius: "8px",
-          background: "#fff",
-          cursor: "pointer",
+          maxWidth: "1100px",
+          margin: "0 auto 20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "15px",
+          flexWrap: "wrap",
         }}
       >
-        ← Back to Cart
-      </button>
+        <button
+          onClick={() =>
+            navigate("/cart")
+          }
+          style={backButtonStyle}
+        >
+          ← Back to Cart
+        </button>
 
-      <h1>Checkout</h1>
+        <h1
+          style={{
+            margin: 0,
+            color: "#e85d04",
+          }}
+        >
+          ENJOMEAL
+        </h1>
+      </div>
 
-      {/* ERROR */}
+      {/* =================================================
+          TITLE
+      ================================================= */}
+
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto 25px",
+        }}
+      >
+        <h2
+          style={{
+            marginBottom: "5px",
+          }}
+        >
+          Checkout
+        </h2>
+
+        <p
+          style={{
+            marginTop: 0,
+            color: "#777",
+          }}
+        >
+          Complete your order details below.
+        </p>
+      </div>
+
+      {/* =================================================
+          ERROR
+      ================================================= */}
 
       {error && (
         <div
           style={{
-            maxWidth: "700px",
-            marginBottom: "15px",
-            padding: "12px 15px",
+            maxWidth: "1100px",
+            margin: "0 auto 20px",
+            padding: "14px 16px",
             background: "#ffe5e5",
             border: "1px solid #ffb3b3",
-            borderRadius: "8px",
-            color: "#c00",
+            borderRadius: "10px",
+            color: "#b00000",
+            fontWeight: "600",
           }}
         >
           {error}
         </div>
       )}
 
+      {/* =================================================
+          MAIN GRID
+      ================================================= */}
+
       <div
         style={{
-          maxWidth: "700px",
-          padding: "25px",
-          background: "#fff",
-          border: "1px solid #ddd",
-          borderRadius: "12px",
+          maxWidth: "1100px",
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns:
+            "minmax(0, 1.5fr) minmax(280px, 0.8fr)",
+          gap: "20px",
+          alignItems: "start",
         }}
       >
-        {/* RESTAURANT */}
+        {/* =================================================
+            LEFT SIDE
+        ================================================= */}
 
-        <h2>Restaurant</h2>
-
-        <p>
-          <strong>
-            {cart.restaurant?.name ||
-              "Restaurant"}
-          </strong>
-        </p>
-
-        <hr />
-
-        {/* ORDER SUMMARY */}
-
-        <h2>Order Summary</h2>
-
-        {cart.items.map((item) => {
-          const itemTotal =
-            Number(item.price) *
-            Number(item.quantity);
-
-          return (
-            <div
-              key={item.food?._id}
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                gap: "15px",
-                padding: "12px 0",
-                borderBottom:
-                  "1px solid #eee",
-              }}
-            >
-              <span>
-                {item.food?.name ||
-                  "Food"}{" "}
-                × {item.quantity}
-              </span>
-
-              <strong>
-                ₹{itemTotal}
-              </strong>
-            </div>
-          );
-        })}
-
-        <h2
+        <div
           style={{
-            textAlign: "right",
-            marginTop: "20px",
+            background: "#fff",
+            padding: "25px",
+            borderRadius: "16px",
+            border: "1px solid #eee",
+            boxShadow:
+              "0 8px 25px rgba(0,0,0,0.05)",
           }}
         >
-          Total: ₹{cart.totalAmount}
-        </h2>
+          {/* RESTAURANT */}
 
-        <hr />
-
-        {/* DELIVERY ADDRESS */}
-
-        <h2>Delivery Address</h2>
-
-        <form
-          onSubmit={handlePlaceOrder}
-        >
-          {/* ADDRESS */}
-
-          <label>
-            Address
-          </label>
-
-          <textarea
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            placeholder="House no, street, area..."
-            required
-            rows="4"
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "7px",
-              marginBottom: "15px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-              resize: "vertical",
-            }}
-          />
-
-          {/* CITY */}
-
-          <label>
-            City
-          </label>
-
-          <input
-            type="text"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            placeholder="Enter city"
-            required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "7px",
-              marginBottom: "15px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-            }}
-          />
-
-          {/* PINCODE */}
-
-          <label>
-            Pincode
-          </label>
-
-          <input
-            type="text"
-            name="pincode"
-            value={formData.pincode}
-            onChange={handleChange}
-            placeholder="6-digit pincode"
-            maxLength="6"
-            inputMode="numeric"
-            required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "7px",
-              marginBottom: "20px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-            }}
-          />
-
-          {/* PAYMENT */}
-
-          <h2>Payment Method</h2>
-
-          {/* COD */}
-
-          <label
-            style={{
-              display: "block",
-              marginBottom: "12px",
-            }}
-          >
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="COD"
-              checked={
-                formData.paymentMethod ===
-                "COD"
-              }
-              onChange={handleChange}
-            />{" "}
-            Cash on Delivery
-          </label>
-
-          {/* ONLINE */}
-
-          <label
-            style={{
-              display: "block",
-              color: "#999",
-            }}
-          >
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="ONLINE"
-              checked={
-                formData.paymentMethod ===
-                "ONLINE"
-              }
-              onChange={handleChange}
-            />{" "}
-            Online Payment
-            <small
+          <div>
+            <p
               style={{
-                marginLeft: "8px",
+                margin: 0,
+                color: "#777",
+                fontSize: "14px",
               }}
             >
-              (Coming soon)
-            </small>
-          </label>
+              Restaurant
+            </p>
 
-          {/* PLACE ORDER */}
+            <h2
+              style={{
+                marginTop: "5px",
+              }}
+            >
+              🍽️{" "}
+              {cart.restaurant?.name ||
+                "Restaurant"}
+            </h2>
+          </div>
 
-          <button
-            type="submit"
-            disabled={placingOrder}
+          <hr style={dividerStyle} />
+
+          {/* DELIVERY ADDRESS */}
+
+          <h2>📍 Delivery Address</h2>
+
+          <form
+            onSubmit={handlePlaceOrder}
+          >
+            <label style={labelStyle}>
+              Full Address
+            </label>
+
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="House no, street, area..."
+              required
+              rows="4"
+              style={inputStyle}
+            />
+
+            <label style={labelStyle}>
+              City
+            </label>
+
+            <input
+              type="text"
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              placeholder="Enter city"
+              required
+              style={inputStyle}
+            />
+
+            <label style={labelStyle}>
+              Pincode
+            </label>
+
+            <input
+              type="text"
+              name="pincode"
+              value={formData.pincode}
+              onChange={handleChange}
+              placeholder="6-digit pincode"
+              maxLength="6"
+              inputMode="numeric"
+              required
+              style={inputStyle}
+            />
+
+            {/* PAYMENT */}
+
+            <h2
+              style={{
+                marginTop: "25px",
+              }}
+            >
+              💳 Payment Method
+            </h2>
+
+            <div
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: "10px",
+                padding: "15px",
+                marginBottom: "10px",
+              }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="COD"
+                  checked={
+                    formData.paymentMethod ===
+                    "COD"
+                  }
+                  onChange={handleChange}
+                />
+
+                Cash on Delivery
+              </label>
+
+              <p
+                style={{
+                  margin:
+                    "7px 0 0 27px",
+                  color: "#777",
+                  fontSize: "13px",
+                }}
+              >
+                Pay when your order is
+                delivered.
+              </p>
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #eee",
+                borderRadius: "10px",
+                padding: "15px",
+                opacity: 0.55,
+              }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  fontWeight: "600",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="ONLINE"
+                  checked={
+                    formData.paymentMethod ===
+                    "ONLINE"
+                  }
+                  onChange={handleChange}
+                />
+
+                Online Payment
+              </label>
+
+              <p
+                style={{
+                  margin:
+                    "7px 0 0 27px",
+                  color: "#777",
+                  fontSize: "13px",
+                }}
+              >
+                Coming soon
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={placingOrder}
+              style={{
+                width: "100%",
+                marginTop: "25px",
+                padding: "15px",
+                border: "none",
+                borderRadius: "10px",
+                background:
+                  placingOrder
+                    ? "#aaa"
+                    : "#e85d04",
+                color: "#fff",
+                fontWeight: "700",
+                fontSize: "16px",
+                cursor:
+                  placingOrder
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              {placingOrder
+                ? "Placing Order..."
+                : "Place Order"}
+            </button>
+          </form>
+        </div>
+
+        {/* =================================================
+            RIGHT SIDE - ORDER SUMMARY
+        ================================================= */}
+
+        <div
+          style={{
+            background: "#fff",
+            padding: "22px",
+            borderRadius: "16px",
+            border: "1px solid #eee",
+            boxShadow:
+              "0 8px 25px rgba(0,0,0,0.05)",
+          }}
+        >
+          <h2
             style={{
-              width: "100%",
-              marginTop: "25px",
-              padding: "15px",
-              border: "none",
-              borderRadius: "8px",
-              background: placingOrder
-                ? "#aaa"
-                : "#e85d04",
-              color: "#fff",
-              fontWeight: "700",
-              cursor: placingOrder
-                ? "not-allowed"
-                : "pointer",
+              marginTop: 0,
             }}
           >
-            {placingOrder
-              ? "Placing Order..."
-              : "Place Order"}
-          </button>
-        </form>
+            🛒 Order Summary
+          </h2>
+
+          {cart.items.map((item) => {
+            const itemTotal =
+              Number(item.price) *
+              Number(item.quantity);
+
+            return (
+              <div
+                key={item.food?._id}
+                style={{
+                  padding: "13px 0",
+                  borderBottom:
+                    "1px solid #eee",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    gap: "10px",
+                  }}
+                >
+                  <div>
+                    <strong>
+                      {item.food?.name ||
+                        "Food"}
+                    </strong>
+
+                    <p
+                      style={{
+                        margin:
+                          "5px 0 0",
+                        color: "#777",
+                        fontSize: "14px",
+                      }}
+                    >
+                      ₹{item.price} ×{" "}
+                      {item.quantity}
+                    </p>
+                  </div>
+
+                  <strong>
+                    ₹{itemTotal}
+                  </strong>
+                </div>
+              </div>
+            );
+          })}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent:
+                "space-between",
+              marginTop: "20px",
+              fontSize: "20px",
+            }}
+          >
+            <strong>Total</strong>
+
+            <strong
+              style={{
+                color: "#e85d04",
+              }}
+            >
+              ₹{cart.totalAmount}
+            </strong>
+          </div>
+
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "12px",
+              background: "#fff8f3",
+              borderRadius: "10px",
+              fontSize: "13px",
+              color: "#666",
+            }}
+          >
+            🔒 Your order details are
+            securely processed.
+          </div>
+        </div>
       </div>
+
+      {/* =================================================
+          MOBILE RESPONSIVE
+      ================================================= */}
+
+      <style>
+        {`
+          @media (max-width: 768px) {
+            .checkout-grid {
+              grid-template-columns: 1fr !important;
+            }
+          }
+        `}
+      </style>
     </div>
   );
 }
+
+// =====================================================
+// STYLES
+// =====================================================
+
+const inputStyle = {
+  width: "100%",
+  padding: "13px",
+  marginTop: "7px",
+  marginBottom: "17px",
+  boxSizing: "border-box",
+  border: "1px solid #ddd",
+  borderRadius: "9px",
+  fontSize: "15px",
+  outline: "none",
+};
+
+const labelStyle = {
+  display: "block",
+  fontWeight: "600",
+};
+
+const dividerStyle = {
+  border: "none",
+  borderTop: "1px solid #eee",
+  margin: "20px 0",
+};
+
+const backButtonStyle = {
+  padding: "10px 16px",
+  border: "1px solid #ddd",
+  borderRadius: "9px",
+  background: "#fff",
+  cursor: "pointer",
+  fontWeight: "600",
+};
+
+const primaryButtonStyle = {
+  padding: "12px 20px",
+  border: "none",
+  borderRadius: "9px",
+  background: "#e85d04",
+  color: "#fff",
+  cursor: "pointer",
+  fontWeight: "700",
+};
 
 export default Checkout;
