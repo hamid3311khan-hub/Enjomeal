@@ -96,7 +96,7 @@ const userSchema = new mongoose.Schema(
 // PASSWORD RESET
 // ===================================================
 
-resetPasswordOTP: {
+resetPasswordOTPHash: {
   type: String,
   default: null,
   select: false,
