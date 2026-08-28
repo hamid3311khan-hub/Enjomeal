@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 
@@ -11,22 +11,24 @@ function Cart() {
   const [updatingFoodId, setUpdatingFoodId] = useState(null);
   const [clearing, setClearing] = useState(false);
 
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  // ==========================================
+  // =====================================================
   // FETCH CART
-  // ==========================================
+  // =====================================================
 
   const fetchCart = async () => {
     try {
-      const token = localStorage.getItem("enjoMealToken");
+      const token =
+        localStorage.getItem("enjoMealToken");
 
       if (!token) {
-        navigate("/login");
+        navigate("/login", {
+          replace: true,
+        });
         return;
       }
+
+      setLoading(true);
+      setError("");
 
       const response = await API.get("/cart", {
         headers: {
@@ -36,18 +38,35 @@ function Cart() {
 
       if (response.data.success) {
         setCart(response.data.cart);
+      } else {
+        setCart(null);
       }
     } catch (err) {
-      console.error("Cart API Error:", err);
+      console.error(
+        "Cart API Error:",
+        err
+      );
 
-      if (err.response?.status === 401) {
-        localStorage.removeItem("enjoMealToken");
-        localStorage.removeItem("enjoMealUser");
-        navigate("/login");
+      if (
+        err.response?.status === 401
+      ) {
+        localStorage.removeItem(
+          "enjoMealToken"
+        );
+        localStorage.removeItem(
+          "enjoMealUser"
+        );
+
+        navigate("/login", {
+          replace: true,
+        });
+
         return;
       }
 
-      if (err.response?.status === 404) {
+      if (
+        err.response?.status === 404
+      ) {
         setCart(null);
         return;
       }
@@ -61,19 +80,65 @@ function Cart() {
     }
   };
 
-  // ==========================================
-  // UPDATE QUANTITY
-  // ==========================================
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
-  const updateQuantity = async (foodId, quantity) => {
-    if (quantity < 1) {
+  // =====================================================
+  // CART TOTAL
+  // =====================================================
+
+  const calculatedTotal = useMemo(() => {
+    if (
+      !cart?.items ||
+      !Array.isArray(cart.items)
+    ) {
+      return 0;
+    }
+
+    return cart.items.reduce(
+      (total, item) => {
+        return (
+          total +
+          Number(item.price || 0) *
+            Number(item.quantity || 0)
+        );
+      },
+      0
+    );
+  }, [cart]);
+
+  const totalAmount =
+    Number(cart?.totalAmount) ||
+    calculatedTotal;
+
+  // =====================================================
+  // UPDATE QUANTITY
+  // =====================================================
+
+  const updateQuantity = async (
+    foodId,
+    quantity
+  ) => {
+    if (
+      !foodId ||
+      quantity < 1
+    ) {
       return;
     }
 
     try {
-      const token = localStorage.getItem(
-        "enjoMealToken"
-      );
+      const token =
+        localStorage.getItem(
+          "enjoMealToken"
+        );
+
+      if (!token) {
+        navigate("/login", {
+          replace: true,
+        });
+        return;
+      }
 
       setUpdatingFoodId(foodId);
 
@@ -107,26 +172,41 @@ function Cart() {
     }
   };
 
-  // ==========================================
+  // =====================================================
   // REMOVE ITEM
-  // ==========================================
+  // =====================================================
 
-  const removeItem = async (foodId) => {
+  const removeItem = async (
+    foodId
+  ) => {
+    if (!foodId) {
+      return;
+    }
+
     try {
-      const token = localStorage.getItem(
-        "enjoMealToken"
-      );
+      const token =
+        localStorage.getItem(
+          "enjoMealToken"
+        );
+
+      if (!token) {
+        navigate("/login", {
+          replace: true,
+        });
+        return;
+      }
 
       setUpdatingFoodId(foodId);
 
-      const response = await API.delete(
-        `/cart/items/${foodId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response =
+        await API.delete(
+          `/cart/items/${foodId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
       if (response.data.success) {
         setCart(response.data.cart);
@@ -146,37 +226,53 @@ function Cart() {
     }
   };
 
-  // ==========================================
+  // =====================================================
   // CLEAR CART
-  // ==========================================
+  // =====================================================
 
   const clearCart = async () => {
-    const confirmClear = window.confirm(
-      "Are you sure you want to clear your cart?"
-    );
+    if (clearing) {
+      return;
+    }
 
-    if (!confirmClear) {
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to clear your cart?"
+      );
+
+    if (!confirmed) {
       return;
     }
 
     try {
-      const token = localStorage.getItem(
-        "enjoMealToken"
-      );
+      const token =
+        localStorage.getItem(
+          "enjoMealToken"
+        );
+
+      if (!token) {
+        navigate("/login", {
+          replace: true,
+        });
+        return;
+      }
 
       setClearing(true);
 
-      const response = await API.delete(
-        "/cart/clear",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response =
+        await API.delete(
+          "/cart/clear",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
       if (response.data.success) {
-        setCart(response.data.cart);
+        setCart(
+          response.data.cart
+        );
       }
     } catch (err) {
       console.error(
@@ -193,35 +289,67 @@ function Cart() {
     }
   };
 
-  // ==========================================
+  // =====================================================
   // LOADING
-  // ==========================================
+  // =====================================================
 
   if (loading) {
     return (
-      <div style={{ padding: "30px" }}>
-        <h2>Loading cart...</h2>
+      <div className="cart-page">
+        <div className="cart-loading">
+          <div className="cart-loading-icon">
+            🛒
+          </div>
+
+          <h2>
+            Loading your cart...
+          </h2>
+
+          <p>
+            Just a moment.
+          </p>
+        </div>
       </div>
     );
   }
 
-  // ==========================================
+  // =====================================================
   // ERROR
-  // ==========================================
+  // =====================================================
 
   if (error) {
     return (
-      <div style={{ padding: "30px" }}>
-        <p style={{ color: "red" }}>
-          {error}
-        </p>
+      <div className="cart-page">
+        <div className="cart-error">
+
+          <div className="cart-state-icon">
+            ⚠️
+          </div>
+
+          <h2>
+            Couldn't load your cart
+          </h2>
+
+          <p>
+            {error}
+          </p>
+
+          <button
+            type="button"
+            className="cart-primary-button"
+            onClick={fetchCart}
+          >
+            Try Again
+          </button>
+
+        </div>
       </div>
     );
   }
 
-  // ==========================================
+  // =====================================================
   // EMPTY CART
-  // ==========================================
+  // =====================================================
 
   if (
     !cart ||
@@ -229,273 +357,413 @@ function Cart() {
     cart.items.length === 0
   ) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          padding: "30px",
-          background: "#fff8f3",
-        }}
-      >
-        <h1>Your Cart</h1>
+      <div className="cart-page">
 
-        <p>Your cart is empty.</p>
+        <div className="empty-cart">
 
-        <button
-          onClick={() => navigate("/restaurants")}
-          style={{
-            padding: "12px 20px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#e85d04",
-            color: "#fff",
-            cursor: "pointer",
-          }}
-        >
-          Browse Restaurants
-        </button>
+          <div className="empty-cart-icon">
+            🛒
+          </div>
+
+          <h1>
+            Your cart is empty
+          </h1>
+
+          <p>
+            Looks like you haven't
+            added anything yet.
+          </p>
+
+          <button
+            type="button"
+            className="cart-primary-button"
+            onClick={() =>
+              navigate(
+                "/restaurants"
+              )
+            }
+          >
+            Browse Restaurants
+          </button>
+
+        </div>
+
       </div>
     );
   }
 
-  // ==========================================
+  // =====================================================
   // CART PAGE
-  // ==========================================
+  // =====================================================
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: "30px",
-        background: "#fff8f3",
-      }}
-    >
-      {/* BACK BUTTON */}
+    <div className="cart-page">
 
-      <button
-        onClick={() => navigate(-1)}
-        style={{
-          marginBottom: "20px",
-          padding: "10px 16px",
-          border: "1px solid #ddd",
-          borderRadius: "8px",
-          background: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        ← Back
-      </button>
+      <main className="cart-container">
 
-      {/* HEADER */}
+        {/* =================================================
+            TOP
+        ================================================= */}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "15px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h1>Your Cart</h1>
+        <div className="cart-top">
 
-          {cart.restaurant && (
-            <p>
-              Restaurant:{" "}
+          <div>
+            <button
+              type="button"
+              className="cart-back-button"
+              onClick={() =>
+                navigate(-1)
+              }
+            >
+              ← Continue Shopping
+            </button>
+
+            <p className="cart-eyebrow">
+              Your order
+            </p>
+
+            <h1>
+              Your Cart
+            </h1>
+
+            <p className="cart-subtitle">
+              Review your items before
+              checkout.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="clear-cart-button"
+            onClick={clearCart}
+            disabled={clearing}
+          >
+            {clearing
+              ? "Clearing..."
+              : "Clear Cart"}
+          </button>
+
+        </div>
+
+        {/* =================================================
+            RESTAURANT
+        ================================================= */}
+
+        {cart.restaurant && (
+          <div className="cart-restaurant">
+
+            <div className="cart-restaurant-icon">
+              🍽️
+            </div>
+
+            <div>
+              <span>
+                Ordering from
+              </span>
+
               <strong>
                 {cart.restaurant.name}
               </strong>
-            </p>
-          )}
+
+              {cart.restaurant.city && (
+                <small>
+                  📍{" "}
+                  {cart.restaurant.city}
+                </small>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* =================================================
+            CART LAYOUT
+        ================================================= */}
+
+        <div className="cart-layout">
+
+          {/* ITEMS */}
+
+          <section className="cart-items-section">
+
+            <div className="cart-items-header">
+              <h2>
+                Your Items
+              </h2>
+
+              <span>
+                {cart.items.length}{" "}
+                {cart.items.length === 1
+                  ? "item"
+                  : "items"}
+              </span>
+            </div>
+
+            <div className="cart-items">
+
+              {cart.items.map(
+                (item) => {
+                  const foodId =
+                    item.food?._id;
+
+                  const quantity =
+                    Number(
+                      item.quantity
+                    ) || 0;
+
+                  const price =
+                    Number(
+                      item.price
+                    ) || 0;
+
+                  const itemTotal =
+                    price * quantity;
+
+                  const updating =
+                    updatingFoodId ===
+                    foodId;
+
+                  return (
+                    <article
+                      key={foodId}
+                      className="cart-item"
+                    >
+
+                      {/* IMAGE */}
+
+                      <div className="cart-item-image">
+
+                        {item.food?.image ? (
+                          <img
+                            src={
+                              item.food
+                                .image
+                            }
+                            alt={
+                              item.food
+                                ?.name ||
+                              "Food"
+                            }
+                            onError={(
+                              event
+                            ) => {
+                              event.currentTarget.style.display =
+                                "none";
+
+                              event.currentTarget.parentElement.classList.add(
+                                "cart-image-fallback"
+                              );
+                            }}
+                          />
+                        ) : (
+                          <div className="cart-image-fallback">
+                            🍲
+                          </div>
+                        )}
+
+                      </div>
+
+                      {/* INFO */}
+
+                      <div className="cart-item-info">
+
+                        <h3>
+                          {item.food
+                            ?.name ||
+                            "Food"}
+                        </h3>
+
+                        {item.food
+                          ?.description && (
+                          <p>
+                            {
+                              item.food
+                                .description
+                            }
+                          </p>
+                        )}
+
+                        <span className="cart-item-price">
+                          ₹
+                          {price.toFixed(
+                            2
+                          )}{" "}
+                          each
+                        </span>
+
+                      </div>
+
+                      {/* CONTROLS */}
+
+                      <div className="cart-item-actions">
+
+                        <div className="quantity-control">
+
+                          <button
+                            type="button"
+                            disabled={
+                              updating ||
+                              quantity <= 1
+                            }
+                            onClick={() =>
+                              updateQuantity(
+                                foodId,
+                                quantity -
+                                  1
+                              )
+                            }
+                          >
+                            −
+                          </button>
+
+                          <span>
+                            {quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            disabled={
+                              updating
+                            }
+                            onClick={() =>
+                              updateQuantity(
+                                foodId,
+                                quantity +
+                                  1
+                              )
+                            }
+                          >
+                            +
+                          </button>
+
+                        </div>
+
+                        <strong className="cart-item-total">
+                          ₹
+                          {itemTotal.toFixed(
+                            2
+                          )}
+                        </strong>
+
+                        <button
+                          type="button"
+                          className="remove-item-button"
+                          disabled={
+                            updating
+                          }
+                          onClick={() =>
+                            removeItem(
+                              foodId
+                            )
+                          }
+                        >
+                          {updating
+                            ? "Updating..."
+                            : "Remove"}
+                        </button>
+
+                      </div>
+
+                    </article>
+                  );
+                }
+              )}
+
+            </div>
+
+          </section>
+
+          {/* SUMMARY */}
+
+          <aside className="cart-summary">
+
+            <div className="summary-header">
+              <h2>
+                Order Summary
+              </h2>
+            </div>
+
+            <div className="summary-row">
+              <span>
+                Items
+              </span>
+
+              <span>
+                {cart.items.length}
+              </span>
+            </div>
+
+            <div className="summary-row">
+              <span>
+                Item total
+              </span>
+
+              <span>
+                ₹
+                {totalAmount.toFixed(
+                  2
+                )}
+              </span>
+            </div>
+
+            <div className="summary-row">
+              <span>
+                Delivery
+              </span>
+
+              <span className="free-text">
+                Calculated at checkout
+              </span>
+            </div>
+
+            <div className="summary-divider" />
+
+            <div className="summary-total">
+              <span>
+                Total
+              </span>
+
+              <strong>
+                ₹
+                {totalAmount.toFixed(
+                  2
+                )}
+              </strong>
+            </div>
+
+            <button
+              type="button"
+              className="checkout-button"
+              onClick={() =>
+                navigate(
+                  "/checkout"
+                )
+              }
+            >
+              Proceed to Checkout
+              <span>
+                →
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="summary-shopping-button"
+              onClick={() =>
+                navigate(
+                  "/restaurants"
+                )
+              }
+            >
+              Continue Shopping
+            </button>
+
+          </aside>
+
         </div>
 
-        <button
-          onClick={clearCart}
-          disabled={clearing}
-          style={{
-            padding: "10px 16px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#dc3545",
-            color: "#fff",
-            cursor: clearing
-              ? "not-allowed"
-              : "pointer",
-          }}
-        >
-          {clearing
-            ? "Clearing..."
-            : "Clear Cart"}
-        </button>
-      </div>
+      </main>
 
-      {/* CART ITEMS */}
-
-      {cart.items.map((item) => {
-        const foodId = item.food?._id;
-
-        const itemTotal =
-          Number(item.price) *
-          Number(item.quantity);
-
-        const updating =
-          updatingFoodId === foodId;
-
-        return (
-          <div
-            key={foodId}
-            style={{
-              padding: "20px",
-              marginBottom: "15px",
-              background: "#fff",
-              border: "1px solid #ddd",
-              borderRadius: "12px",
-            }}
-          >
-            <h3>
-              {item.food?.name || "Food"}
-            </h3>
-
-            <p>
-              Price: ₹{item.price}
-            </p>
-
-            {/* QUANTITY */}
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                margin: "15px 0",
-              }}
-            >
-              <button
-                disabled={
-                  updating ||
-                  item.quantity <= 1
-                }
-                onClick={() =>
-                  updateQuantity(
-                    foodId,
-                    item.quantity - 1
-                  )
-                }
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  background: "#fff",
-                  cursor:
-                    updating ||
-                    item.quantity <= 1
-                      ? "not-allowed"
-                      : "pointer",
-                  fontSize: "20px",
-                }}
-              >
-                −
-              </button>
-
-              <strong
-                style={{
-                  minWidth: "30px",
-                  textAlign: "center",
-                }}
-              >
-                {item.quantity}
-              </strong>
-
-              <button
-                disabled={updating}
-                onClick={() =>
-                  updateQuantity(
-                    foodId,
-                    item.quantity + 1
-                  )
-                }
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  background: "#fff",
-                  cursor: updating
-                    ? "not-allowed"
-                    : "pointer",
-                  fontSize: "20px",
-                }}
-              >
-                +
-              </button>
-            </div>
-
-            <strong>
-              Item Total: ₹{itemTotal}
-            </strong>
-
-            {/* REMOVE */}
-
-            <div style={{ marginTop: "15px" }}>
-              <button
-                disabled={updating}
-                onClick={() =>
-                  removeItem(foodId)
-                }
-                style={{
-                  padding: "9px 15px",
-                  border: "none",
-                  borderRadius: "7px",
-                  background: "#f1f1f1",
-                  color: "#d00",
-                  cursor: updating
-                    ? "not-allowed"
-                    : "pointer",
-                }}
-              >
-                {updating
-                  ? "Updating..."
-                  : "Remove"}
-              </button>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* TOTAL */}
-
-      <div
-        style={{
-          marginTop: "25px",
-          padding: "20px",
-          background: "#fff",
-          borderRadius: "12px",
-          border: "1px solid #ddd",
-        }}
-      >
-        <h2>
-          Total: ₹{cart.totalAmount}
-        </h2>
-
-        <button
-          onClick={() =>
-            navigate("/checkout")
-          }
-          style={{
-            width: "100%",
-            padding: "14px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#e85d04",
-            color: "#fff",
-            fontWeight: "700",
-            cursor: "pointer",
-          }}
-        >
-          Proceed to Checkout
-        </button>
-      </div>
     </div>
   );
 }

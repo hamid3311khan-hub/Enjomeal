@@ -4,40 +4,21 @@ import {
   Route,
   Navigate,
   useNavigate,
+  Outlet,
 } from "react-router-dom";
-
-// =====================================================
-// PAGES
-// =====================================================
 
 import Login from "./pages/Login";
 import CustomerRegister from "./pages/CustomerRegister";
-
 import RestaurantList from "./pages/RestaurantList";
 import RestaurantDetails from "./pages/RestaurantDetails";
-
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
-
 import OrderDetails from "./pages/OrderDetails";
 import MyOrders from "./pages/MyOrders";
-
 import Notifications from "./pages/Notifications";
 import CustomerProfile from "./pages/CustomerProfile";
 
-// =====================================================
-// CONSTANTS
-// =====================================================
-
-const TOKEN_KEY = "enjoMealToken";
-
-// =====================================================
-// AUTH HELPERS
-// =====================================================
-
-function isAuthenticated() {
-  return Boolean(localStorage.getItem(TOKEN_KEY));
-}
+import CustomerLayout from "./components/CustomerLayout";
 
 // =====================================================
 // LOGIN PAGE
@@ -56,30 +37,13 @@ function LoginPage() {
 }
 
 // =====================================================
-// PUBLIC ONLY ROUTE
-// Logged-in customer should not access
-// Login / Register pages
-// =====================================================
-
-function PublicOnlyRoute({ children }) {
-  if (isAuthenticated()) {
-    return (
-      <Navigate
-        to="/restaurants"
-        replace
-      />
-    );
-  }
-
-  return children;
-}
-
-// =====================================================
-// PROTECTED ROUTE
+// AUTH PROTECTED ROUTE
 // =====================================================
 
 function ProtectedRoute({ children }) {
-  if (!isAuthenticated()) {
+  const token = localStorage.getItem("enjoMealToken");
+
+  if (!token) {
     return (
       <Navigate
         to="/login"
@@ -92,6 +56,18 @@ function ProtectedRoute({ children }) {
 }
 
 // =====================================================
+// CUSTOMER LAYOUT ROUTE
+// =====================================================
+
+function CustomerProtectedLayout() {
+  return (
+    <ProtectedRoute>
+      <CustomerLayout />
+    </ProtectedRoute>
+  );
+}
+
+// =====================================================
 // APP
 // =====================================================
 
@@ -100,14 +76,11 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* =================================================
-            ROOT
-        ================================================= */}
-
+        {/* ROOT */}
         <Route
           path="/"
           element={
-            isAuthenticated() ? (
+            localStorage.getItem("enjoMealToken") ? (
               <Navigate
                 to="/restaurants"
                 replace
@@ -121,145 +94,82 @@ function App() {
           }
         />
 
-        {/* =================================================
-            LOGIN
-        ================================================= */}
-
+        {/* LOGIN */}
         <Route
           path="/login"
-          element={
-            <PublicOnlyRoute>
-              <LoginPage />
-            </PublicOnlyRoute>
-          }
+          element={<LoginPage />}
         />
 
-        {/* =================================================
-            CUSTOMER REGISTER
-        ================================================= */}
-
+        {/* CUSTOMER REGISTER */}
         <Route
           path="/register"
-          element={
-            <PublicOnlyRoute>
-              <CustomerRegister />
-            </PublicOnlyRoute>
-          }
+          element={<CustomerRegister />}
         />
 
         {/* =================================================
-            RESTAURANTS
-        ================================================= */}
+            PROTECTED CUSTOMER AREA
+           ================================================= */}
 
         <Route
-          path="/restaurants"
-          element={
-            <ProtectedRoute>
-              <RestaurantList />
-            </ProtectedRoute>
-          }
-        />
+          element={<CustomerProtectedLayout />}
+        >
 
-        {/* =================================================
-            RESTAURANT DETAILS / MENU
-        ================================================= */}
+          {/* RESTAURANT LIST */}
+          <Route
+            path="/restaurants"
+            element={<RestaurantList />}
+          />
 
-        <Route
-          path="/restaurants/:restaurantId"
-          element={
-            <ProtectedRoute>
-              <RestaurantDetails />
-            </ProtectedRoute>
-          }
-        />
+          {/* RESTAURANT MENU */}
+          <Route
+            path="/restaurants/:restaurantId"
+            element={<RestaurantDetails />}
+          />
 
-        {/* =================================================
-            CART
-        ================================================= */}
+          {/* CART */}
+          <Route
+            path="/cart"
+            element={<Cart />}
+          />
 
-        <Route
-          path="/cart"
-          element={
-            <ProtectedRoute>
-              <Cart />
-            </ProtectedRoute>
-          }
-        />
+          {/* CHECKOUT */}
+          <Route
+            path="/checkout"
+            element={<Checkout />}
+          />
 
-        {/* =================================================
-            CHECKOUT
-        ================================================= */}
+          {/* ORDER DETAILS */}
+          <Route
+            path="/orders/:orderId"
+            element={<OrderDetails />}
+          />
 
-        <Route
-          path="/checkout"
-          element={
-            <ProtectedRoute>
-              <Checkout />
-            </ProtectedRoute>
-          }
-        />
+          {/* MY ORDERS */}
+          <Route
+            path="/my-orders"
+            element={<MyOrders />}
+          />
 
-        {/* =================================================
-            MY ORDERS
-        ================================================= */}
+          {/* NOTIFICATIONS */}
+          <Route
+            path="/notifications"
+            element={<Notifications />}
+          />
 
-        <Route
-          path="/my-orders"
-          element={
-            <ProtectedRoute>
-              <MyOrders />
-            </ProtectedRoute>
-          }
-        />
+          {/* CUSTOMER PROFILE */}
+          <Route
+            path="/profile"
+            element={<CustomerProfile />}
+          />
 
-        {/* =================================================
-            ORDER DETAILS
-        ================================================= */}
+        </Route>
 
-        <Route
-          path="/orders/:orderId"
-          element={
-            <ProtectedRoute>
-              <OrderDetails />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            NOTIFICATIONS
-        ================================================= */}
-
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <Notifications />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            CUSTOMER PROFILE
-        ================================================= */}
-
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <CustomerProfile />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            UNKNOWN ROUTE
-        ================================================= */}
-
+        {/* UNKNOWN ROUTE */}
         <Route
           path="*"
           element={
             <Navigate
-              to="/"
+              to="/login"
               replace
             />
           }
