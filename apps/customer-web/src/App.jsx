@@ -6,16 +6,39 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+// =====================================================
+// PAGES
+// =====================================================
+
 import Login from "./pages/Login";
 import CustomerRegister from "./pages/CustomerRegister";
+
 import RestaurantList from "./pages/RestaurantList";
 import RestaurantDetails from "./pages/RestaurantDetails";
+
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+
 import OrderDetails from "./pages/OrderDetails";
 import MyOrders from "./pages/MyOrders";
+
 import Notifications from "./pages/Notifications";
 import CustomerProfile from "./pages/CustomerProfile";
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
+const TOKEN_KEY = "enjoMealToken";
+
+// =====================================================
+// AUTH HELPERS
+// =====================================================
+
+function isAuthenticated() {
+  return Boolean(localStorage.getItem(TOKEN_KEY));
+}
+
 // =====================================================
 // LOGIN PAGE
 // =====================================================
@@ -33,13 +56,30 @@ function LoginPage() {
 }
 
 // =====================================================
-// AUTH PROTECTED ROUTE
+// PUBLIC ONLY ROUTE
+// Logged-in customer should not access
+// Login / Register pages
+// =====================================================
+
+function PublicOnlyRoute({ children }) {
+  if (isAuthenticated()) {
+    return (
+      <Navigate
+        to="/restaurants"
+        replace
+      />
+    );
+  }
+
+  return children;
+}
+
+// =====================================================
+// PROTECTED ROUTE
 // =====================================================
 
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("enjoMealToken");
-
-  if (!token) {
+  if (!isAuthenticated()) {
     return (
       <Navigate
         to="/login"
@@ -60,31 +100,57 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* ROOT */}
-        <Route
-  path="/"
-  element={
-    localStorage.getItem("enjoMealToken") ? (
-      <Navigate to="/restaurants" replace />
-    ) : (
-      <Navigate to="/login" replace />
-    )
-  }
-/>
+        {/* =================================================
+            ROOT
+        ================================================= */}
 
-        {/* LOGIN */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated() ? (
+              <Navigate
+                to="/restaurants"
+                replace
+              />
+            ) : (
+              <Navigate
+                to="/login"
+                replace
+              />
+            )
+          }
+        />
+
+        {/* =================================================
+            LOGIN
+        ================================================= */}
+
         <Route
           path="/login"
-          element={<LoginPage />}
+          element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
         />
 
-        {/* CUSTOMER REGISTER */}
+        {/* =================================================
+            CUSTOMER REGISTER
+        ================================================= */}
+
         <Route
           path="/register"
-          element={<CustomerRegister />}
+          element={
+            <PublicOnlyRoute>
+              <CustomerRegister />
+            </PublicOnlyRoute>
+          }
         />
 
-        {/* RESTAURANT LIST */}
+        {/* =================================================
+            RESTAURANTS
+        ================================================= */}
+
         <Route
           path="/restaurants"
           element={
@@ -94,7 +160,10 @@ function App() {
           }
         />
 
-        {/* RESTAURANT MENU */}
+        {/* =================================================
+            RESTAURANT DETAILS / MENU
+        ================================================= */}
+
         <Route
           path="/restaurants/:restaurantId"
           element={
@@ -104,7 +173,10 @@ function App() {
           }
         />
 
-        {/* CART */}
+        {/* =================================================
+            CART
+        ================================================= */}
+
         <Route
           path="/cart"
           element={
@@ -114,7 +186,10 @@ function App() {
           }
         />
 
-        {/* CHECKOUT */}
+        {/* =================================================
+            CHECKOUT
+        ================================================= */}
+
         <Route
           path="/checkout"
           element={
@@ -124,17 +199,10 @@ function App() {
           }
         />
 
-        {/* ORDER DETAILS */}
-        <Route
-          path="/orders/:orderId"
-          element={
-            <ProtectedRoute>
-              <OrderDetails />
-            </ProtectedRoute>
-          }
-        />
+        {/* =================================================
+            MY ORDERS
+        ================================================= */}
 
-        {/* MY ORDERS */}
         <Route
           path="/my-orders"
           element={
@@ -144,7 +212,23 @@ function App() {
           }
         />
 
-        {/* NOTIFICATIONS */}
+        {/* =================================================
+            ORDER DETAILS
+        ================================================= */}
+
+        <Route
+          path="/orders/:orderId"
+          element={
+            <ProtectedRoute>
+              <OrderDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =================================================
+            NOTIFICATIONS
+        ================================================= */}
+
         <Route
           path="/notifications"
           element={
@@ -153,22 +237,29 @@ function App() {
             </ProtectedRoute>
           }
         />
-	{/* CUSTOMER PROFILE */}
-<Route
-  path="/profile"
-  element={
-    <ProtectedRoute>
-      <CustomerProfile />
-    </ProtectedRoute>
-  }
-/>
 
-        {/* UNKNOWN ROUTE */}
+        {/* =================================================
+            CUSTOMER PROFILE
+        ================================================= */}
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <CustomerProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =================================================
+            UNKNOWN ROUTE
+        ================================================= */}
+
         <Route
           path="*"
           element={
             <Navigate
-              to="/login"
+              to="/"
               replace
             />
           }
