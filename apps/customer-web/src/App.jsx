@@ -4,11 +4,15 @@ import {
   Route,
   Navigate,
   useNavigate,
-  Outlet,
 } from "react-router-dom";
 
 import Login from "./pages/Login";
 import CustomerRegister from "./pages/CustomerRegister";
+
+import ForgotPassword from "./pages/ForgotPassword";
+import VerifyResetOTP from "./pages/VerifyResetOTP";
+import ResetPassword from "./pages/ResetPassword";
+
 import RestaurantList from "./pages/RestaurantList";
 import RestaurantDetails from "./pages/RestaurantDetails";
 import Cart from "./pages/Cart";
@@ -76,7 +80,10 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* ROOT */}
+        {/* =================================================
+            ROOT
+           ================================================= */}
+
         <Route
           path="/"
           element={
@@ -94,16 +101,42 @@ function App() {
           }
         />
 
-        {/* LOGIN */}
+        {/* =================================================
+            LOGIN
+           ================================================= */}
+
         <Route
           path="/login"
           element={<LoginPage />}
         />
 
-        {/* CUSTOMER REGISTER */}
+        {/* =================================================
+            CUSTOMER REGISTER
+           ================================================= */}
+
         <Route
           path="/register"
           element={<CustomerRegister />}
+        />
+
+        {/* =================================================
+            PASSWORD RESET
+            PUBLIC ROUTES
+           ================================================= */}
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/verify-reset-otp"
+          element={<VerifyResetOTP />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
         />
 
         {/* =================================================
@@ -115,48 +148,56 @@ function App() {
         >
 
           {/* RESTAURANT LIST */}
+
           <Route
             path="/restaurants"
             element={<RestaurantList />}
           />
 
           {/* RESTAURANT MENU */}
+
           <Route
             path="/restaurants/:restaurantId"
             element={<RestaurantDetails />}
           />
 
           {/* CART */}
+
           <Route
             path="/cart"
             element={<Cart />}
           />
 
           {/* CHECKOUT */}
+
           <Route
             path="/checkout"
             element={<Checkout />}
           />
 
           {/* ORDER DETAILS */}
+
           <Route
             path="/orders/:orderId"
             element={<OrderDetails />}
           />
 
           {/* MY ORDERS */}
+
           <Route
             path="/my-orders"
             element={<MyOrders />}
           />
 
           {/* NOTIFICATIONS */}
+
           <Route
             path="/notifications"
             element={<Notifications />}
           />
 
           {/* CUSTOMER PROFILE */}
+
           <Route
             path="/profile"
             element={<CustomerProfile />}
@@ -164,7 +205,10 @@ function App() {
 
         </Route>
 
-        {/* UNKNOWN ROUTE */}
+        {/* =================================================
+            UNKNOWN ROUTE
+           ================================================= */}
+
         <Route
           path="*"
           element={

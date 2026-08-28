@@ -385,6 +385,27 @@ function Login({ onLogin }) {
             color: "#777",
           }}
         >
+	<div
+  style={{
+    textAlign: "right",
+    marginBottom: "15px",
+  }}
+>
+  <button
+    type="button"
+    onClick={() => navigate("/forgot-password")}
+    style={{
+      border: "none",
+      background: "transparent",
+      color: "#e85d04",
+      fontWeight: "600",
+      cursor: "pointer",
+      padding: 0,
+    }}
+  >
+    Forgot Password?
+  </button>
+</div>
           Don't have an account?{" "}
 
           <button
