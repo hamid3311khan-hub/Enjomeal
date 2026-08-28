@@ -53,6 +53,11 @@ function Checkout() {
         }
 
         setCart(cartData);
+      } else {
+        setError(
+          response.data.message ||
+            "Failed to load checkout."
+        );
       }
     } catch (err) {
       console.error("Checkout Cart Error:", err);
@@ -61,7 +66,10 @@ function Checkout() {
         localStorage.removeItem("enjoMealToken");
         localStorage.removeItem("enjoMealUser");
 
-        navigate("/login", { replace: true });
+        navigate("/login", {
+          replace: true,
+        });
+
         return;
       }
 
@@ -101,6 +109,10 @@ function Checkout() {
     }
 
     setError("");
+
+    // ===================================================
+    // CART VALIDATION
+    // ===================================================
 
     if (!cart?._id) {
       setError("Cart information is missing.");
@@ -160,6 +172,10 @@ function Checkout() {
       return;
     }
 
+    // ===================================================
+    // ONLINE PAYMENT
+    // ===================================================
+
     if (
       formData.paymentMethod === "ONLINE"
     ) {
@@ -172,12 +188,20 @@ function Checkout() {
     try {
       setPlacingOrder(true);
 
+      // =================================================
+      // PREPARE ITEMS
+      // =================================================
+
       const items = cart.items.map(
         (item) => ({
           food: item.food?._id,
           quantity: Number(item.quantity),
         })
       );
+
+      // =================================================
+      // VALIDATE ITEMS
+      // =================================================
 
       const invalidItem = items.some(
         (item) =>
@@ -190,9 +214,18 @@ function Checkout() {
         setError(
           "Some cart items are invalid. Please refresh your cart."
         );
+
         setPlacingOrder(false);
         return;
       }
+
+      // =================================================
+      // CREATE ORDER
+      // =================================================
+
+      const token = localStorage.getItem(
+        "enjoMealToken"
+      );
 
       const response = await API.post(
         "/orders/create",
@@ -210,8 +243,17 @@ function Checkout() {
 
           paymentMethod:
             formData.paymentMethod,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
+
+      // =================================================
+      // SUCCESS
+      // =================================================
 
       if (response.data.success) {
         const orderId =
@@ -281,8 +323,10 @@ function Checkout() {
       >
         <div
           style={{
-            background: "#fff",
+            width: "100%",
+            maxWidth: "400px",
             padding: "30px",
+            background: "#fff",
             borderRadius: "16px",
             boxShadow:
               "0 10px 30px rgba(0,0,0,0.08)",
@@ -290,7 +334,12 @@ function Checkout() {
           }}
         >
           <h2>Loading checkout...</h2>
-          <p style={{ color: "#777" }}>
+
+          <p
+            style={{
+              color: "#777",
+            }}
+          >
             Please wait.
           </p>
         </div>
@@ -315,10 +364,14 @@ function Checkout() {
       >
         <div
           style={{
-            background: "#fff",
+            width: "100%",
+            maxWidth: "400px",
             padding: "30px",
+            background: "#fff",
             borderRadius: "16px",
             textAlign: "center",
+            boxShadow:
+              "0 10px 30px rgba(0,0,0,0.08)",
           }}
         >
           <h2>Your cart is empty.</h2>
@@ -346,16 +399,17 @@ function Checkout() {
         minHeight: "100vh",
         background: "#fff8f3",
         padding: "20px",
+        boxSizing: "border-box",
       }}
     >
       {/* =================================================
-          TOP BAR
+          HEADER
       ================================================= */}
 
-      <div
+      <header
         style={{
           maxWidth: "1100px",
-          margin: "0 auto 20px",
+          margin: "0 auto 25px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -376,17 +430,18 @@ function Checkout() {
           style={{
             margin: 0,
             color: "#e85d04",
+            fontSize: "28px",
           }}
         >
           ENJOMEAL
         </h1>
-      </div>
+      </header>
 
       {/* =================================================
-          TITLE
+          PAGE TITLE
       ================================================= */}
 
-      <div
+      <section
         style={{
           maxWidth: "1100px",
           margin: "0 auto 25px",
@@ -394,7 +449,8 @@ function Checkout() {
       >
         <h2
           style={{
-            marginBottom: "5px",
+            margin: "0 0 6px",
+            fontSize: "30px",
           }}
         >
           Checkout
@@ -402,13 +458,13 @@ function Checkout() {
 
         <p
           style={{
-            marginTop: 0,
+            margin: 0,
             color: "#777",
           }}
         >
           Complete your order details below.
         </p>
-      </div>
+      </section>
 
       {/* =================================================
           ERROR
@@ -425,17 +481,18 @@ function Checkout() {
             borderRadius: "10px",
             color: "#b00000",
             fontWeight: "600",
+            boxSizing: "border-box",
           }}
         >
           {error}
         </div>
       )}
-
-      {/* =================================================
-          MAIN GRID
+            {/* =================================================
+          CHECKOUT GRID
       ================================================= */}
 
       <div
+        className="checkout-grid"
         style={{
           maxWidth: "1100px",
           margin: "0 auto",
@@ -447,7 +504,7 @@ function Checkout() {
         }}
       >
         {/* =================================================
-            LEFT SIDE
+            LEFT COLUMN
         ================================================= */}
 
         <div
@@ -458,6 +515,7 @@ function Checkout() {
             border: "1px solid #eee",
             boxShadow:
               "0 8px 25px rgba(0,0,0,0.05)",
+            boxSizing: "border-box",
           }}
         >
           {/* RESTAURANT */}
@@ -475,7 +533,7 @@ function Checkout() {
 
             <h2
               style={{
-                marginTop: "5px",
+                margin: "6px 0 0",
               }}
             >
               🍽️{" "}
@@ -488,11 +546,17 @@ function Checkout() {
 
           {/* DELIVERY ADDRESS */}
 
-          <h2>📍 Delivery Address</h2>
-
-          <form
-            onSubmit={handlePlaceOrder}
+          <h2
+            style={{
+              marginTop: 0,
+            }}
           >
+            📍 Delivery Address
+          </h2>
+
+          <form onSubmit={handlePlaceOrder}>
+            {/* ADDRESS */}
+
             <label style={labelStyle}>
               Full Address
             </label>
@@ -504,8 +568,13 @@ function Checkout() {
               placeholder="House no, street, area..."
               required
               rows="4"
-              style={inputStyle}
+              style={{
+                ...inputStyle,
+                resize: "vertical",
+              }}
             />
+
+            {/* CITY */}
 
             <label style={labelStyle}>
               City
@@ -520,6 +589,8 @@ function Checkout() {
               required
               style={inputStyle}
             />
+
+            {/* PINCODE */}
 
             <label style={labelStyle}>
               Pincode
@@ -547,12 +618,15 @@ function Checkout() {
               💳 Payment Method
             </h2>
 
+            {/* COD */}
+
             <div
               style={{
-                border: "1px solid #ddd",
+                border: "2px solid #e85d04",
                 borderRadius: "10px",
                 padding: "15px",
-                marginBottom: "10px",
+                marginBottom: "12px",
+                background: "#fff8f3",
               }}
             >
               <label
@@ -580,23 +654,23 @@ function Checkout() {
 
               <p
                 style={{
-                  margin:
-                    "7px 0 0 27px",
+                  margin: "7px 0 0 27px",
                   color: "#777",
                   fontSize: "13px",
                 }}
               >
-                Pay when your order is
-                delivered.
+                Pay when your order is delivered.
               </p>
             </div>
 
+            {/* ONLINE */}
+
             <div
               style={{
-                border: "1px solid #eee",
+                border: "1px solid #ddd",
                 borderRadius: "10px",
                 padding: "15px",
-                opacity: 0.55,
+                opacity: 0.6,
               }}
             >
               <label
@@ -623,8 +697,7 @@ function Checkout() {
 
               <p
                 style={{
-                  margin:
-                    "7px 0 0 27px",
+                  margin: "7px 0 0 27px",
                   color: "#777",
                   fontSize: "13px",
                 }}
@@ -632,6 +705,8 @@ function Checkout() {
                 Coming soon
               </p>
             </div>
+
+            {/* PLACE ORDER */}
 
             <button
               type="submit"
@@ -642,17 +717,15 @@ function Checkout() {
                 padding: "15px",
                 border: "none",
                 borderRadius: "10px",
-                background:
-                  placingOrder
-                    ? "#aaa"
-                    : "#e85d04",
+                background: placingOrder
+                  ? "#aaa"
+                  : "#e85d04",
                 color: "#fff",
                 fontWeight: "700",
                 fontSize: "16px",
-                cursor:
-                  placingOrder
-                    ? "not-allowed"
-                    : "pointer",
+                cursor: placingOrder
+                  ? "not-allowed"
+                  : "pointer",
               }}
             >
               {placingOrder
@@ -663,7 +736,7 @@ function Checkout() {
         </div>
 
         {/* =================================================
-            RIGHT SIDE - ORDER SUMMARY
+            RIGHT COLUMN
         ================================================= */}
 
         <div
@@ -674,6 +747,7 @@ function Checkout() {
             border: "1px solid #eee",
             boxShadow:
               "0 8px 25px rgba(0,0,0,0.05)",
+            boxSizing: "border-box",
           }}
         >
           <h2
@@ -703,10 +777,15 @@ function Checkout() {
                     display: "flex",
                     justifyContent:
                       "space-between",
+                    alignItems: "flex-start",
                     gap: "10px",
                   }}
                 >
-                  <div>
+                  <div
+                    style={{
+                      minWidth: 0,
+                    }}
+                  >
                     <strong>
                       {item.food?.name ||
                         "Food"}
@@ -714,8 +793,7 @@ function Checkout() {
 
                     <p
                       style={{
-                        margin:
-                          "5px 0 0",
+                        margin: "5px 0 0",
                         color: "#777",
                         fontSize: "14px",
                       }}
@@ -733,11 +811,15 @@ function Checkout() {
             );
           })}
 
+          {/* TOTAL */}
+
           <div
             style={{
               display: "flex",
               justifyContent:
                 "space-between",
+              alignItems: "center",
+              gap: "15px",
               marginTop: "20px",
               fontSize: "20px",
             }}
@@ -753,6 +835,8 @@ function Checkout() {
             </strong>
           </div>
 
+          {/* SECURITY NOTE */}
+
           <div
             style={{
               marginTop: "20px",
@@ -761,16 +845,17 @@ function Checkout() {
               borderRadius: "10px",
               fontSize: "13px",
               color: "#666",
+              lineHeight: "1.5",
             }}
           >
-            🔒 Your order details are
-            securely processed.
+            🔒 Your order details are securely
+            processed.
           </div>
         </div>
       </div>
 
       {/* =================================================
-          MOBILE RESPONSIVE
+          RESPONSIVE CSS
       ================================================= */}
 
       <style>
@@ -778,6 +863,12 @@ function Checkout() {
           @media (max-width: 768px) {
             .checkout-grid {
               grid-template-columns: 1fr !important;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .checkout-grid {
+              gap: 15px !important;
             }
           }
         `}
