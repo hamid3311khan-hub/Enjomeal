@@ -53,9 +53,27 @@ const sensitiveRateLimiter = rateLimit({
       "Too many requests for this operation. Please try again later.",
   },
 });
+// ==========================================
+// PASSWORD RESET LIMIT
+// Forgot Password / OTP verification
+// ==========================================
+const passwordResetRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  message: {
+    success: false,
+    message:
+      "Too many password reset attempts. Please try again later.",
+  },
+});
 
 module.exports = {
   generalRateLimiter,
   authRateLimiter,
   sensitiveRateLimiter,
+  passwordResetRateLimiter
 };
