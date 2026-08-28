@@ -14,61 +14,183 @@ function Login({ onLogin }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // =====================================================
+  // HANDLE INPUT CHANGE
+  // =====================================================
+
   const handleChange = (event) => {
-    setFormData({
-      ...formData,
-      [event.target.name]: event.target.value,
-    });
+    const { name, value } = event.target;
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setError("");
+    setMessage("");
   };
+
+  // =====================================================
+  // LOGIN
+  // =====================================================
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (loading) {
+      return;
+    }
 
     setLoading(true);
     setMessage("");
     setError("");
 
     try {
-      const response = await API.post("/auth/login", formData);
+      const email = formData.email
+        .trim()
+        .toLowerCase();
 
-      console.log("LOGIN API RESPONSE:", response.data);
+      const password = formData.password;
 
-      const { token, user } = response.data;
-
-      if (!token) {
-        throw new Error("Login successful but token was not received.");
+      if (!email || !password) {
+        setError(
+          "Please enter your email and password."
+        );
+        return;
       }
 
-      localStorage.setItem("enjoMealToken", token);
-      localStorage.setItem("enjoMealUser", JSON.stringify(user));
+      const response = await API.post(
+        "/auth/login",
+        {
+          email,
+          password,
+        }
+      );
 
-      setMessage("Login successful!");
+      console.log(
+        "LOGIN API RESPONSE:",
+        response.data
+      );
 
-      console.log("LOGIN SUCCESS");
-      console.log("Logged-in user:", user);
-      console.log("Token saved:", !!token);
+      const { token, user } =
+        response.data;
+
+      if (!token) {
+        throw new Error(
+          "Login successful but authentication token was not received."
+        );
+      }
+
+      if (!user) {
+        throw new Error(
+          "Login successful but user information was not received."
+        );
+      }
+
+      // =================================================
+      // CUSTOMER ROLE CHECK
+      // =================================================
+
+      if (
+        user.role &&
+        user.role !== "customer"
+      ) {
+        setError(
+          "This account cannot be used in the Customer Panel."
+        );
+
+        return;
+      }
+
+      // =================================================
+      // SAVE AUTH DATA
+      // =================================================
+
+      localStorage.setItem(
+        "enjoMealToken",
+        token
+      );
+
+      localStorage.setItem(
+        "enjoMealUser",
+        JSON.stringify(user)
+      );
+
+      setMessage(
+        "Login successful!"
+      );
+
+      console.log(
+        "LOGIN SUCCESS"
+      );
+
+      console.log(
+        "Logged-in user:",
+        user
+      );
+
+      console.log(
+        "Token saved:",
+        true
+      );
+
+      // =================================================
+      // NAVIGATION
+      // =================================================
 
       if (onLogin) {
         onLogin();
       } else {
-        navigate("/restaurants", { replace: true });
+        navigate(
+          "/restaurants",
+          {
+            replace: true,
+          }
+        );
       }
     } catch (error) {
-      console.error("LOGIN ERROR:", error);
+      console.error(
+        "LOGIN ERROR:",
+        error
+      );
+
+      localStorage.removeItem(
+        "enjoMealToken"
+      );
+
+      localStorage.removeItem(
+        "enjoMealUser"
+      );
 
       setError(
         error.response?.data?.message ||
           error.message ||
-          "Login failed. Please try again."
+          "Login failed. Please check your credentials and try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  // =====================================================
+  // REGISTER
+  // =====================================================
+
   const handleRegister = () => {
     navigate("/register");
   };
+
+  // =====================================================
+  // FORGOT PASSWORD
+  // =====================================================
+
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
+  };
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
     <div
@@ -78,6 +200,7 @@ function Login({ onLogin }) {
         placeItems: "center",
         background: "#fff8f3",
         padding: "20px",
+        boxSizing: "border-box",
       }}
     >
       <form
@@ -88,58 +211,143 @@ function Login({ onLogin }) {
           padding: "32px",
           background: "#fff",
           borderRadius: "18px",
-          boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
+          boxShadow:
+            "0 15px 40px rgba(0,0,0,0.08)",
+          boxSizing: "border-box",
         }}
       >
-        <h2>Welcome back To ENJOMEAL</h2>
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
-        <p style={{ color: "#777" }}>
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: "8px",
+          }}
+        >
+          Welcome back to ENJOMEAL
+        </h2>
+
+        <p
+          style={{
+            color: "#777",
+            marginTop: 0,
+            marginBottom: "26px",
+          }}
+        >
           Login to your EnjoMeal account
         </p>
 
-        <label>
+        {/* =================================================
+            EMAIL
+        ================================================= */}
+
+        <label
+          htmlFor="login-email"
+          style={{
+            display: "block",
+            fontWeight: "600",
+          }}
+        >
           Email
-
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            required
-            style={{
-              width: "100%",
-              padding: "13px",
-              marginTop: "7px",
-              marginBottom: "18px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "10px",
-            }}
-          />
         </label>
 
-        <label>
+        <input
+          id="login-email"
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="Enter your email"
+          autoComplete="email"
+          inputMode="email"
+          required
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "13px",
+            marginTop: "7px",
+            marginBottom: "18px",
+            boxSizing: "border-box",
+            border: "1px solid #ddd",
+            borderRadius: "10px",
+            outline: "none",
+          }}
+        />
+
+        {/* =================================================
+            PASSWORD
+        ================================================= */}
+
+        <label
+          htmlFor="login-password"
+          style={{
+            display: "block",
+            fontWeight: "600",
+          }}
+        >
           Password
-
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Enter your password"
-            required
-            style={{
-              width: "100%",
-              padding: "13px",
-              marginTop: "7px",
-              marginBottom: "20px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "10px",
-            }}
-          />
         </label>
+
+        <input
+          id="login-password"
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          placeholder="Enter your password"
+          autoComplete="current-password"
+          required
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "13px",
+            marginTop: "7px",
+            marginBottom: "8px",
+            boxSizing: "border-box",
+            border: "1px solid #ddd",
+            borderRadius: "10px",
+            outline: "none",
+          }}
+        />
+
+        {/* =================================================
+            FORGOT PASSWORD
+        ================================================= */}
+
+        <div
+          style={{
+            textAlign: "right",
+            marginBottom: "20px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={
+              handleForgotPassword
+            }
+            disabled={loading}
+            style={{
+              border: "none",
+              background:
+                "transparent",
+              color: "#e85d04",
+              fontWeight: "600",
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
+              padding: 0,
+              fontSize: "14px",
+            }}
+          >
+            Forgot Password?
+          </button>
+        </div>
+
+        {/* =================================================
+            LOGIN BUTTON
+        ================================================= */}
 
         <button
           type="submit"
@@ -149,18 +357,30 @@ function Login({ onLogin }) {
             padding: "14px",
             border: 0,
             borderRadius: "10px",
-            background: "#e85d04",
+            background: loading
+              ? "#f0a77b"
+              : "#e85d04",
             color: "#fff",
             fontWeight: "700",
-            cursor: loading ? "not-allowed" : "pointer",
+            cursor: loading
+              ? "not-allowed"
+              : "pointer",
+            fontSize: "15px",
           }}
         >
-          {loading ? "Logging in..." : "Login"}
+          {loading
+            ? "Logging in..."
+            : "Login"}
         </button>
+
+        {/* =================================================
+            REGISTER
+        ================================================= */}
 
         <p
           style={{
             marginTop: "18px",
+            marginBottom: 0,
             textAlign: "center",
             color: "#777",
           }}
@@ -169,13 +389,19 @@ function Login({ onLogin }) {
 
           <button
             type="button"
-            onClick={handleRegister}
+            onClick={
+              handleRegister
+            }
+            disabled={loading}
             style={{
               border: "none",
-              background: "transparent",
+              background:
+                "transparent",
               color: "#e85d04",
               fontWeight: "700",
-              cursor: "pointer",
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
               padding: 0,
               fontSize: "inherit",
             }}
@@ -184,14 +410,36 @@ function Login({ onLogin }) {
           </button>
         </p>
 
+        {/* =================================================
+            SUCCESS MESSAGE
+        ================================================= */}
+
         {message && (
-          <p style={{ color: "green" }}>
+          <p
+            role="status"
+            style={{
+              color: "green",
+              marginTop: "18px",
+              marginBottom: 0,
+            }}
+          >
             {message}
           </p>
         )}
 
+        {/* =================================================
+            ERROR MESSAGE
+        ================================================= */}
+
         {error && (
-          <p style={{ color: "red" }}>
+          <p
+            role="alert"
+            style={{
+              color: "red",
+              marginTop: "18px",
+              marginBottom: 0,
+            }}
+          >
             {error}
           </p>
         )}
