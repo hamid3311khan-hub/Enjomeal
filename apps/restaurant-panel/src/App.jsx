@@ -63,7 +63,9 @@ function Dashboard() {
         </strong>
       </p>
 
-      <p>Restaurant Panel is ready.</p>
+      <p style={{ color: "#666", marginTop: "8px" }}>
+  Your dashboard is ready to manage your Menu, Incoming Orders, and Business Growth.
+</p>
 
       {/* Manage Orders */}
       <button
