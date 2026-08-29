@@ -253,7 +253,20 @@ function Login() {
               borderRadius: "8px",
             }}
           />
-
+	  <button
+  type="button"
+  onClick={() => navigate("/forgot-password")}
+  style={{
+    marginTop: "10px",
+    border: "none",
+    background: "transparent",
+    color: "#e85d04",
+    cursor: "pointer",
+    fontWeight: "600",
+  }}
+>
+  Forgot Password?
+</button>
           <button
             type="submit"
             disabled={loading}
