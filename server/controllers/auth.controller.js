@@ -398,6 +398,9 @@ const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({
       email: normalizedEmail,
+      role: {
+        $in: ["customer", "restaurant"],
+      },
     }).select(
       "+resetPasswordOTPHash +resetPasswordOTPExpires"
     );
@@ -540,6 +543,9 @@ const verifyResetOTP = async (req, res) => {
 
     const user = await User.findOne({
       email: normalizedEmail,
+      role: {
+        $in: ["customer", "restaurant"],
+      },
     }).select(
       "+resetPasswordOTPHash +resetPasswordOTPExpires"
     );
@@ -589,12 +595,14 @@ const verifyResetOTP = async (req, res) => {
     // COMPARE OTP
     // =================================================
 
+    const storedOTPHash =
+      String(user.resetPasswordOTPHash);
+
     const otpValid =
+      storedOTPHash.length === otpHash.length &&
       crypto.timingSafeEqual(
         Buffer.from(otpHash),
-        Buffer.from(
-          user.resetPasswordOTPHash
-        )
+        Buffer.from(storedOTPHash)
       );
 
     if (!otpValid) {
@@ -608,6 +616,12 @@ const verifyResetOTP = async (req, res) => {
     // =================================================
     // CREATE SHORT-LIVED RESET TOKEN
     // =================================================
+
+    if (!process.env.JWT_SECRET) {
+      throw new Error(
+        "JWT_SECRET is not configured"
+      );
+    }
 
     const resetToken = jwt.sign(
       {
@@ -722,6 +736,22 @@ const resetPassword = async (req, res) => {
       });
     }
 
+    // Public OTP reset is currently enabled
+    // for customer and restaurant accounts.
+    // Admin uses separate admin-only endpoint.
+    // Delivery recovery is not enabled yet.
+    if (
+      !["customer", "restaurant"].includes(
+        user.role
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Password reset is not available for this account type.",
+      });
+    }
+
     // =================================================
     // HASH NEW PASSWORD
     // =================================================
@@ -762,7 +792,6 @@ const resetPassword = async (req, res) => {
     });
   }
 };
-
 // ===============================
 // LOGIN USER
 // ===============================
@@ -1012,7 +1041,6 @@ const resetUserPassword = async (
 // ===============================
 // EXPORT
 // ===============================
-
 module.exports = {
   register,
   login,
