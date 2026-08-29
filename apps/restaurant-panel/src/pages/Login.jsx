@@ -290,20 +290,6 @@ function Login() {
   Forgot Password?
 </button>
         </form>
-	<button
-  type="button"
-  onClick={() => navigate("/forgot-password")}
-  style={{
-    marginTop: "10px",
-    border: "none",
-    background: "transparent",
-    color: "#e85d04",
-    cursor: "pointer",
-    fontWeight: "600",
-  }}
->
-  Forgot Password?
-          </button>
         <p
           style={{
             textAlign: "center",
