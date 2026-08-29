@@ -181,4 +181,3 @@ function VerifyResetOTP() {
 }
 
 export default VerifyResetOTP;
-EOF

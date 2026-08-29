@@ -168,4 +168,3 @@ function ForgotPassword() {
 }
 
 export default ForgotPassword;
-EOF
