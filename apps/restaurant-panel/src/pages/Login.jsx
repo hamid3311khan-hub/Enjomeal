@@ -253,11 +253,7 @@ function Login() {
               borderRadius: "8px",
             }}
           />
-<<<<<<< HEAD
-          <button
-=======
          <button
->>>>>>> ec25301 (Fix restaurant login forgot password placement)
             type="submit"
             disabled={loading}
             style={{
