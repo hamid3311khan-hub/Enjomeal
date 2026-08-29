@@ -386,15 +386,21 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
+    if (!email || typeof email !== "string") {
       return res.status(400).json({
         success: false,
         message: "Email is required.",
       });
     }
 
-    const normalizedEmail =
-      email.toLowerCase().trim();
+    const normalizedEmail = email
+      .toLowerCase()
+      .trim();
+
+    // ===============================
+    // ONLY REGISTERED CUSTOMER
+    // OR RESTAURANT
+    // ===============================
 
     const user = await User.findOne({
       email: normalizedEmail,
@@ -405,36 +411,48 @@ const forgotPassword = async (req, res) => {
       "+resetPasswordOTPHash +resetPasswordOTPExpires"
     );
 
-    // Do not reveal whether account exists
+    // ===============================
+    // NON-REGISTERED EMAIL
+    // NO OTP
+    // NO EMAIL
+    // ===============================
+
     if (!user) {
-      return res.status(200).json({
-        success: true,
+      return res.status(404).json({
+        success: false,
         message:
-          "If an account exists with this email, a password reset OTP has been sent.",
+          "No registered customer or restaurant account found with this email.",
       });
     }
 
-    // =================================================
-    // GENERATE 6 DIGIT OTP
-    // =================================================
+    // ===============================
+    // GENERATE OTP
+    // ===============================
 
     const otp = crypto
       .randomInt(100000, 1000000)
       .toString();
 
-    // =================================================
+    // ===============================
     // HASH OTP
-    // =================================================
+    // ===============================
 
     const otpHash = crypto
       .createHash("sha256")
       .update(otp)
       .digest("hex");
 
-    // OTP valid for 10 minutes
+    // ===============================
+    // OTP EXPIRY
+    // ===============================
+
     const otpExpires = new Date(
       Date.now() + 10 * 60 * 1000
     );
+
+    // ===============================
+    // SAVE OTP
+    // ===============================
 
     user.resetPasswordOTPHash =
       otpHash;
@@ -444,9 +462,10 @@ const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    // =================================================
-    // SEND OTP EMAIL
-    // =================================================
+    // ===============================
+    // SEND OTP
+    // ONLY REGISTERED EMAIL
+    // ===============================
 
     await sendEmail({
       to: user.email,
@@ -454,10 +473,13 @@ const forgotPassword = async (req, res) => {
       subject:
         "EnjoMeal Password Reset OTP",
 
-      text: `Your EnjoMeal password reset OTP is ${otp}. This OTP will expire in 10 minutes.`,
+      text:
+        `Your EnjoMeal password reset OTP is ${otp}. ` +
+        `This OTP will expire in 10 minutes.`,
 
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+
           <h2 style="color: #e85d04;">
             EnjoMeal Password Reset
           </h2>
@@ -496,6 +518,7 @@ const forgotPassword = async (req, res) => {
             Regards,<br />
             EnjoMeal Team
           </p>
+
         </div>
       `,
     });
@@ -503,7 +526,7 @@ const forgotPassword = async (req, res) => {
     return res.status(200).json({
       success: true,
       message:
-        "If an account exists with this email, a password reset OTP has been sent.",
+        "Password reset OTP has been sent to your registered email.",
     });
   } catch (error) {
     console.error(
@@ -520,6 +543,8 @@ const forgotPassword = async (req, res) => {
 };
 
 // ===============================
+
+// ===============================
 // VERIFY PASSWORD RESET OTP
 // ===============================
 
@@ -530,6 +555,10 @@ const verifyResetOTP = async (req, res) => {
       otp,
     } = req.body;
 
+    // ===============================
+    // VALIDATION
+    // ===============================
+
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
@@ -538,8 +567,28 @@ const verifyResetOTP = async (req, res) => {
       });
     }
 
-    const normalizedEmail =
-      email.toLowerCase().trim();
+    const normalizedEmail = email
+      .toLowerCase()
+      .trim();
+
+    const normalizedOTP = String(otp).trim();
+
+    // ===============================
+    // OTP FORMAT
+    // ===============================
+
+    if (!/^\d{6}$/.test(normalizedOTP)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "OTP must be a 6-digit number.",
+      });
+    }
+
+    // ===============================
+    // FIND REGISTERED USER
+    // CUSTOMER / RESTAURANT ONLY
+    // ===============================
 
     const user = await User.findOne({
       email: normalizedEmail,
@@ -549,6 +598,10 @@ const verifyResetOTP = async (req, res) => {
     }).select(
       "+resetPasswordOTPHash +resetPasswordOTPExpires"
     );
+
+    // ===============================
+    // USER / OTP NOT FOUND
+    // ===============================
 
     if (
       !user ||
@@ -562,12 +615,12 @@ const verifyResetOTP = async (req, res) => {
       });
     }
 
-    // =================================================
-    // CHECK EXPIRY
-    // =================================================
+    // ===============================
+    // CHECK OTP EXPIRY
+    // ===============================
 
     if (
-      user.resetPasswordOTPExpires.getTime() <
+      user.resetPasswordOTPExpires.getTime() <=
       Date.now()
     ) {
       user.resetPasswordOTPHash = null;
@@ -582,27 +635,41 @@ const verifyResetOTP = async (req, res) => {
       });
     }
 
-    // =================================================
-    // HASH PROVIDED OTP
-    // =================================================
+    // ===============================
+    // HASH ENTERED OTP
+    // ===============================
 
     const otpHash = crypto
       .createHash("sha256")
-      .update(String(otp).trim())
+      .update(normalizedOTP)
       .digest("hex");
 
-    // =================================================
-    // COMPARE OTP
-    // =================================================
+    // ===============================
+    // COMPARE HASHES
+    // ===============================
 
-    const storedOTPHash =
-      String(user.resetPasswordOTPHash);
+    const storedOTPHash = String(
+      user.resetPasswordOTPHash
+    );
+
+    if (
+      storedOTPHash.length !==
+      otpHash.length
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid or expired OTP.",
+      });
+    }
 
     const otpValid =
-      storedOTPHash.length === otpHash.length &&
       crypto.timingSafeEqual(
-        Buffer.from(otpHash),
-        Buffer.from(storedOTPHash)
+        Buffer.from(otpHash, "utf8"),
+        Buffer.from(
+          storedOTPHash,
+          "utf8"
+        )
       );
 
     if (!otpValid) {
@@ -613,9 +680,9 @@ const verifyResetOTP = async (req, res) => {
       });
     }
 
-    // =================================================
-    // CREATE SHORT-LIVED RESET TOKEN
-    // =================================================
+    // ===============================
+    // CREATE RESET TOKEN
+    // ===============================
 
     if (!process.env.JWT_SECRET) {
       throw new Error(
@@ -656,15 +723,22 @@ const verifyResetOTP = async (req, res) => {
 
 // ===============================
 // RESET PASSWORD
-// CUSTOMER / USER
+// CUSTOMER / RESTAURANT
 // ===============================
 
-const resetPassword = async (req, res) => {
+const resetPassword = async (
+  req,
+  res
+) => {
   try {
     const {
       resetToken,
       newPassword,
     } = req.body;
+
+    // ===============================
+    // VALIDATION
+    // ===============================
 
     if (
       !resetToken ||
@@ -677,11 +751,10 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // =================================================
-    // PASSWORD VALIDATION
-    // =================================================
-
-    if (newPassword.length < 8) {
+    if (
+      typeof newPassword !== "string" ||
+      newPassword.length < 8
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -689,9 +762,15 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // =================================================
+    // ===============================
     // VERIFY RESET TOKEN
-    // =================================================
+    // ===============================
+
+    if (!process.env.JWT_SECRET) {
+      throw new Error(
+        "JWT_SECRET is not configured"
+      );
+    }
 
     let decoded;
 
@@ -708,9 +787,14 @@ const resetPassword = async (req, res) => {
       });
     }
 
+    // ===============================
+    // CHECK TOKEN PURPOSE
+    // ===============================
+
     if (
+      !decoded ||
       decoded.purpose !==
-      "PASSWORD_RESET"
+        "PASSWORD_RESET"
     ) {
       return res.status(401).json({
         success: false,
@@ -719,9 +803,9 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // =================================================
+    // ===============================
     // FIND USER
-    // =================================================
+    // ===============================
 
     const user =
       await User.findById(
@@ -736,10 +820,10 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Public OTP reset is currently enabled
-    // for customer and restaurant accounts.
-    // Admin uses separate admin-only endpoint.
-    // Delivery recovery is not enabled yet.
+    // ===============================
+    // ONLY CUSTOMER / RESTAURANT
+    // ===============================
+
     if (
       !["customer", "restaurant"].includes(
         user.role
@@ -752,9 +836,9 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // =================================================
+    // ===============================
     // HASH NEW PASSWORD
-    // =================================================
+    // ===============================
 
     const hashedPassword =
       await bcrypt.hash(
@@ -765,14 +849,19 @@ const resetPassword = async (req, res) => {
     user.password =
       hashedPassword;
 
-    // =================================================
-    // INVALIDATE OTP
-    // =================================================
+    // ===============================
+    // CLEAR OTP
+    // ===============================
 
     user.resetPasswordOTPHash = null;
+
     user.resetPasswordOTPExpires = null;
 
     await user.save();
+
+    // ===============================
+    // SUCCESS
+    // ===============================
 
     return res.status(200).json({
       success: true,
@@ -792,6 +881,8 @@ const resetPassword = async (req, res) => {
     });
   }
 };
+
+// ===============================
 // ===============================
 // LOGIN USER
 // ===============================
@@ -803,6 +894,10 @@ const login = async (req, res) => {
       password,
     } = req.body;
 
+    // ===============================
+    // VALIDATION
+    // ===============================
+
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -811,8 +906,9 @@ const login = async (req, res) => {
       });
     }
 
-    const normalizedEmail =
-      email.toLowerCase().trim();
+    const normalizedEmail = email
+      .toLowerCase()
+      .trim();
 
     // ===============================
     // FIND USER
@@ -850,8 +946,7 @@ const login = async (req, res) => {
       ["restaurant", "delivery"].includes(
         user.role
       ) &&
-      user.approvalStatus !==
-        "APPROVED"
+      user.approvalStatus !== "APPROVED"
     ) {
       return res.status(403).json({
         success: false,
@@ -881,13 +976,12 @@ const login = async (req, res) => {
     // UPDATE LAST LOGIN
     // ===============================
 
-    user.lastLoginAt =
-      new Date();
+    user.lastLoginAt = new Date();
 
     await user.save();
 
     // ===============================
-    // JWT
+    // CREATE JWT
     // ===============================
 
     const token =
@@ -974,6 +1068,10 @@ const resetUserPassword = async (
       newPassword,
     } = req.body;
 
+    // ===============================
+    // VALIDATION
+    // ===============================
+
     if (
       !userId ||
       !newPassword
@@ -986,6 +1084,7 @@ const resetUserPassword = async (
     }
 
     if (
+      typeof newPassword !== "string" ||
       newPassword.length < 8
     ) {
       return res.status(400).json({
@@ -994,6 +1093,10 @@ const resetUserPassword = async (
           "Password must contain at least 8 characters.",
       });
     }
+
+    // ===============================
+    // FIND USER
+    // ===============================
 
     const user =
       await User.findById(
@@ -1007,6 +1110,10 @@ const resetUserPassword = async (
           "User not found.",
       });
     }
+
+    // ===============================
+    // HASH PASSWORD
+    // ===============================
 
     const hashedPassword =
       await bcrypt.hash(
@@ -1026,7 +1133,7 @@ const resetUserPassword = async (
     });
   } catch (error) {
     console.error(
-      "Reset Password Error:",
+      "Reset User Password Error:",
       error
     );
 
@@ -1039,8 +1146,10 @@ const resetUserPassword = async (
 };
 
 // ===============================
+// ===============================
 // EXPORT
 // ===============================
+
 module.exports = {
   register,
   login,
