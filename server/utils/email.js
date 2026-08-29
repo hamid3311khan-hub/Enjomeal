@@ -1,50 +1,42 @@
-const nodemailer = require("nodemailer");
-
 // =====================================================
-// SMTP CONFIGURATION
+// BREVO HTTP EMAIL SERVICE
 // =====================================================
 
-const smtpPort = Number(process.env.SMTP_PORT) || 587;
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-
-  port: smtpPort,
-
-  secure:
-    String(process.env.SMTP_SECURE).toLowerCase() ===
-    "true",
-
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
 // =====================================================
-// VERIFY SMTP CONFIGURATION
+// VERIFY BREVO CONFIGURATION
 // =====================================================
 
 const verifyEmailConfig = async () => {
-  if (!process.env.SMTP_USER) {
+  if (!process.env.BREVO_API_KEY) {
     throw new Error(
-      "SMTP_USER is not configured."
+      "BREVO_API_KEY is not configured."
     );
   }
 
-  if (!process.env.SMTP_PASS) {
+  if (!process.env.EMAIL_FROM) {
     throw new Error(
-      "SMTP_PASS is not configured."
+      "EMAIL_FROM is not configured."
     );
   }
 
-  if (!process.env.SMTP_HOST) {
+  const response = await fetch(
+    "https://api.brevo.com/v3/account",
+    {
+      method: "GET",
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "accept": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
     throw new Error(
-      "SMTP_HOST is not configured."
+      `Brevo configuration verification failed: ${errorText}`
     );
   }
-
-  await transporter.verify();
 
   return true;
 };
@@ -71,32 +63,90 @@ const sendEmail = async ({
     );
   }
 
-  const mailOptions = {
-    from:
-      process.env.EMAIL_FROM ||
-      process.env.SMTP_USER,
+  if (!process.env.BREVO_API_KEY) {
+    throw new Error(
+      "BREVO_API_KEY is not configured."
+    );
+  }
 
-    to,
+  if (!process.env.EMAIL_FROM) {
+    throw new Error(
+      "EMAIL_FROM is not configured."
+    );
+  }
+
+  const payload = {
+    sender: {
+      email: process.env.EMAIL_FROM,
+      name:
+        process.env.EMAIL_FROM_NAME ||
+        "EnjoMeal",
+    },
+
+    to: [
+      {
+        email: to,
+      },
+    ],
 
     subject,
 
-    text:
+    textContent:
       text ||
       "Please view this email in an HTML-compatible email client.",
 
-    ...(html ? { html } : {}),
+    ...(html
+      ? { htmlContent: html }
+      : {}),
   };
 
-  const info =
-    await transporter.sendMail(
-      mailOptions
-    );
+  const response = await fetch(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+      method: "POST",
 
-  console.log(
-    `Email sent successfully: ${info.messageId}`
+      headers: {
+        "api-key": process.env.BREVO_API_KEY,
+        "Content-Type": "application/json",
+        "accept": "application/json",
+      },
+
+      body: JSON.stringify(payload),
+    }
   );
 
-  return info;
+  const responseText =
+    await response.text();
+
+  if (!response.ok) {
+    console.error(
+      "Brevo Email Error:",
+      responseText
+    );
+
+    throw new Error(
+      `Brevo email sending failed: ${responseText}`
+    );
+  }
+
+  let result;
+
+  try {
+    result = JSON.parse(responseText);
+  } catch {
+    result = {
+      messageId: null,
+      raw: responseText,
+    };
+  }
+
+  console.log(
+    `Email sent successfully via Brevo: ${
+      result.messageId || "OK"
+    }`
+  );
+
+  return result;
 };
 
 // =====================================================
