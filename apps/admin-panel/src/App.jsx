@@ -8,6 +8,7 @@ import Delivery from "./pages/Delivery";
 import Orders from "./pages/Orders";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
+import Coupons from "./pages/Coupons";
 
 
 // =================================================
@@ -460,6 +461,9 @@ function App() {
 
       case "orders":
         return "Orders";
+	
+	case "coupons":
+	  return "Coupons";
 
     case "settings":
         return "Settings";
@@ -535,6 +539,8 @@ function App() {
       case "orders":
         return <Orders />;
       
+	case "coupons":
+	  return <Coupons />;
 
     case "settings":
       return <Settings />;
@@ -799,7 +805,21 @@ function App() {
       </span>
       {!isMobile && "Settings"}
     </button>
+	
+	{/* COUPONS */}
+<button
+  style={{
+    ...styles.menuButton,
+    ...(activePage === "coupons" ? styles.activeButton : {}),
+  }}
+  onClick={() => setActivePage("coupons")}
+>
+  <span style={styles.menuIcon}>
+    🎟️
+  </span>
 
+  {!isMobile && "Coupons"}
+</button>
         {/* NOTIFICATIONS */}
 
         <button
