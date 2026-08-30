@@ -200,6 +200,76 @@ const applyCoupon = async () => {
 };
 
   // =====================================================
+// PRICE CALCULATION
+// =====================================================
+
+const subtotal =
+  cart?.items?.reduce(
+    (total, item) =>
+      total +
+      Number(item.price || 0) *
+        Number(item.quantity || 0),
+    0
+  ) || 0;
+
+const calculateDiscount = () => {
+  if (!coupon) {
+    return 0;
+  }
+
+  const type =
+    coupon.discountType ||
+    coupon.type;
+
+  const value =
+    Number(
+      coupon.discountValue ??
+        coupon.value ??
+        0
+    );
+
+  if (value <= 0) {
+    return 0;
+  }
+
+  let discount = 0;
+
+  if (
+    type === "PERCENTAGE" ||
+    type === "percentage"
+  ) {
+    discount =
+      (subtotal * value) / 100;
+  } else if (
+    type === "FIXED" ||
+    type === "fixed"
+  ) {
+    discount = value;
+  }
+
+  const maximumDiscount = Number(
+    coupon.maxDiscount ??
+      coupon.maximumDiscount ??
+      0
+  );
+
+  if (
+    maximumDiscount > 0 &&
+    discount > maximumDiscount
+  ) {
+    discount = maximumDiscount;
+  }
+
+  return Math.min(
+    Math.max(discount, 0),
+    subtotal
+  );
+};
+
+const discountAmount =
+  calculateDiscount();
+
+  // =====================================================
   // PLACE ORDER
   // =====================================================
 
