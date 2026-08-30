@@ -281,6 +281,21 @@ const calculateDiscount = () => {
 const discountAmount =
   calculateDiscount();
 
+  const deliveryFee = settings?.freeDelivery
+  ? 0
+  : Number(settings?.deliveryFee || 0);
+
+const platformCharge =
+  Number(settings?.platformCharge || 0);
+
+const finalTotal = Math.max(
+  0,
+  subtotal +
+    deliveryFee +
+    platformCharge -
+    discountAmount
+);
+
   // =====================================================
   // PLACE ORDER
   // =====================================================
@@ -1177,7 +1192,18 @@ const discountAmount =
   }}
 >
   <span>Delivery Fee</span>
-  <span>₹0.00</span>
+<span>₹{deliveryFee.toFixed(2)}</span>
+</div>
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "12px",
+  }}
+>
+  <span>Platform Charge</span>
+  <span>₹{platformCharge.toFixed(2)}</span>
 </div>
 
 <hr
@@ -1199,8 +1225,8 @@ const discountAmount =
   <span>Total</span>
 
   <span>
-    ₹{(subtotal - discountAmount).toFixed(2)}
-  </span>
+  ₹{finalTotal.toFixed(2)}
+</span>
 </div>
 
           {/* SECURITY NOTE */}

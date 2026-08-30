@@ -21,7 +21,7 @@ const createOrderController = async (req, res) => {
       items,
       deliveryAddress,
       paymentMethod,
-      couponcode
+      couponCode
     } = req.body;
 
     // ===============================
@@ -140,7 +140,7 @@ const platformCharge =
   Number(settings?.platformCharge || 0);
 
 // Coupon discount
-const discountAmount = 0;
+let  discountAmount = 0;
 
     for (const item of items) {
       if (
