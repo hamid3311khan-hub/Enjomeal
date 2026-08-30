@@ -9,6 +9,15 @@ function Checkout() {
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState("");
+  // =====================================================
+// COUPON / OFFER
+// =====================================================
+
+const [couponCode, setCouponCode] = useState("");
+const [coupon, setCoupon] = useState(null);
+const [couponLoading, setCouponLoading] = useState(false);
+const [couponError, setCouponError] = useState("");
+const [couponSuccess, setCouponSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     address: "",
