@@ -462,6 +462,40 @@ const getActiveCouponsController = async (req, res) => {
   }
 };
 
+// ==================================
+// GET AVAILABLE COUPONS
+// CUSTOMER ONLY
+// ==================================
+
+const getAvailableCouponsController = async (req, res) => {
+  try {
+    const coupons = await Coupon.find({
+      isActive: true,
+      expiryDate: {
+        $gt: new Date(),
+      },
+    }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Available coupons fetched successfully",
+      totalCoupons: coupons.length,
+      coupons,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Error in Get Available Coupons API",
+      error: error.message,
+    });
+  }
+};
+
+
 // ===============================
 // EXPORT
 // ===============================
@@ -472,5 +506,5 @@ module.exports = {
   updateCouponController,
   deleteCouponController,
   applyCouponController,
-  getActiveCouponsController,
+  getAvailableCouponsController,
 };
