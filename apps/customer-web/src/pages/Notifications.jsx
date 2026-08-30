@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 import { connectSocket } from "../api/socket";
+
 function Notifications() {
   const navigate = useNavigate();
 
@@ -10,83 +11,189 @@ function Notifications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchNotifications = async () => {
+  // =====================================================
+  // FETCH NOTIFICATIONS
+  // =====================================================
+
+  const fetchNotifications = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
+
       setError("");
 
-      const response = await API.get("/notifications/my");
+      const response = await API.get(
+        "/notifications/my"
+      );
 
       const data = response.data;
 
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
-    } catch (error) {
-      console.error("Notification Error:", error);
-
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch notifications"
+      setNotifications(
+        data.notifications || []
       );
+
+      setUnreadCount(
+        data.unreadCount || 0
+      );
+    } catch (error) {
+      console.error(
+        "Notification Error:",
+        error
+      );
+
+      if (!silent) {
+        setError(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to fetch notifications"
+        );
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
+
+  // =====================================================
+  // INITIAL LOAD + REAL-TIME + AUTO REFRESH
+  // =====================================================
 
   useEffect(() => {
-  fetchNotifications();
+    fetchNotifications();
 
-  const socket = connectSocket();
+    // Background refresh every 30 seconds
+    const refreshInterval =
+      setInterval(() => {
+        fetchNotifications(true);
+      }, 30000);
 
-  if (!socket) {
-    return;
-  }
+    const socket = connectSocket();
 
-  const handleNewNotification = (data) => {
-    const newNotification = data?.notification;
+    // ===================================================
+    // SOCKET NOT AVAILABLE
+    // ===================================================
 
-    if (!newNotification?._id) {
-      return;
+    if (!socket) {
+      return () => {
+        clearInterval(
+          refreshInterval
+        );
+      };
     }
 
-    setNotifications((currentNotifications) => {
-      const alreadyExists = currentNotifications.some(
-        (notification) =>
-          notification._id === newNotification._id
-      );
+    // ===================================================
+    // NEW REAL-TIME NOTIFICATION
+    // ===================================================
 
-      if (alreadyExists) {
-        return currentNotifications;
+    const handleNewNotification = (
+      data
+    ) => {
+      const newNotification =
+        data?.notification;
+
+      if (!newNotification?._id) {
+        return;
       }
 
-      return [
-        newNotification,
-        ...currentNotifications,
-      ];
-    });
+      setNotifications(
+        (currentNotifications) => {
+          const alreadyExists =
+            currentNotifications.some(
+              (notification) =>
+                notification._id ===
+                newNotification._id
+            );
 
-    if (!newNotification.isRead) {
-      setUnreadCount((currentCount) =>
-        currentCount + 1
+          if (alreadyExists) {
+            return currentNotifications;
+          }
+
+          return [
+            newNotification,
+            ...currentNotifications,
+          ];
+        }
       );
-    }
-  };
 
-  socket.on(
-    "notification:new",
-    handleNewNotification
-  );
+      if (!newNotification.isRead) {
+        setUnreadCount(
+          (currentCount) =>
+            currentCount + 1
+        );
+      }
+    };
 
-  return () => {
-    socket.off(
+    // ===================================================
+    // SOCKET CONNECT / RECONNECT
+    // ===================================================
+
+    const handleSocketConnect = () => {
+      fetchNotifications(true);
+    };
+
+    socket.on(
       "notification:new",
       handleNewNotification
     );
-  };
-}, []);
 
-  const markAsRead = async (notificationId) => {
+    socket.on(
+      "connect",
+      handleSocketConnect
+    );
+
+    // ===================================================
+    // APP FOREGROUND REFRESH
+    // ===================================================
+
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        fetchNotifications(true);
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    // ===================================================
+    // CLEANUP
+    // ===================================================
+
+    return () => {
+      clearInterval(
+        refreshInterval
+      );
+
+      socket.off(
+        "notification:new",
+        handleNewNotification
+      );
+
+      socket.off(
+        "connect",
+        handleSocketConnect
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
+
+  // =====================================================
+  // MARK AS READ
+  // =====================================================
+
+  const markAsRead = async (
+    notificationId
+  ) => {
     try {
       setError("");
 
@@ -94,9 +201,14 @@ function Notifications() {
         `/notifications/${notificationId}/read`
       );
 
-      await fetchNotifications();
+      await fetchNotifications(
+        true
+      );
     } catch (error) {
-      console.error("Mark Read Error:", error);
+      console.error(
+        "Mark Read Error:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
@@ -105,15 +217,26 @@ function Notifications() {
     }
   };
 
+  // =====================================================
+  // MARK ALL AS READ
+  // =====================================================
+
   const markAllAsRead = async () => {
     try {
       setError("");
 
-      await API.put("/notifications/read-all");
+      await API.put(
+        "/notifications/read-all"
+      );
 
-      await fetchNotifications();
+      await fetchNotifications(
+        true
+      );
     } catch (error) {
-      console.error("Mark All Read Error:", error);
+      console.error(
+        "Mark All Read Error:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
@@ -122,28 +245,48 @@ function Notifications() {
     }
   };
 
-  const handleNotificationClick = async (notification) => {
+  // =====================================================
+  // HANDLE NOTIFICATION CLICK
+  // =====================================================
+
+  const handleNotificationClick = async (
+    notification
+  ) => {
     try {
       if (!notification.isRead) {
-        await markAsRead(notification._id);
+        await markAsRead(
+          notification._id
+        );
       }
 
       if (notification.order) {
         const orderId =
-          typeof notification.order === "object"
+          typeof notification.order ===
+          "object"
             ? notification.order._id
             : notification.order;
 
         if (orderId) {
-          navigate(`/orders/${orderId}`);
+          navigate(
+            `/orders/${orderId}`
+          );
         }
       }
     } catch (error) {
-      console.error("Notification Click Error:", error);
+      console.error(
+        "Notification Click Error:",
+        error
+      );
     }
   };
 
-  const deleteNotification = async (notificationId) => {
+  // =====================================================
+  // DELETE NOTIFICATION
+  // =====================================================
+
+  const deleteNotification = async (
+    notificationId
+  ) => {
     try {
       setError("");
 
@@ -151,9 +294,14 @@ function Notifications() {
         `/notifications/${notificationId}`
       );
 
-      await fetchNotifications();
+      await fetchNotifications(
+        true
+      );
     } catch (error) {
-      console.error("Delete Notification Error:", error);
+      console.error(
+        "Delete Notification Error:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
@@ -161,6 +309,9 @@ function Notifications() {
       );
     }
   };
+    // =====================================================
+  // LOADING
+  // =====================================================
 
   if (loading) {
     return (
@@ -170,6 +321,10 @@ function Notifications() {
       </div>
     );
   }
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
     <div style={styles.container}>
@@ -185,12 +340,15 @@ function Notifications() {
         </div>
 
         <button
-          onClick={fetchNotifications}
+          type="button"
+          onClick={() => fetchNotifications()}
           style={styles.refreshButton}
         >
           ↻ Refresh
         </button>
       </div>
+
+      {/* ERROR */}
 
       {error && (
         <div style={styles.error}>
@@ -198,9 +356,12 @@ function Notifications() {
         </div>
       )}
 
+      {/* STATS */}
+
       <div style={styles.stats}>
         <div style={styles.statCard}>
           <h3>Total Notifications</h3>
+
           <strong>
             {notifications.length}
           </strong>
@@ -208,14 +369,18 @@ function Notifications() {
 
         <div style={styles.statCard}>
           <h3>Unread</h3>
+
           <strong>
             {unreadCount}
           </strong>
         </div>
       </div>
 
+      {/* MARK ALL AS READ */}
+
       {unreadCount > 0 && (
         <button
+          type="button"
           onClick={markAllAsRead}
           style={styles.markAllButton}
         >
@@ -223,11 +388,17 @@ function Notifications() {
         </button>
       )}
 
+      {/* EMPTY STATE */}
+
       {notifications.length === 0 ? (
         <div style={styles.empty}>
-          <div style={styles.icon}>🔔</div>
+          <div style={styles.icon}>
+            🔔
+          </div>
 
-          <h2>No Notifications</h2>
+          <h2>
+            No Notifications
+          </h2>
 
           <p>
             You don't have any notifications yet.
@@ -235,91 +406,114 @@ function Notifications() {
         </div>
       ) : (
         <div style={styles.list}>
-          {notifications.map((notification) => (
-            <div
-              key={notification._id}
-              style={{
-                ...styles.card,
-                backgroundColor: notification.isRead
-                  ? "#ffffff"
-                  : "#eef6ff",
-              }}
-            >
-              <div style={styles.cardTop}>
-                <div>
-                  <h3
-                    style={styles.notificationTitle}
-                  >
-                    🔔 {notification.title}
+          {notifications.map(
+            (notification) => (
+              <div
+                key={notification._id}
+                style={{
+                  ...styles.card,
+                  backgroundColor:
+                    notification.isRead
+                      ? "#ffffff"
+                      : "#eef6ff",
+                }}
+              >
+                <div style={styles.cardTop}>
+                  <div>
+                    <h3
+                      style={
+                        styles.notificationTitle
+                      }
+                    >
+                      🔔{" "}
+                      {notification.title}
 
-                    {!notification.isRead && (
-                      <span style={styles.newBadge}>
-                        NEW
-                      </span>
-                    )}
-                  </h3>
+                      {!notification.isRead && (
+                        <span
+                          style={styles.newBadge}
+                        >
+                          NEW
+                        </span>
+                      )}
+                    </h3>
 
-                  <p style={styles.message}>
-                    {notification.message}
-                  </p>
+                    <p style={styles.message}>
+                      {notification.message}
+                    </p>
+                  </div>
+
+                  <span style={styles.type}>
+                    {notification.type}
+                  </span>
                 </div>
 
-                <span style={styles.type}>
-                  {notification.type}
-                </span>
-              </div>
+                <p style={styles.date}>
+                  {notification.createdAt
+                    ? new Date(
+                        notification.createdAt
+                      ).toLocaleString()
+                    : ""}
+                </p>
 
-              <p style={styles.date}>
-                {notification.createdAt
-                  ? new Date(
-                      notification.createdAt
-                    ).toLocaleString()
-                  : ""}
-              </p>
+                <div style={styles.actions}>
+                  {/* MARK READ */}
 
-              <div style={styles.actions}>
-                {!notification.isRead && (
+                  {!notification.isRead && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        markAsRead(
+                          notification._id
+                        )
+                      }
+                      style={styles.readButton}
+                    >
+                      ✓ Mark as Read
+                    </button>
+                  )}
+
+                  {/* VIEW ORDER */}
+
+                  {notification.order && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleNotificationClick(
+                          notification
+                        )
+                      }
+                      style={styles.orderButton}
+                    >
+                      View Order →
+                    </button>
+                  )}
+
+                  {/* DELETE */}
+
                   <button
+                    type="button"
                     onClick={() =>
-                      markAsRead(notification._id)
-                    }
-                    style={styles.readButton}
-                  >
-                    ✓ Mark as Read
-                  </button>
-                )}
-
-                {notification.order && (
-                  <button
-                    onClick={() =>
-                      handleNotificationClick(
-                        notification
+                      deleteNotification(
+                        notification._id
                       )
                     }
-                    style={styles.orderButton}
+                    style={styles.deleteButton}
                   >
-                    View Order →
+                    Delete
                   </button>
-                )}
-
-                <button
-                  onClick={() =>
-                    deleteNotification(
-                      notification._id
-                    )
-                  }
-                  style={styles.deleteButton}
-                >
-                  Delete
-                </button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
     </div>
   );
 }
+
+// =====================================================
+// STYLES
+// =====================================================
 
 const styles = {
   container: {
@@ -356,7 +550,8 @@ const styles = {
 
   stats: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
+    gridTemplateColumns:
+      "repeat(2, 1fr)",
     gap: "16px",
     marginBottom: "20px",
   },
