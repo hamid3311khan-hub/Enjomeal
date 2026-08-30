@@ -115,8 +115,19 @@ const createOrderController = async (req, res) => {
     // VALIDATE FOOD ITEMS
     // ===============================
 
-    let totalAmount = 0;
-    const orderItems = [];
+    let subtotal = 0;
+const orderItems = [];
+
+// ===============================
+// DELIVERY FEE
+// ===============================
+// Abhi delivery-fee rule finalize nahi hua.
+// Isliye temporary 0 rakha gaya hai.
+const deliveryFee = 0;
+
+// Coupon discount ka final server-side
+// validation next step mein hoga.
+const discountAmount = 0;
 
     for (const item of items) {
       if (
@@ -191,27 +202,46 @@ const createOrderController = async (req, res) => {
         price: foodItem.price,
       });
 
-      totalAmount +=
+      subtotal +=
         foodItem.price *
         item.quantity;
     }
 
     // ===============================
-    // CREATE ORDER
-    // ===============================
+// CALCULATE FINAL ORDER TOTAL
+// ===============================
 
-    const order =
-      await Order.create({
-        user: userId,
-        restaurant,
-        items: orderItems,
-        totalAmount,
-        deliveryAddress,
-        paymentMethod:
-          selectedPaymentMethod,
-        paymentStatus: "PENDING",
-        orderStatus: "PLACED",
-      });
+const totalAmount =
+  Math.max(
+    0,
+    subtotal +
+      deliveryFee -
+      discountAmount
+  );
+
+// ===============================
+// CREATE ORDER
+// ===============================
+
+const order =
+  await Order.create({
+    user: userId,
+    restaurant,
+    items: orderItems,
+
+    subtotal,
+    deliveryFee,
+    discountAmount,
+    totalAmount,
+
+    deliveryAddress,
+
+    paymentMethod:
+      selectedPaymentMethod,
+
+    paymentStatus: "PENDING",
+    orderStatus: "PLACED",
+  });
 
     // ===============================
     // CLEAR CART
