@@ -312,7 +312,10 @@ if (couponCode) {
 
 const totalAmount = Math.max(
   0,
-  subtotal + deliveryFee - discountAmount
+  subtotal +
+    deliveryFee +
+    platformCharge -
+    discountAmount
 );
 
 // ===============================
