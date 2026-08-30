@@ -427,6 +427,41 @@ const applyCouponController = async (req, res) => {
   }
 };
 
+// =====================================
+// GET ACTIVE COUPONS
+// CUSTOMER ONLY
+// =====================================
+
+const getActiveCouponsController = async (req, res) => {
+  try {
+    const coupons = await Coupon.find({
+      isActive: true,
+      expiryDate: {
+        $gte: new Date(),
+      },
+    })
+      .select(
+        "code description discountType discountValue minimumOrderAmount maximumDiscount expiryDate"
+      )
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Active coupons fetched successfully",
+      count: coupons.length,
+      coupons,
+    });
+  } catch (error) {
+    console.log("Get Active Coupons Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Error in Get Active Coupons API",
+      error: error.message,
+    });
+  }
+};
+
 // ===============================
 // EXPORT
 // ===============================
@@ -437,4 +472,5 @@ module.exports = {
   updateCouponController,
   deleteCouponController,
   applyCouponController,
+  getActiveCouponsController,
 };

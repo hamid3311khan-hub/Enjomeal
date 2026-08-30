@@ -7,8 +7,8 @@ const {
   updateCouponController,
   deleteCouponController,
   applyCouponController,
+  getActiveCouponsController,
 } = require("../controllers/couponController");
-
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
@@ -68,6 +68,19 @@ router.delete(
   roleMiddleware("admin"),
   deleteCouponController
 );
+
+// =====================================
+// GET ACTIVE COUPONS
+// CUSTOMER ONLY
+// =====================================
+
+router.get(
+  "/active",
+  authMiddleware,
+  roleMiddleware("customer"),
+  getActiveCouponsController
+);
+
 
 // ===============================
 // APPLY / VALIDATE COUPON
