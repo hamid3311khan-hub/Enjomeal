@@ -107,6 +107,99 @@ const [couponSuccess, setCouponSuccess] = useState("");
   };
 
   // =====================================================
+// APPLY COUPON
+// =====================================================
+
+const applyCoupon = async () => {
+  const code = couponCode.trim().toUpperCase();
+
+  if (!code) {
+    setCouponError("Please enter a coupon code.");
+    setCouponSuccess("");
+    return;
+  }
+
+  if (!cart?.restaurant?._id) {
+    setCouponError("Restaurant information is missing.");
+    setCouponSuccess("");
+    return;
+  }
+
+  try {
+    setCouponLoading(true);
+    setCouponError("");
+    setCouponSuccess("");
+
+    const token = localStorage.getItem(
+      "enjoMealToken"
+    );
+
+    if (!token) {
+      navigate("/login", {
+        replace: true,
+      });
+      return;
+    }
+
+    const subtotal = cart.items.reduce(
+      (total, item) =>
+        total +
+        Number(item.price || 0) *
+          Number(item.quantity || 0),
+      0
+    );
+
+    const response = await API.post(
+      "/coupons/apply",
+      {
+        code,
+        orderAmount: subtotal,
+        restaurant: cart.restaurant._id,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (response.data.success) {
+      setCoupon(
+        response.data.coupon || response.data
+      );
+
+      setCouponCode(code);
+
+      setCouponSuccess(
+        response.data.message ||
+          "Coupon applied successfully."
+      );
+    } else {
+      setCoupon(null);
+
+      setCouponError(
+        response.data.message ||
+          "Invalid coupon."
+      );
+    }
+  } catch (err) {
+    console.error(
+      "Apply Coupon Error:",
+      err
+    );
+
+    setCoupon(null);
+
+    setCouponError(
+      err.response?.data?.message ||
+        "Failed to apply coupon."
+    );
+  } finally {
+    setCouponLoading(false);
+  }
+};
+
+  // =====================================================
   // PLACE ORDER
   // =====================================================
 
