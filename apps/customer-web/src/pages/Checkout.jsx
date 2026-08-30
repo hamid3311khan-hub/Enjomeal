@@ -19,6 +19,8 @@ const [coupon, setCoupon] = useState(null);
 const [couponLoading, setCouponLoading] = useState(false);
 const [couponError, setCouponError] = useState("");
 const [couponSuccess, setCouponSuccess] = useState("");
+const [availableCoupons, setAvailableCoupons] = useState([]);
+const [couponsLoading, setCouponsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     address: "",
@@ -33,6 +35,7 @@ const [couponSuccess, setCouponSuccess] = useState("");
 
   useEffect(() => {
     fetchSettings();
+  fetchAvailableCoupons();
   fetchCart();
   }, []);
 
@@ -44,6 +47,28 @@ const [couponSuccess, setCouponSuccess] = useState("");
       }
     } catch (err) {
       console.error("Settings Error:", err);
+    }
+  };
+
+  const fetchAvailableCoupons = async () => {
+    try {
+      setCouponsLoading(true);
+      const token = localStorage.getItem("enjoMealToken");
+      if (!token) return;
+
+      const response = await API.get("/coupons/active", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data.success) {
+        setAvailableCoupons(response.data.coupons || []);
+      }
+    } catch (err) {
+      console.error("Available Coupons Error:", err);
+    } finally {
+      setCouponsLoading(false);
     }
   };
   const fetchCart = async () => {
@@ -826,6 +851,72 @@ const finalTotal = Math.max(
     background: "#fffaf5",
   }}
 >
+{/* AVAILABLE COUPONS */}
+{availableCoupons.length > 0 && (
+  <div
+    style={{
+      marginBottom: "15px",
+      padding: "12px",
+      border: "1px solid #eee",
+      borderRadius: "10px",
+      background: "#fff",
+    }}
+  >
+    <h3 style={{ marginTop: 0 }}>
+      🎁 Available Coupons
+    </h3>
+
+    {availableCoupons.map((item) => (
+      <div
+        key={item._id || item.code}
+        style={{
+          padding: "12px",
+          marginBottom: "10px",
+          border: "1px solid #ddd",
+          borderRadius: "8px",
+        }}
+      >
+        <strong>{item.code}</strong>
+
+        <div style={{ marginTop: "5px" }}>
+          {item.discountType === "PERCENTAGE"
+            ? `${item.discountValue}% OFF`
+            : `₹${item.discountValue} OFF`}
+        </div>
+
+        {item.minimumOrderAmount > 0 && (
+          <small>
+            Minimum order: ₹{item.minimumOrderAmount}
+          </small>
+        )}
+
+        <br />
+
+        <button
+          type="button"
+          onClick={() => {
+            setCouponCode(item.code);
+            setCouponError("");
+            setCouponSuccess("");
+          }}
+          style={{
+            marginTop: "8px",
+            padding: "8px 14px",
+            border: "none",
+            borderRadius: "6px",
+            background: "#e85d04",
+            color: "#fff",
+            fontWeight: "600",
+            cursor: "pointer",
+          }}
+        >
+          Use Coupon
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+
   <h2 style={{ marginTop: 0 }}>
     🏷️ Apply Coupon
   </h2>
