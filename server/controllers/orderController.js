@@ -221,17 +221,6 @@ const discountAmount = 0;
     }
 
     // ===============================
-// CALCULATE FINAL ORDER TOTAL
-// ===============================
-
-const totalAmount =
-  Math.max(
-    0,
-    subtotal +
-      deliveryFee -
-      discountAmount
-  );
-    // ===============================
 // COUPON VALIDATION
 // ===============================
 

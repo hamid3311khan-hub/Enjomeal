@@ -1,49 +1,35 @@
-// =====================================================
-// BREVO HTTP EMAIL SERVICE
-// =====================================================
+const nodemailer = require("nodemailer");
 
-// =====================================================
-// VERIFY BREVO CONFIGURATION
-// =====================================================
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: smtpPort,
+  secure:
+    String(process.env.SMTP_SECURE).toLowerCase() === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 const verifyEmailConfig = async () => {
-  if (!process.env.BREVO_API_KEY) {
-    throw new Error(
-      "BREVO_API_KEY is not configured."
-    );
+  if (!process.env.SMTP_USER) {
+    throw new Error("SMTP_USER is not configured.");
   }
 
-  if (!process.env.EMAIL_FROM) {
-    throw new Error(
-      "EMAIL_FROM is not configured."
-    );
+  if (!process.env.SMTP_PASS) {
+    throw new Error("SMTP_PASS is not configured.");
   }
 
-  const response = await fetch(
-    "https://api.brevo.com/v3/account",
-    {
-      method: "GET",
-      headers: {
-        "api-key": process.env.BREVO_API_KEY,
-        "accept": "application/json",
-      },
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-
-    throw new Error(
-      `Brevo configuration verification failed: ${errorText}`
-    );
+  if (!process.env.SMTP_HOST) {
+    throw new Error("SMTP_HOST is not configured.");
   }
+
+  await transporter.verify();
 
   return true;
 };
-
-// =====================================================
-// SEND EMAIL
-// =====================================================
 
 const sendEmail = async ({
   to,
@@ -52,106 +38,33 @@ const sendEmail = async ({
   html,
 }) => {
   if (!to) {
-    throw new Error(
-      "Email recipient is required."
-    );
+    throw new Error("Email recipient is required.");
   }
 
   if (!subject) {
-    throw new Error(
-      "Email subject is required."
-    );
+    throw new Error("Email subject is required.");
   }
 
-  if (!process.env.BREVO_API_KEY) {
-    throw new Error(
-      "BREVO_API_KEY is not configured."
-    );
-  }
-
-  if (!process.env.EMAIL_FROM) {
-    throw new Error(
-      "EMAIL_FROM is not configured."
-    );
-  }
-
-  const payload = {
-    sender: {
-      email: process.env.EMAIL_FROM,
-      name:
-        process.env.EMAIL_FROM_NAME ||
-        "EnjoMeal",
-    },
-
-    to: [
-      {
-        email: to,
-      },
-    ],
-
+  const mailOptions = {
+    from:
+      process.env.EMAIL_FROM ||
+      process.env.SMTP_USER,
+    to,
     subject,
-
-    textContent:
+    text:
       text ||
       "Please view this email in an HTML-compatible email client.",
-
-    ...(html
-      ? { htmlContent: html }
-      : {}),
+    ...(html ? { html } : {}),
   };
 
-  const response = await fetch(
-    "https://api.brevo.com/v3/smtp/email",
-    {
-      method: "POST",
-
-      headers: {
-        "api-key": process.env.BREVO_API_KEY,
-        "Content-Type": "application/json",
-        "accept": "application/json",
-      },
-
-      body: JSON.stringify(payload),
-    }
-  );
-
-  const responseText =
-    await response.text();
-
-  if (!response.ok) {
-    console.error(
-      "Brevo Email Error:",
-      responseText
-    );
-
-    throw new Error(
-      `Brevo email sending failed: ${responseText}`
-    );
-  }
-
-  let result;
-
-  try {
-    result = JSON.parse(responseText);
-  } catch {
-    result = {
-      messageId: null,
-      raw: responseText,
-    };
-  }
+  const info = await transporter.sendMail(mailOptions);
 
   console.log(
-    `Email sent successfully via Brevo: ${
-      result.messageId || "OK"
-    }`
+    `Email sent successfully: ${info.messageId}`
   );
 
-  return result;
+  return info;
 };
-
-// =====================================================
-// EXPORTS
-// =====================================================
 
 module.exports = {
   sendEmail,
