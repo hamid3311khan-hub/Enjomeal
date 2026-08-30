@@ -400,22 +400,27 @@ const discountAmount =
       );
 
       const response = await API.post(
-        "/orders/create",
-        {
-          restaurant:
-            cart.restaurant._id,
+  "/orders/create",
+  {
+    restaurant: cart.restaurant._id,
 
-          items,
+    items,
 
-          deliveryAddress: {
-            address,
-            city,
-            pincode,
-          },
+    deliveryAddress: {
+      address,
+      city,
+      pincode,
+    },
 
-          paymentMethod:
-            formData.paymentMethod,
-        },
+    paymentMethod:
+      formData.paymentMethod,
+
+    // Coupon code — backend will validate again
+    couponCode:
+      coupon?.code ||
+      couponCode ||
+      null,
+  },
         {
           headers: {
             Authorization: `Bearer ${token}`,
