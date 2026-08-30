@@ -5,6 +5,7 @@ const Cart = require("../models/cartModel");
 const Restaurant = require("../models/restaurant");
 const Delivery = require("../models/deliveryModel");
 const Notification = require("../models/notificationModel");
+const Coupon = require("../models/couponModel");
 
 // ===============================
 // CREATE ORDER
@@ -219,6 +220,80 @@ const totalAmount =
       deliveryFee -
       discountAmount
   );
+    // ===============================
+// COUPON VALIDATION
+// ===============================
+
+if (couponCode) {
+  const coupon = await Coupon.findOne({
+    code: couponCode.trim().toUpperCase(),
+  });
+
+  if (!coupon) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid coupon code",
+    });
+  }
+
+  if (!coupon.isActive) {
+    return res.status(400).json({
+      success: false,
+      message: "Coupon is inactive",
+    });
+  }
+
+  if (new Date(coupon.expiryDate) < new Date()) {
+    return res.status(400).json({
+      success: false,
+      message: "Coupon has expired",
+    });
+  }
+
+  if (
+    subtotal <
+    (coupon.minimumOrderAmount || 0)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message:
+        `Minimum order amount is ₹${coupon.minimumOrderAmount}`,
+    });
+  }
+
+  if (
+    coupon.usageLimit !== null &&
+    coupon.usedCount >= coupon.usageLimit
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Coupon usage limit reached",
+    });
+  }
+
+  if (coupon.discountType === "PERCENTAGE") {
+    discountAmount =
+      (subtotal * coupon.discountValue) / 100;
+  } else {
+    discountAmount = coupon.discountValue;
+  }
+
+  if (
+    coupon.maximumDiscount !== null &&
+    coupon.maximumDiscount > 0
+  ) {
+    discountAmount = Math.min(
+      discountAmount,
+      coupon.maximumDiscount
+    );
+  }
+
+  // Discount can never exceed subtotal
+  discountAmount = Math.min(
+    discountAmount,
+    subtotal
+  );
+}
 
 // ===============================
 // CREATE ORDER
