@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/api";
 
 function Checkout() {
   const navigate = useNavigate();
-
+  const location = useLocation();
   const [cart, setCart] = useState(null);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +71,28 @@ const [couponsLoading, setCouponsLoading] = useState(false);
       setCouponsLoading(false);
     }
   };
+  // =================================================
+// AUTO APPLY COUPON FROM COUPONS PAGE
+// =================================================
+
+useEffect(() => {
+  const codeFromPage = location.state?.couponCode;
+
+  if (!codeFromPage || !cart) {
+    return;
+  }
+
+  setCouponCode(codeFromPage);
+
+  applyCoupon(codeFromPage);
+
+  // Clear navigation state after applying
+  navigate("/checkout", {
+    replace: true,
+    state: {},
+  });
+}, [cart, location.state]);
+
   const fetchCart = async () => {
     try {
       const token = localStorage.getItem("enjoMealToken");
@@ -147,8 +169,10 @@ const [couponsLoading, setCouponsLoading] = useState(false);
 // APPLY COUPON
 // =====================================================
 
-const applyCoupon = async () => {
-  const code = couponCode.trim().toUpperCase();
+const applyCoupon = async (codeFromPage = null) => {
+  const code = (
+  codeFromPage || couponCode
+).trim().toUpperCase();
 
   if (!code) {
     setCouponError("Please enter a coupon code.");

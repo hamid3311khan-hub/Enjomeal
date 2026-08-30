@@ -57,6 +57,17 @@ function Header() {
               isActive ? "nav-link active" : "nav-link"
             }
           >
+
+	  <NavLink
+  to="/coupons"
+  className={({ isActive }) =>
+    isActive ? "nav-link active" : "nav-link"
+  }
+>
+  🎟️ Coupons
+</NavLink>
+
+
             Orders
           </NavLink>
 
@@ -151,6 +162,19 @@ function Header() {
                 : "mobile-nav-link"
             }
           >
+
+<NavLink
+  to="/coupons"
+  onClick={closeMenu}
+  className={({ isActive }) =>
+    isActive
+      ? "mobile-nav-link active"
+      : "mobile-nav-link"
+  }
+>
+  🎟️ Coupons
+</NavLink>
+
             📦 My Orders
           </NavLink>
 

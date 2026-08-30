@@ -23,6 +23,7 @@ import Notifications from "./pages/Notifications";
 import CustomerProfile from "./pages/CustomerProfile";
 
 import CustomerLayout from "./components/CustomerLayout";
+import Coupons from "./pages/Coupons";
 
 // =====================================================
 // LOGIN PAGE
@@ -195,6 +196,12 @@ function App() {
             path="/notifications"
             element={<Notifications />}
           />
+	 {/* COUPONS */}
+<Route
+  path="/coupons"
+  element={<Coupons />}
+/>
+
 
           {/* CUSTOMER PROFILE */}
 
