@@ -6,6 +6,7 @@ function Checkout() {
   const navigate = useNavigate();
 
   const [cart, setCart] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState("");
@@ -31,9 +32,20 @@ const [couponSuccess, setCouponSuccess] = useState("");
   // =====================================================
 
   useEffect(() => {
-    fetchCart();
+    fetchSettings();
+  fetchCart();
   }, []);
 
+  const fetchSettings = async () => {
+    try {
+      const response = await API.get("/settings");
+      if (response.data.success) {
+        setSettings(response.data.settings);
+      }
+    } catch (err) {
+      console.error("Settings Error:", err);
+    }
+  };
   const fetchCart = async () => {
     try {
       const token = localStorage.getItem("enjoMealToken");
