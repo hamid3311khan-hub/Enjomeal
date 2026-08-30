@@ -710,6 +710,143 @@ const applyCoupon = async () => {
               style={inputStyle}
             />
 
+            {/* =================================================
+    COUPON / OFFER
+================================================= */}
+
+<div
+  style={{
+    marginTop: "25px",
+    marginBottom: "25px",
+    padding: "16px",
+    border: "1px solid #eee",
+    borderRadius: "12px",
+    background: "#fffaf5",
+  }}
+>
+  <h2 style={{ marginTop: 0 }}>
+    🏷️ Apply Coupon
+  </h2>
+
+  <div
+    style={{
+      display: "flex",
+      gap: "10px",
+      flexWrap: "wrap",
+    }}
+  >
+    <input
+      type="text"
+      value={couponCode}
+      onChange={(event) => {
+        setCouponCode(
+          event.target.value.toUpperCase()
+        );
+        setCouponError("");
+        setCouponSuccess("");
+      }}
+      placeholder="Enter coupon code"
+      disabled={couponLoading || !!coupon}
+      style={{
+        ...inputStyle,
+        flex: "1 1 200px",
+        marginBottom: 0,
+      }}
+    />
+
+    {!coupon ? (
+      <button
+        type="button"
+        onClick={applyCoupon}
+        disabled={
+          couponLoading ||
+          !couponCode.trim()
+        }
+        style={{
+          padding: "12px 18px",
+          border: "none",
+          borderRadius: "9px",
+          background:
+            couponLoading ||
+            !couponCode.trim()
+              ? "#aaa"
+              : "#e85d04",
+          color: "#fff",
+          fontWeight: "700",
+          cursor:
+            couponLoading ||
+            !couponCode.trim()
+              ? "not-allowed"
+              : "pointer",
+        }}
+      >
+        {couponLoading
+          ? "Applying..."
+          : "Apply"}
+      </button>
+    ) : (
+      <button
+        type="button"
+        onClick={() => {
+          setCoupon(null);
+          setCouponCode("");
+          setCouponError("");
+          setCouponSuccess("");
+        }}
+        style={{
+          padding: "12px 18px",
+          border: "1px solid #ddd",
+          borderRadius: "9px",
+          background: "#fff",
+          fontWeight: "700",
+          cursor: "pointer",
+        }}
+      >
+        Remove
+      </button>
+    )}
+  </div>
+
+  {couponError && (
+    <p
+      style={{
+        margin: "10px 0 0",
+        color: "#c62828",
+        fontSize: "14px",
+        fontWeight: "600",
+      }}
+    >
+      {couponError}
+    </p>
+  )}
+
+  {couponSuccess && (
+    <p
+      style={{
+        margin: "10px 0 0",
+        color: "#2e7d32",
+        fontSize: "14px",
+        fontWeight: "600",
+      }}
+    >
+      ✓ {couponSuccess}
+    </p>
+  )}
+
+  {coupon && (
+    <p
+      style={{
+        margin: "10px 0 0",
+        color: "#2e7d32",
+        fontSize: "14px",
+        fontWeight: "600",
+      }}
+    >
+      🎉 Coupon applied successfully.
+    </p>
+  )}
+</div>
+
             {/* PAYMENT */}
 
             <h2
