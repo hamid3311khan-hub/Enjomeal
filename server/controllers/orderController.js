@@ -19,6 +19,7 @@ const createOrderController = async (req, res) => {
       items,
       deliveryAddress,
       paymentMethod,
+      couponcode
     } = req.body;
 
     // ===============================
