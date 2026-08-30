@@ -7,6 +7,7 @@ import Customers from "./pages/Customers";
 import Delivery from "./pages/Delivery";
 import Orders from "./pages/Orders";
 import Notifications from "./pages/Notifications";
+import Settings from "./pages/Settings";
 
 
 // =================================================
@@ -460,6 +461,9 @@ function App() {
       case "orders":
         return "Orders";
 
+    case "settings":
+        return "Settings";
+
       case "notifications":
         return "Notifications";
 
@@ -493,6 +497,9 @@ function App() {
 
       case "orders":
         return "Manage EnjoMeal orders";
+
+    case "settings":
+        return "Manage platform settings";
 
       case "notifications":
         return "Manage platform notifications";
@@ -528,6 +535,9 @@ function App() {
       case "orders":
         return <Orders />;
       
+
+    case "settings":
+      return <Settings />;
 
       case "notifications":
         return (
@@ -775,6 +785,20 @@ function App() {
 
         </button>
 
+
+    {/* SETTINGS */}
+    <button
+      style={{
+        ...styles.menuButton,
+        ...(activePage === "settings" ? styles.activeButton : {}),
+      }}
+      onClick={() => setActivePage("settings")}
+    >
+      <span style={styles.menuIcon}>
+        ⚙️
+      </span>
+      {!isMobile && "Settings"}
+    </button>
 
         {/* NOTIFICATIONS */}
 
