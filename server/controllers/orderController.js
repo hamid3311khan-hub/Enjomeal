@@ -295,6 +295,15 @@ if (couponCode) {
   );
 }
 
+    // ===============================
+// FINAL ORDER TOTAL
+// ===============================
+
+const totalAmount = Math.max(
+  0,
+  subtotal + deliveryFee - discountAmount
+);
+
 // ===============================
 // CREATE ORDER
 // ===============================
@@ -318,6 +327,8 @@ const order =
     paymentStatus: "PENDING",
     orderStatus: "PLACED",
   });
+
+
 
     // ===============================
     // CLEAR CART
