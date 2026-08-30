@@ -5,6 +5,7 @@ const Cart = require("../models/cartModel");
 const Restaurant = require("../models/restaurant");
 const Delivery = require("../models/deliveryModel");
 const Notification = require("../models/notificationModel");
+const Settings = require("../models/settingsModel");
 const Coupon = require("../models/couponModel");
 
 // ===============================
@@ -125,10 +126,20 @@ const orderItems = [];
 // ===============================
 // Abhi delivery-fee rule finalize nahi hua.
 // Isliye temporary 0 rakha gaya hai.
-const deliveryFee = 0;
+// ==========================================
+// PLATFORM SETTINGS
+// ==========================================
 
-// Coupon discount ka final server-side
-// validation next step mein hoga.
+const settings = await Settings.findOne();
+
+const deliveryFee = settings?.freeDelivery
+  ? 0
+  : Number(settings?.deliveryFee || 0);
+
+const platformCharge =
+  Number(settings?.platformCharge || 0);
+
+// Coupon discount
 const discountAmount = 0;
 
     for (const item of items) {
@@ -315,8 +326,13 @@ const order =
     items: orderItems,
 
     subtotal,
+
     deliveryFee,
+
     discountAmount,
+
+    platformCharge,
+
     totalAmount,
 
     deliveryAddress,
@@ -325,9 +341,9 @@ const order =
       selectedPaymentMethod,
 
     paymentStatus: "PENDING",
+
     orderStatus: "PLACED",
   });
-
 
 
     // ===============================
