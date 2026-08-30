@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const User = require("./models/user");
 const connectDB = require("./database/db");
 
+
 const requestIdMiddleware = require("./middleware/requestId.middleware");
 const {
   generalRateLimiter, } = require("./middleware/rateLimit.middleware");
@@ -295,6 +296,7 @@ const notificationRoutes = require("./routes/notification.routes");
 const addressRoutes = require("./routes/address.routes");
 const couponRoutes = require("./routes/coupon.routes");
 const favoriteRoutes = require("./routes/favorite.routes");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 // =====================================================
 // API ROUTES
@@ -319,6 +321,7 @@ app.use("/api/addresses", addressRoutes);
 app.use("/api/coupons", couponRoutes);
 
 app.use("/api/favorites", favoriteRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);
