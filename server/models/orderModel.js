@@ -183,6 +183,12 @@ const orderSchema = new mongoose.Schema(
       min: [0, "Discount cannot be negative"],
     },
 
+    platformCharge: {
+  type: Number,
+  default: 0,
+  min: [0, "Platform charge cannot be negative"],
+},
+
     totalAmount: {
       type: Number,
       required: [true, "Total amount is required"],
@@ -394,10 +400,15 @@ orderSchema.pre("validate", async function () {
     this.discountAmount || 0
   );
 
-  this.totalAmount =
-    this.subtotal +
-    deliveryFee -
-    discountAmount;
+  const platformCharge = Number(
+  this.platformCharge || 0
+);
+
+this.totalAmount =
+  this.subtotal +
+  deliveryFee +
+  platformCharge -
+  discountAmount;
 
   // Safety
   if (this.totalAmount < 0) {
