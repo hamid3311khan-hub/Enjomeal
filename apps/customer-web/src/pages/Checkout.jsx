@@ -1120,29 +1120,71 @@ const discountAmount =
             );
           })}
 
-          {/* TOTAL */}
+          {/* PRICE BREAKDOWN */}
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent:
-                "space-between",
-              alignItems: "center",
-              gap: "15px",
-              marginTop: "20px",
-              fontSize: "20px",
-            }}
-          >
-            <strong>Total</strong>
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "10px",
+  }}
+>
+  <span>Items Total</span>
+  <span>₹{subtotal.toFixed(2)}</span>
+</div>
 
-            <strong
-              style={{
-                color: "#e85d04",
-              }}
-            >
-              ₹{cart.totalAmount}
-            </strong>
-          </div>
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "10px",
+  }}
+>
+  <span>Coupon Discount</span>
+
+  <span
+    style={{
+      color: "#16a34a",
+      fontWeight: "600",
+    }}
+  >
+    - ₹{discountAmount.toFixed(2)}
+  </span>
+</div>
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "12px",
+  }}
+>
+  <span>Delivery Fee</span>
+  <span>₹0.00</span>
+</div>
+
+<hr
+  style={{
+    border: "none",
+    borderTop: "1px solid #ddd",
+    margin: "12px 0",
+  }}
+/>
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: "18px",
+    fontWeight: "700",
+  }}
+>
+  <span>Total</span>
+
+  <span>
+    ₹{(subtotal - discountAmount).toFixed(2)}
+  </span>
+</div>
 
           {/* SECURITY NOTE */}
 
