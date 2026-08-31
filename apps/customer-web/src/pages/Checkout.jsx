@@ -918,11 +918,7 @@ const finalTotal = Math.max(
 
         <button
           type="button"
-          onClick={() => {
-            setCouponCode(item.code);
-            setCouponError("");
-            setCouponSuccess("");
-          }}
+          onClick={() => applyCoupon(item.code)}
           style={{
             marginTop: "8px",
             padding: "8px 14px",
@@ -974,7 +970,7 @@ const finalTotal = Math.max(
     {!coupon ? (
       <button
         type="button"
-        onClick={applyCoupon}
+        onClick={() => applyCoupon()}
         disabled={
           couponLoading ||
           !couponCode.trim()
