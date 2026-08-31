@@ -9,15 +9,17 @@ const {
   applyCouponController,
   getAvailableCouponsController,
 } = require("../controllers/couponController");
+
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
 const router = express.Router();
 
-// ===============================
+// =====================================================
 // CREATE COUPON
 // ADMIN ONLY
-// ===============================
+// =====================================================
+
 router.post(
   "/create",
   authMiddleware,
@@ -25,10 +27,11 @@ router.post(
   createCouponController
 );
 
-// ===============================
+// =====================================================
 // GET ALL COUPONS
 // ADMIN ONLY
-// ===============================
+// =====================================================
+
 router.get(
   "/all",
   authMiddleware,
@@ -36,43 +39,14 @@ router.get(
   getAllCouponsController
 );
 
-// ===============================
-// GET SINGLE COUPON
-// ADMIN ONLY
-// ===============================
-router.get(
-  "/:couponId",
-  authMiddleware,
-  roleMiddleware("admin"),
-  getSingleCouponController
-);
-
-// ===============================
-// UPDATE COUPON
-// ADMIN ONLY
-// ===============================
-router.put(
-  "/:couponId",
-  authMiddleware,
-  roleMiddleware("admin"),
-  updateCouponController
-);
-
-// ===============================
-// DELETE COUPON
-// ADMIN ONLY
-// ===============================
-router.delete(
-  "/:couponId",
-  authMiddleware,
-  roleMiddleware("admin"),
-  deleteCouponController
-);
-
-// =====================================
+// =====================================================
 // GET ACTIVE COUPONS
 // CUSTOMER ONLY
-// =====================================
+//
+// IMPORTANT:
+// This route MUST come before "/:couponId"
+// Otherwise Express can treat "active" as couponId.
+// =====================================================
 
 router.get(
   "/active",
@@ -81,16 +55,58 @@ router.get(
   getAvailableCouponsController
 );
 
-
-// ===============================
+// =====================================================
 // APPLY / VALIDATE COUPON
 // CUSTOMER ONLY
-// ===============================
+// =====================================================
+
 router.post(
   "/apply",
   authMiddleware,
   roleMiddleware("customer"),
   applyCouponController
 );
+
+// =====================================================
+// GET SINGLE COUPON
+// ADMIN ONLY
+//
+// Keep this dynamic route AFTER all fixed routes.
+// =====================================================
+
+router.get(
+  "/:couponId",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSingleCouponController
+);
+
+// =====================================================
+// UPDATE COUPON
+// ADMIN ONLY
+// =====================================================
+
+router.put(
+  "/:couponId",
+  authMiddleware,
+  roleMiddleware("admin"),
+  updateCouponController
+);
+
+// =====================================================
+// DELETE COUPON
+// ADMIN ONLY
+// =====================================================
+
+router.delete(
+  "/:couponId",
+  authMiddleware,
+  roleMiddleware("admin"),
+  deleteCouponController
+);
+
+// =====================================================
+// EXPORT ROUTER
+// =====================================================
 
 module.exports = router;
