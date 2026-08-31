@@ -286,6 +286,21 @@ function RestaurantList() {
 
           </div>
 
+	  <button
+  type="button"
+  className="hero-coupon-card"
+  onClick={() => navigate("/coupons")}
+>
+  <span className="hero-coupon-icon">🎟️</span>
+
+  <span className="hero-coupon-text">
+    <strong>Special Offers</strong>
+    <small>Save more on your next order</small>
+  </span>
+
+  <span className="hero-coupon-arrow">→</span>
+</button>
+
           <div className="hero-food-icon">
             🍽️
           </div>
