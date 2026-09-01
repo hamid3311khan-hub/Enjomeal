@@ -23,6 +23,7 @@ import Notifications from "./pages/Notifications";
 import CustomerProfile from "./pages/CustomerProfile";
 
 import CustomerLayout from "./components/CustomerLayout";
+import { connectSocket, disconnectSocket } from "./socket";
 import Coupons from "./pages/Coupons";
 
 // =====================================================
@@ -77,6 +78,17 @@ function CustomerProtectedLayout() {
 // =====================================================
 
 function App() {
+	useEffect(() => {
+  const token = localStorage.getItem("enjoMealToken");
+
+  if (token) {
+    connectSocket();
+  }
+
+  return () => {
+    disconnectSocket();
+  };
+}, []);
   return (
     <BrowserRouter>
       <Routes>
