@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 import {
   BrowserRouter,
   Routes,
@@ -21,10 +23,14 @@ import OrderDetails from "./pages/OrderDetails";
 import MyOrders from "./pages/MyOrders";
 import Notifications from "./pages/Notifications";
 import CustomerProfile from "./pages/CustomerProfile";
+import Coupons from "./pages/Coupons";
 
 import CustomerLayout from "./components/CustomerLayout";
-import { connectSocket, disconnectSocket } from "./socket";
-import Coupons from "./pages/Coupons";
+
+import {
+  connectSocket,
+  disconnectSocket,
+} from "./socket";
 
 // =====================================================
 // LOGIN PAGE
@@ -47,7 +53,9 @@ function LoginPage() {
 // =====================================================
 
 function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("enjoMealToken");
+  const token = localStorage.getItem(
+    "enjoMealToken"
+  );
 
   if (!token) {
     return (
@@ -62,7 +70,7 @@ function ProtectedRoute({ children }) {
 }
 
 // =====================================================
-// CUSTOMER LAYOUT ROUTE
+// CUSTOMER PROTECTED LAYOUT
 // =====================================================
 
 function CustomerProtectedLayout() {
@@ -78,29 +86,32 @@ function CustomerProtectedLayout() {
 // =====================================================
 
 function App() {
-	useEffect(() => {
-  const token = localStorage.getItem("enjoMealToken");
+  useEffect(() => {
+    const token = localStorage.getItem(
+      "enjoMealToken"
+    );
 
-  if (token) {
-    connectSocket();
-  }
+    if (token) {
+      connectSocket();
+    }
 
-  return () => {
-    disconnectSocket();
-  };
-}, []);
+    return () => {
+      disconnectSocket();
+    };
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* =================================================
-            ROOT
-           ================================================= */}
+        {/* ROOT */}
 
         <Route
           path="/"
           element={
-            localStorage.getItem("enjoMealToken") ? (
+            localStorage.getItem(
+              "enjoMealToken"
+            ) ? (
               <Navigate
                 to="/restaurants"
                 replace
@@ -114,28 +125,21 @@ function App() {
           }
         />
 
-        {/* =================================================
-            LOGIN
-           ================================================= */}
+        {/* LOGIN */}
 
         <Route
           path="/login"
           element={<LoginPage />}
         />
 
-        {/* =================================================
-            CUSTOMER REGISTER
-           ================================================= */}
+        {/* REGISTER */}
 
         <Route
           path="/register"
           element={<CustomerRegister />}
         />
 
-        {/* =================================================
-            PASSWORD RESET
-            PUBLIC ROUTES
-           ================================================= */}
+        {/* PASSWORD RESET */}
 
         <Route
           path="/forgot-password"
@@ -152,70 +156,53 @@ function App() {
           element={<ResetPassword />}
         />
 
-        {/* =================================================
-            PROTECTED CUSTOMER AREA
-           ================================================= */}
+        {/* PROTECTED CUSTOMER AREA */}
 
         <Route
-          element={<CustomerProtectedLayout />}
+          element={
+            <CustomerProtectedLayout />
+          }
         >
-
-          {/* RESTAURANT LIST */}
 
           <Route
             path="/restaurants"
             element={<RestaurantList />}
           />
 
-          {/* RESTAURANT MENU */}
-
           <Route
             path="/restaurants/:restaurantId"
             element={<RestaurantDetails />}
           />
-
-          {/* CART */}
 
           <Route
             path="/cart"
             element={<Cart />}
           />
 
-          {/* CHECKOUT */}
-
           <Route
             path="/checkout"
             element={<Checkout />}
           />
-
-          {/* ORDER DETAILS */}
 
           <Route
             path="/orders/:orderId"
             element={<OrderDetails />}
           />
 
-          {/* MY ORDERS */}
-
           <Route
             path="/my-orders"
             element={<MyOrders />}
           />
 
-          {/* NOTIFICATIONS */}
-
           <Route
             path="/notifications"
             element={<Notifications />}
           />
-	 {/* COUPONS */}
-<Route
-  path="/coupons"
-  element={<Coupons />}
-/>
 
-
-          {/* CUSTOMER PROFILE */}
+          <Route
+            path="/coupons"
+            element={<Coupons />}
+          />
 
           <Route
             path="/profile"
@@ -224,9 +211,7 @@ function App() {
 
         </Route>
 
-        {/* =================================================
-            UNKNOWN ROUTE
-           ================================================= */}
+        {/* UNKNOWN ROUTE */}
 
         <Route
           path="*"
