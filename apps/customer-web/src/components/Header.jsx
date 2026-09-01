@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "./Header.css";
-function Header() {
+
+function Header({ unreadCount = 0 }) {
   const navigate = useNavigate();
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   const user = JSON.parse(
@@ -34,6 +36,7 @@ function Header() {
           onClick={() => navigate("/restaurants")}
         >
           <span className="brand-icon">🍴</span>
+
           <span className="brand-text">
             Enjo<span>Meal</span>
           </span>
@@ -45,7 +48,9 @@ function Header() {
           <NavLink
             to="/restaurants"
             className={({ isActive }) =>
-              isActive ? "nav-link active" : "nav-link"
+              isActive
+                ? "nav-link active"
+                : "nav-link"
             }
           >
             Restaurants
@@ -54,30 +59,44 @@ function Header() {
           <NavLink
             to="/my-orders"
             className={({ isActive }) =>
-              isActive ? "nav-link active" : "nav-link"
+              isActive
+                ? "nav-link active"
+                : "nav-link"
             }
           >
-
-	  <NavLink
-  to="/coupons"
-  className={({ isActive }) =>
-    isActive ? "nav-link active" : "nav-link"
-  }
->
-  🎟️ Coupons
-</NavLink>
-
-
             Orders
+          </NavLink>
+
+          <NavLink
+            to="/coupons"
+            className={({ isActive }) =>
+              isActive
+                ? "nav-link active"
+                : "nav-link"
+            }
+          >
+            🎟️ Coupons
           </NavLink>
 
           <NavLink
             to="/notifications"
             className={({ isActive }) =>
-              isActive ? "nav-link active" : "nav-link"
+              isActive
+                ? "nav-icon-link active"
+                : "nav-icon-link"
             }
           >
-            🔔
+            <span className="notification-icon">
+              🔔
+
+              {unreadCount > 0 && (
+                <span className="notification-badge">
+                  {unreadCount > 99
+                    ? "99+"
+                    : unreadCount}
+                </span>
+              )}
+            </span>
           </NavLink>
 
           <NavLink
@@ -114,7 +133,9 @@ function Header() {
         {/* MOBILE MENU BUTTON */}
         <button
           className="mobile-menu-button"
-          onClick={() => setMenuOpen(!menuOpen)}
+          onClick={() =>
+            setMenuOpen(!menuOpen)
+          }
           aria-label="Toggle menu"
         >
           {menuOpen ? "✕" : "☰"}
@@ -162,24 +183,11 @@ function Header() {
                 : "mobile-nav-link"
             }
           >
-
-<NavLink
-  to="/coupons"
-  onClick={closeMenu}
-  className={({ isActive }) =>
-    isActive
-      ? "mobile-nav-link active"
-      : "mobile-nav-link"
-  }
->
-  🎟️ Coupons
-</NavLink>
-
             📦 My Orders
           </NavLink>
 
           <NavLink
-            to="/cart"
+            to="/coupons"
             onClick={closeMenu}
             className={({ isActive }) =>
               isActive
@@ -187,7 +195,7 @@ function Header() {
                 : "mobile-nav-link"
             }
           >
-            🛒 Cart
+            🎟️ Coupons
           </NavLink>
 
           <NavLink
@@ -200,6 +208,26 @@ function Header() {
             }
           >
             🔔 Notifications
+
+            {unreadCount > 0 && (
+              <span className="mobile-notification-badge">
+                {unreadCount > 99
+                  ? "99+"
+                  : unreadCount}
+              </span>
+            )}
+          </NavLink>
+
+          <NavLink
+            to="/cart"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              isActive
+                ? "mobile-nav-link active"
+                : "mobile-nav-link"
+            }
+          >
+            🛒 Cart
           </NavLink>
 
           <NavLink
