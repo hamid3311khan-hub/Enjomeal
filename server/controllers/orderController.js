@@ -986,14 +986,29 @@ const notificationData =
   statusNotificationMap[orderStatus];
 
 if (notificationData) {
-  await Notification.create({
-    user: order.user,
-    title: notificationData.title,
-    message: notificationData.message,
-    type: notificationData.type,
-    order: order._id,
-    isRead: false,
-  });
+  const notification =
+    await Notification.create({
+      user: order.user,
+      title: notificationData.title,
+      message: notificationData.message,
+      type: notificationData.type,
+      order: order._id,
+      isRead: false,
+    });
+
+  const io = req.app.get("io");
+
+  if (io) {
+    io.to(
+      `user:${order.user.toString()}`
+    ).emit(
+      "notification:new",
+      {
+        success: true,
+        notification,
+      }
+    );
+  }
 }
 
 // ===============================
