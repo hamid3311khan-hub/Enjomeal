@@ -117,12 +117,28 @@ function Notifications() {
         }
       );
 
-      if (!newNotification.isRead) {
-        setUnreadCount(
-          (currentCount) =>
-            currentCount + 1
-        );
-      }
+      // Play notification sound
+try {
+  const notificationSound = new Audio(
+    "/notification.mp3"
+  );
+
+  notificationSound.volume = 0.8;
+
+  notificationSound.play().catch(
+    (error) => {
+      console.log(
+        "Notification sound could not play:",
+        error.message
+      );
+    }
+  );
+} catch (error) {
+  console.error(
+    "Notification sound error:",
+    error
+  );
+}
     };
 
     // ===================================================
