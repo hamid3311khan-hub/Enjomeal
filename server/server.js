@@ -19,6 +19,7 @@ const authMiddleware = require("./middleware/auth.middleware");
 const roleMiddleware = require("./middleware/role.middleware");
 const deliveryRoutes = require("./routes/delivery.routes");
 const adminRoutes = require("./routes/adminRoutes");
+const ticketRoutes = require("./routes/ticket.routes");
 
 // =====================================================
 // APP CONFIG
@@ -325,6 +326,7 @@ app.use("/api/settings", settingsRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);
+app.use("/api/tickets", ticketRoutes);
 
 // =====================================================
 // HOME
