@@ -31,6 +31,7 @@ import {
   connectSocket,
   disconnectSocket,
 } from "./socket";
+import WriteReview from "./pages/WriteReview";
 
 // =====================================================
 // LOGIN PAGE
@@ -188,6 +189,11 @@ function App() {
             path="/orders/:orderId"
             element={<OrderDetails />}
           />
+
+          <Route
+  path="/write-review/:orderId"
+  element={<WriteReview />}
+/>
 
           <Route
             path="/my-orders"
