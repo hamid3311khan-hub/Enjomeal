@@ -14,6 +14,9 @@ function RestaurantDetails() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] =
     useState("All");
+  const [reviews, setReviews] = useState([]);
+const [reviewsLoading, setReviewsLoading] =
+  useState(true);
 
   // =====================================================
   // FETCH RESTAURANT + MENU
@@ -71,11 +74,39 @@ function RestaurantDetails() {
     }
   };
 
-  useEffect(() => {
-    if (restaurantId) {
-      fetchRestaurantDetails();
+  const fetchRestaurantReviews = async () => {
+  try {
+    setReviewsLoading(true);
+
+    const response = await API.get(
+      `/reviews/restaurant/${restaurantId}`
+    );
+
+    if (response.data.success) {
+      setReviews(
+        response.data.reviews || []
+      );
+    } else {
+      setReviews([]);
     }
-  }, [restaurantId]);
+  } catch (err) {
+    console.error(
+      "Restaurant Reviews API Error:",
+      err
+    );
+
+    setReviews([]);
+  } finally {
+    setReviewsLoading(false);
+  }
+};
+
+  useEffect(() => {
+  if (restaurantId) {
+    fetchRestaurantDetails();
+    fetchRestaurantReviews();
+  }
+}, [restaurantId]);
 
   // =====================================================
   // CATEGORIES
@@ -426,6 +457,111 @@ function RestaurantDetails() {
           )}
 
         </div>
+
+        {/* =================================================
+    CUSTOMER REVIEWS
+================================================= */}
+
+<section className="restaurant-reviews-section">
+
+  <div className="reviews-heading">
+    <div>
+      <p className="menu-section-label">
+        Customer feedback
+      </p>
+
+      <h2>
+        ⭐ Reviews & Ratings
+      </h2>
+    </div>
+
+    <div className="reviews-summary">
+      <strong>
+        ⭐ {rating.toFixed(1)}
+      </strong>
+
+      <span>
+        {reviews.length}{" "}
+        {reviews.length === 1
+          ? "Review"
+          : "Reviews"}
+      </span>
+    </div>
+  </div>
+
+  {reviewsLoading ? (
+    <div className="reviews-empty">
+      Loading reviews...
+    </div>
+  ) : reviews.length === 0 ? (
+    <div className="reviews-empty">
+      <div className="menu-empty-icon">
+        ⭐
+      </div>
+
+      <h3>
+        No reviews yet
+      </h3>
+
+      <p>
+        Be the first customer to share
+        your experience.
+      </p>
+    </div>
+  ) : (
+    <div className="reviews-list">
+
+      {reviews.map((review) => (
+        <article
+          key={review._id}
+          className="review-card"
+        >
+
+          <div className="review-card-header">
+
+            <div>
+              <strong>
+                {review.user?.name ||
+                  "Customer"}
+              </strong>
+
+              <p>
+                {review.createdAt
+                  ? new Date(
+                      review.createdAt
+                    ).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      }
+                    )
+                  : ""}
+              </p>
+            </div>
+
+            <span className="review-rating">
+              ⭐ {Number(
+                review.rating
+              ).toFixed(1)}
+            </span>
+
+          </div>
+
+          {review.comment && (
+            <p className="review-comment">
+              {review.comment}
+            </p>
+          )}
+
+        </article>
+      ))}
+
+    </div>
+  )}
+
+</section>
 
         {/* =================================================
             CATEGORY FILTERS
