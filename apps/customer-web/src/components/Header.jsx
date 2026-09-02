@@ -86,6 +86,26 @@ function Header({ unreadCount = 0 }) {
                 : "nav-icon-link"
             }
           >
+            <NavLink
+  to="/support"
+  className={({ isActive }) =>
+    isActive
+      ? "nav-link active"
+      : "nav-link"
+  }
+>
+  🛟 Support
+</NavLink>
+            <NavLink
+  to="/my-tickets"
+  className={({ isActive }) =>
+    isActive
+      ? "nav-link active"
+      : "nav-link"
+  }
+>
+  🎫 My Tickets
+</NavLink>
             <span className="notification-icon">
               🔔
 
@@ -207,6 +227,29 @@ function Header({ unreadCount = 0 }) {
                 : "mobile-nav-link"
             }
           >
+            <NavLink
+  to="/support"
+  onClick={closeMenu}
+  className={({ isActive }) =>
+    isActive
+      ? "mobile-nav-link active"
+      : "mobile-nav-link"
+  }
+>
+  🛟 Support
+</NavLink>
+
+<NavLink
+  to="/my-tickets"
+  onClick={closeMenu}
+  className={({ isActive }) =>
+    isActive
+      ? "mobile-nav-link active"
+      : "mobile-nav-link"
+  }
+>
+  🎫 My Tickets
+</NavLink>
             🔔 Notifications
 
             {unreadCount > 0 && (
