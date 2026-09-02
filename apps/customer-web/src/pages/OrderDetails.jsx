@@ -698,6 +698,65 @@ function OrderDetails() {
         </div>
 
         {/* ====================================
+    RATE & REVIEW
+==================================== */}
+
+{order.orderStatus === "DELIVERED" && (
+  <div
+    style={{
+      padding: "25px",
+      background: "#fff",
+      border: "1px solid #ddd",
+      borderRadius: "12px",
+      marginBottom: "20px",
+    }}
+  >
+    <h2
+      style={{
+        marginTop: 0,
+      }}
+    >
+      ⭐ Rate Your Experience
+    </h2>
+
+    <p
+      style={{
+        color: "#666",
+        marginBottom: "18px",
+      }}
+    >
+      Share your experience with{" "}
+      <strong>
+        {order.restaurant?.name ||
+          "this restaurant"}
+      </strong>
+      .
+    </p>
+
+    <button
+      onClick={() =>
+        navigate(
+          `/write-review/${order._id}`
+        )
+      }
+      style={{
+        width: "100%",
+        padding: "14px",
+        border: "none",
+        borderRadius: "8px",
+        background: "#e85d04",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "16px",
+        cursor: "pointer",
+      }}
+    >
+      ⭐ Rate & Review
+    </button>
+  </div>
+)}
+
+        {/* ====================================
             ITEMS
         ==================================== */}
 
