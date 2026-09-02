@@ -32,6 +32,8 @@ import {
   disconnectSocket,
 } from "./socket";
 import WriteReview from "./pages/WriteReview";
+import Support from "./pages/Support";
+import MyTickets from "./pages/MyTickets";
 
 // =====================================================
 // LOGIN PAGE
@@ -204,6 +206,16 @@ function App() {
             path="/notifications"
             element={<Notifications />}
           />
+
+          <Route
+  path="/support"
+  element={<Support />}
+/>
+
+<Route
+  path="/my-tickets"
+  element={<MyTickets />}
+/>
 
           <Route
             path="/coupons"
