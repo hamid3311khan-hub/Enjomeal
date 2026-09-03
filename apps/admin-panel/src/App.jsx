@@ -9,6 +9,7 @@ import Orders from "./pages/Orders";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Coupons from "./pages/Coupons";
+import Tickets from "./pages/Tickets";
 
 
 // =================================================
@@ -470,6 +471,8 @@ function App() {
 
       case "notifications":
         return "Notifications";
+	  case "tickets":
+        return "Support Tickets";
 
       default:
         return "Admin Dashboard";
@@ -508,8 +511,11 @@ function App() {
       case "notifications":
         return "Manage platform notifications";
 
+	  case "tickets":
+        return "Manage customer support tickets";
+			
+
       default:
-        return "Manage EnjoMeal platform";
 
     }
 
@@ -550,6 +556,9 @@ function App() {
           <Notifications
           />
         );
+
+	  case "tickets":
+        return <Tickets />;
 
       default:
         return <Dashboard />;
@@ -849,6 +858,31 @@ function App() {
             "Notifications"}
 
         </button>
+
+		{/* SUPPORT TICKETS */}
+
+<button
+  style={{
+    ...styles.menuButton,
+
+    ...(activePage === "tickets"
+      ? styles.activeButton
+      : {}),
+  }}
+
+  onClick={() =>
+    setActivePage("tickets")
+  }
+>
+  <span
+    style={styles.menuIcon}
+  >
+    🎫
+  </span>
+
+  {!isMobile &&
+    "Support Tickets"}
+</button>
 
 
         {/* LOGOUT */}
