@@ -1,22 +1,25 @@
 const express = require("express");
 
+const router = express.Router();
+
 const {
   createTicketController,
   getMyTicketsController,
   getSingleTicketController,
   getAllTicketsController,
   updateTicketController,
-} = require("../controllers/ticketController");
+} = require("../controllers/ticket.controller");
 
-const authMiddleware = require("../middleware/auth.middleware");
-const roleMiddleware = require("../middleware/role.middleware");
+const authMiddleware =
+  require("../middlewares/auth.middleware");
 
-const router = express.Router();
+const roleMiddleware =
+  require("../middlewares/role.middleware");
 
-// ==============================================
-// CUSTOMER: CREATE SUPPORT TICKET
-// POST /api/tickets/create
-// ==============================================
+
+// ========================================
+// CUSTOMER - CREATE TICKET
+// ========================================
 
 router.post(
   "/create",
@@ -25,10 +28,10 @@ router.post(
   createTicketController
 );
 
-// ==============================================
-// CUSTOMER: GET MY TICKETS
-// GET /api/tickets/my-tickets
-// ==============================================
+
+// ========================================
+// CUSTOMER - GET MY TICKETS
+// ========================================
 
 router.get(
   "/my-tickets",
@@ -37,22 +40,11 @@ router.get(
   getMyTicketsController
 );
 
-// ==============================================
-// CUSTOMER: GET SINGLE TICKET
-// GET /api/tickets/:ticketId
-// ==============================================
 
-router.get(
-  "/:ticketId",
-  authMiddleware,
-  roleMiddleware("customer"),
-  getSingleTicketController
-);
-
-// ==============================================
-// ADMIN: GET ALL TICKETS
-// GET /api/tickets/admin/all
-// ==============================================
+// ========================================
+// ADMIN - GET ALL TICKETS
+// IMPORTANT: STATIC ROUTE BEFORE /:ticketId
+// ========================================
 
 router.get(
   "/admin/all",
@@ -61,10 +53,10 @@ router.get(
   getAllTicketsController
 );
 
-// ==============================================
-// ADMIN: UPDATE / REPLY TO TICKET
-// PUT /api/tickets/admin/:ticketId
-// ==============================================
+
+// ========================================
+// ADMIN - UPDATE TICKET STATUS
+// ========================================
 
 router.put(
   "/admin/:ticketId",
@@ -72,5 +64,19 @@ router.put(
   roleMiddleware("admin"),
   updateTicketController
 );
+
+
+// ========================================
+// CUSTOMER - GET SINGLE TICKET
+// ALWAYS KEEP DYNAMIC ROUTE LAST
+// ========================================
+
+router.get(
+  "/:ticketId",
+  authMiddleware,
+  roleMiddleware("customer"),
+  getSingleTicketController
+);
+
 
 module.exports = router;
