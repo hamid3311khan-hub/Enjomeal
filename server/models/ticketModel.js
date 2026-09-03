@@ -7,6 +7,18 @@ const mongoose = require("mongoose");
 const ticketSchema = new mongoose.Schema(
   {
     // =================================================
+    // TICKET NUMBER
+    // Example: ENJO-2026-000001
+    // =================================================
+
+    ticketNumber: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
+    // =================================================
     // CUSTOMER
     // =================================================
 
@@ -91,6 +103,72 @@ const ticketSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  }
+);
+
+// =====================================================
+// AUTO GENERATE TICKET NUMBER
+// =====================================================
+
+ticketSchema.pre(
+  "save",
+  async function (next) {
+    try {
+      // Existing ticket number already present
+      if (this.ticketNumber) {
+        return next();
+      }
+
+      const year = new Date().getFullYear();
+
+      const Ticket =
+        mongoose.models.Ticket;
+
+      const lastTicket =
+        await Ticket.findOne({
+          ticketNumber: {
+            $regex: `^ENJO-${year}-`,
+          },
+        })
+          .sort({
+            createdAt: -1,
+          })
+          .select("ticketNumber");
+
+      let nextNumber = 1;
+
+      if (
+        lastTicket &&
+        lastTicket.ticketNumber
+      ) {
+        const parts =
+          lastTicket.ticketNumber.split("-");
+
+        const lastNumber =
+          parseInt(
+            parts[2],
+            10
+          );
+
+        if (!isNaN(lastNumber)) {
+          nextNumber =
+            lastNumber + 1;
+        }
+      }
+
+      const serial =
+        String(nextNumber).padStart(
+          6,
+          "0"
+        );
+
+      this.ticketNumber =
+        `ENJO-${year}-${serial}`;
+
+      return next();
+    } catch (error) {
+      return next(error);
+    }
   }
 );
 
