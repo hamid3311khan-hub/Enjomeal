@@ -253,9 +253,28 @@ function MyTickets() {
                 }}
               >
                 <div>
+                  {/* TICKET NUMBER */}
+
+                  <div
+                    style={{
+                      display: "inline-block",
+                      background: "#f1f1f1",
+                      color: "#e85d04",
+                      padding: "6px 10px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    🎫 Ticket ID:{" "}
+                    {ticket.ticketNumber ||
+                      "Not Available"}
+                  </div>
+
                   <h3
                     style={{
-                      marginTop: 0,
+                      marginTop: "5px",
                     }}
                   >
                     {ticket.subject}
@@ -278,7 +297,37 @@ function MyTickets() {
                       ticket.createdAt
                     ).toLocaleString()}
                   </small>
+
+                  {/* ADMIN REPLY */}
+
+                  {ticket.adminReply && (
+                    <div
+                      style={{
+                        marginTop: "15px",
+                        padding: "15px",
+                        background:
+                          "#f8f9fa",
+                        borderRadius:
+                          "10px",
+                      }}
+                    >
+                      <strong>
+                        Admin Reply:
+                      </strong>
+
+                      <p
+                        style={{
+                          marginBottom: 0,
+                          marginTop: "8px",
+                        }}
+                      >
+                        {ticket.adminReply}
+                      </p>
+                    </div>
+                  )}
                 </div>
+
+                {/* STATUS */}
 
                 <span
                   style={{
