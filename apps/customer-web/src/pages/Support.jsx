@@ -81,9 +81,9 @@ function Support() {
       }
 
       alert(
-        data.message ||
-          "Support ticket created successfully"
-      );
+  `${data.message || "Support ticket created successfully"}\n\n` +
+  `Your Ticket Number: ${data.ticketNumber}`
+);
 
       setSubject("");
       setCategory("");
