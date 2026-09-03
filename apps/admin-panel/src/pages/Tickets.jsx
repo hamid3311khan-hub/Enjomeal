@@ -17,7 +17,7 @@ function Tickets() {
   const [updatingId, setUpdatingId] =
     useState(null);
 
-  const [replies, setReplies] =
+  const [replyValues, setReplyValues] =
     useState({});
 
   // ===============================
@@ -54,28 +54,24 @@ function Tickets() {
         );
       }
 
-      const fetchedTickets =
+      const ticketData =
         data.tickets || [];
 
-      setTickets(
-        fetchedTickets
-      );
+      setTickets(ticketData);
 
-      // Existing replies load
-      const replyData = {};
+      // Initialize reply values
+      const replies = {};
 
-      fetchedTickets.forEach(
-        (ticket) => {
-          replyData[ticket._id] =
-            ticket.adminReply || "";
-        }
-      );
+      ticketData.forEach((ticket) => {
+        replies[ticket._id] =
+          ticket.adminReply || "";
+      });
 
-      setReplies(replyData);
+      setReplyValues(replies);
 
     } catch (error) {
       console.error(
-        "Fetch tickets error:",
+        "Fetch Tickets Error:",
         error
       );
 
@@ -83,6 +79,7 @@ function Tickets() {
         error.message ||
           "Something went wrong"
       );
+
     } finally {
       setLoading(false);
     }
@@ -98,11 +95,10 @@ function Tickets() {
   // ===============================
 
   const updateTicket = async (
-    ticketId,
-    status
+    ticket
   ) => {
     try {
-      setUpdatingId(ticketId);
+      setUpdatingId(ticket._id);
 
       const token =
         localStorage.getItem(
@@ -110,10 +106,10 @@ function Tickets() {
         );
 
       const adminReply =
-        replies[ticketId] || "";
+        replyValues[ticket._id] || "";
 
       const response = await fetch(
-        `${API_URL}/api/tickets/admin/${ticketId}`,
+        `${API_URL}/api/tickets/admin/${ticket._id}`,
         {
           method: "PUT",
 
@@ -126,8 +122,11 @@ function Tickets() {
           },
 
           body: JSON.stringify({
-            status,
-            adminReply,
+            status:
+              ticket.status || "OPEN",
+
+            adminReply:
+              adminReply.trim(),
           }),
         }
       );
@@ -145,11 +144,21 @@ function Tickets() {
       setTickets(
         (currentTickets) =>
           currentTickets.map(
-            (ticket) =>
-              ticket._id === ticketId
+            (currentTicket) =>
+              currentTicket._id ===
+              ticket._id
                 ? data.ticket
-                : ticket
+                : currentTicket
           )
+      );
+
+      setReplyValues(
+        (currentReplies) => ({
+          ...currentReplies,
+
+          [ticket._id]:
+            data.ticket.adminReply || "",
+        })
       );
 
       alert(
@@ -157,31 +166,45 @@ function Tickets() {
       );
 
     } catch (error) {
+      console.error(
+        "Update Ticket Error:",
+        error
+      );
+
       alert(
         error.message ||
           "Failed to update ticket"
       );
+
     } finally {
       setUpdatingId(null);
     }
   };
 
   // ===============================
-  // REPLY CHANGE
+  // CHANGE STATUS LOCALLY
   // ===============================
 
-  const handleReplyChange = (
+  const changeStatus = (
     ticketId,
-    value
+    status
   ) => {
-    setReplies((currentReplies) => ({
-      ...currentReplies,
-      [ticketId]: value,
-    }));
+    setTickets(
+      (currentTickets) =>
+        currentTickets.map(
+          (ticket) =>
+            ticket._id === ticketId
+              ? {
+                  ...ticket,
+                  status,
+                }
+              : ticket
+        )
+    );
   };
 
   // ===============================
-  // STATUS COLOR
+  // STATUS STYLE
   // ===============================
 
   const getStatusStyle = (status) => {
@@ -304,19 +327,17 @@ function Tickets() {
             }}
           >
             Manage customer support
-            requests.
+            requests and replies.
           </p>
         </div>
 
         <button
           onClick={fetchTickets}
           style={{
-            padding:
-              "10px 18px",
+            padding: "10px 18px",
             border: "none",
             borderRadius: "8px",
-            background:
-              "#e85d04",
+            background: "#e85d04",
             color: "#fff",
             cursor: "pointer",
             fontWeight: "600",
@@ -354,11 +375,13 @@ function Tickets() {
               color: "#777",
             }}
           >
-            Customer support
-            requests will appear here.
+            Customer support requests
+            will appear here.
           </p>
         </div>
+
       ) : (
+
         <div
           style={{
             display: "grid",
@@ -366,6 +389,7 @@ function Tickets() {
           }}
         >
           {tickets.map((ticket) => (
+
             <div
               key={ticket._id}
               style={{
@@ -376,6 +400,7 @@ function Tickets() {
                   "0 4px 15px rgba(0,0,0,0.08)",
               }}
             >
+
               {/* TOP */}
 
               <div
@@ -403,21 +428,28 @@ function Tickets() {
                     style={{
                       display:
                         "inline-block",
+
                       padding:
                         "6px 12px",
+
                       borderRadius:
                         "20px",
+
                       fontSize:
                         "13px",
+
                       fontWeight:
                         "600",
+
                       ...getStatusStyle(
                         ticket.status
                       ),
                     }}
                   >
-                    {ticket.status ||
-                      "OPEN"}
+                    {(
+                      ticket.status ||
+                      "OPEN"
+                    ).replace("_", " ")}
                   </span>
                 </div>
 
@@ -449,8 +481,12 @@ function Tickets() {
                   style={{
                     fontFamily:
                       "monospace",
-                    fontWeight: "700",
-                    color: "#e85d04",
+
+                    fontWeight:
+                      "700",
+
+                    color:
+                      "#e85d04",
                   }}
                 >
                   {ticket.ticketNumber ||
@@ -500,7 +536,7 @@ function Tickets() {
                   "OTHER"}
               </div>
 
-              {/* MESSAGE */}
+              {/* CUSTOMER MESSAGE */}
 
               <div
                 style={{
@@ -533,52 +569,52 @@ function Tickets() {
                 }}
               >
                 <strong>
-                  Admin Reply:
+                  Admin Reply
                 </strong>
 
                 <textarea
                   value={
-                    replies[ticket._id] || ""
+                    replyValues[
+                      ticket._id
+                    ] || ""
                   }
                   onChange={(event) =>
-                    handleReplyChange(
-                      ticket._id,
-                      event.target.value
+                    setReplyValues(
+                      (
+                        currentReplies
+                      ) => ({
+                        ...currentReplies,
+
+                        [ticket._id]:
+                          event.target.value,
+                      })
                     )
                   }
+                  placeholder="Write a reply to the customer..."
+                  rows="5"
                   disabled={
                     updatingId ===
                     ticket._id
                   }
-                  placeholder="Write a reply to the customer..."
-                  rows="4"
                   style={{
                     width: "100%",
                     marginTop: "10px",
                     padding: "12px",
-                    borderRadius: "8px",
-                    border:
-                      "1px solid #ddd",
                     boxSizing:
                       "border-box",
-                    resize: "vertical",
+                    borderRadius:
+                      "10px",
+                    border:
+                      "1px solid #ddd",
+                    resize:
+                      "vertical",
+                    fontSize:
+                      "14px",
                   }}
                 />
-
-                {ticket.repliedBy && (
-                  <small
-                    style={{
-                      color: "#666",
-                    }}
-                  >
-                    Last replied by:{" "}
-                    {ticket.repliedBy.name ||
-                      "Admin"}
-                  </small>
-                )}
               </div>
 
-              {/* STATUS CONTROL */}
+              {/* STATUS */}
 
               <div
                 style={{
@@ -590,11 +626,11 @@ function Tickets() {
                 }}
               >
                 <strong>
-                  Update Status:
+                  Status:
                 </strong>
 
                 <select
-                  defaultValue={
+                  value={
                     ticket.status ||
                     "OPEN"
                   }
@@ -603,7 +639,7 @@ function Tickets() {
                     ticket._id
                   }
                   onChange={(event) =>
-                    updateTicket(
+                    changeStatus(
                       ticket._id,
                       event.target.value
                     )
@@ -611,12 +647,16 @@ function Tickets() {
                   style={{
                     padding:
                       "10px 14px",
+
                     borderRadius:
                       "8px",
+
                     border:
                       "1px solid #ddd",
+
                     cursor:
                       "pointer",
+
                     minWidth:
                       "180px",
                   }}
@@ -641,9 +681,7 @@ function Tickets() {
                 <button
                   onClick={() =>
                     updateTicket(
-                      ticket._id,
-                      ticket.status ||
-                        "OPEN"
+                      ticket
                     )
                   }
                   disabled={
@@ -653,24 +691,37 @@ function Tickets() {
                   style={{
                     padding:
                       "10px 18px",
+
                     border: "none",
+
                     borderRadius:
                       "8px",
+
                     background:
-                      "#e85d04",
+                      updatingId ===
+                      ticket._id
+                        ? "#ccc"
+                        : "#e85d04",
+
                     color: "#fff",
+
                     fontWeight:
-                      "600",
+                      "700",
+
                     cursor:
-                      "pointer",
+                      updatingId ===
+                      ticket._id
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                 >
                   {updatingId ===
                   ticket._id
                     ? "Updating..."
-                    : "Save Reply"}
+                    : "Save Update"}
                 </button>
               </div>
+
             </div>
           ))}
         </div>
