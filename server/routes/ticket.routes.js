@@ -16,9 +16,9 @@ const authMiddleware =
 const roleMiddleware =
   require("../middleware/role.middleware");
 
-
 // ========================================
 // CUSTOMER - CREATE TICKET
+// POST /api/tickets/create
 // ========================================
 
 router.post(
@@ -28,9 +28,9 @@ router.post(
   createTicketController
 );
 
-
 // ========================================
 // CUSTOMER - GET MY TICKETS
+// GET /api/tickets/my-tickets
 // ========================================
 
 router.get(
@@ -40,35 +40,37 @@ router.get(
   getMyTicketsController
 );
 
-
 // ========================================
 // ADMIN - GET ALL TICKETS
-// IMPORTANT: STATIC ROUTE BEFORE /:ticketId
+// GET /api/tickets/admin
 // ========================================
 
 router.get(
-  "/admin/all",
+  "/admin",
   authMiddleware,
   roleMiddleware("admin"),
   getAllTicketsController
 );
 
-
 // ========================================
-// ADMIN - UPDATE TICKET STATUS
+// ADMIN - UPDATE TICKET
+// PATCH /api/tickets/:ticketId/status
+//
+// Status and adminReply both can be sent.
 // ========================================
 
-router.put(
-  "/admin/:ticketId",
+router.patch(
+  "/:ticketId/status",
   authMiddleware,
   roleMiddleware("admin"),
   updateTicketController
 );
 
-
 // ========================================
 // CUSTOMER - GET SINGLE TICKET
-// ALWAYS KEEP DYNAMIC ROUTE LAST
+// GET /api/tickets/:ticketId
+//
+// DYNAMIC ROUTE ALWAYS LAST
 // ========================================
 
 router.get(
@@ -77,6 +79,5 @@ router.get(
   roleMiddleware("customer"),
   getSingleTicketController
 );
-
 
 module.exports = router;
