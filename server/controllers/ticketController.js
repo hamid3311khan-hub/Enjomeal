@@ -2,11 +2,38 @@ const mongoose = require("mongoose");
 const Ticket = require("../models/ticketModel");
 
 // =====================================================
+// GENERATE UNIQUE TICKET NUMBER
+// =====================================================
+
+const generateTicketNumber = () => {
+  const date = new Date();
+
+  const year = date.getFullYear();
+
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
+
+  const randomNumber = Math.floor(
+    100000 + Math.random() * 900000
+  );
+
+  return `ENJ-${year}${month}${day}-${randomNumber}`;
+};
+
+// =====================================================
 // CREATE SUPPORT TICKET
 // CUSTOMER ONLY
 // =====================================================
 
-const createTicketController = async (req, res) => {
+const createTicketController = async (
+  req,
+  res
+) => {
   try {
     const customerId = req.user.id;
 
@@ -16,7 +43,16 @@ const createTicketController = async (req, res) => {
       category,
     } = req.body;
 
-    if (!subject || !message) {
+    // ==========================================
+    // VALIDATION
+    // ==========================================
+
+    if (
+      !subject ||
+      !subject.trim() ||
+      !message ||
+      !message.trim()
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -24,11 +60,42 @@ const createTicketController = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // GENERATE UNIQUE TICKET NUMBER
+    // ==========================================
+
+    let ticketNumber;
+    let ticketExists = true;
+
+    while (ticketExists) {
+      ticketNumber =
+        generateTicketNumber();
+
+      const existingTicket =
+        await Ticket.findOne({
+          ticketNumber,
+        });
+
+      if (!existingTicket) {
+        ticketExists = false;
+      }
+    }
+
+    // ==========================================
+    // CREATE TICKET
+    // ==========================================
+
     const ticket = await Ticket.create({
       customer: customerId,
-      subject,
-      message,
-      category: category || "OTHER",
+
+      ticketNumber,
+
+      subject: subject.trim(),
+
+      message: message.trim(),
+
+      category:
+        category || "OTHER",
     });
 
     await ticket.populate(
@@ -38,10 +105,16 @@ const createTicketController = async (req, res) => {
 
     return res.status(201).json({
       success: true,
+
       message:
         "Support ticket created successfully",
+
+      ticketNumber:
+        ticket.ticketNumber,
+
       ticket,
     });
+
   } catch (error) {
     console.log(
       "Create Ticket Error:",
@@ -81,9 +154,13 @@ const getMyTicketsController =
 
       return res.status(200).json({
         success: true,
-        totalTickets: tickets.length,
+
+        totalTickets:
+          tickets.length,
+
         tickets,
       });
+
     } catch (error) {
       console.log(
         "Get My Tickets Error:",
@@ -101,13 +178,14 @@ const getMyTicketsController =
 
 // =====================================================
 // GET SINGLE TICKET
-// CUSTOMER
+// CUSTOMER ONLY
 // =====================================================
 
 const getSingleTicketController =
   async (req, res) => {
     try {
-      const { ticketId } = req.params;
+      const { ticketId } =
+        req.params;
 
       if (
         !mongoose.Types.ObjectId.isValid(
@@ -116,12 +194,15 @@ const getSingleTicketController =
       ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid ticket ID",
+          message:
+            "Invalid ticket ID",
         });
       }
 
       const ticket =
-        await Ticket.findById(ticketId)
+        await Ticket.findById(
+          ticketId
+        )
           .populate(
             "customer",
             "name email"
@@ -134,11 +215,15 @@ const getSingleTicketController =
       if (!ticket) {
         return res.status(404).json({
           success: false,
-          message: "Ticket not found",
+          message:
+            "Ticket not found",
         });
       }
 
-      // Customer can only see own ticket
+      // ==========================================
+      // CUSTOMER CAN ONLY VIEW OWN TICKET
+      // ==========================================
+
       if (
         ticket.customer._id.toString() !==
         req.user.id.toString()
@@ -154,6 +239,7 @@ const getSingleTicketController =
         success: true,
         ticket,
       });
+
     } catch (error) {
       console.log(
         "Get Ticket Error:",
@@ -193,9 +279,13 @@ const getAllTicketsController =
 
       return res.status(200).json({
         success: true,
-        totalTickets: tickets.length,
+
+        totalTickets:
+          tickets.length,
+
         tickets,
       });
+
     } catch (error) {
       console.log(
         "Get All Tickets Error:",
@@ -219,7 +309,8 @@ const getAllTicketsController =
 const updateTicketController =
   async (req, res) => {
     try {
-      const { ticketId } = req.params;
+      const { ticketId } =
+        req.params;
 
       const {
         status,
@@ -233,27 +324,41 @@ const updateTicketController =
       ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid ticket ID",
+          message:
+            "Invalid ticket ID",
         });
       }
 
       const ticket =
-        await Ticket.findById(ticketId);
+        await Ticket.findById(
+          ticketId
+        );
 
       if (!ticket) {
         return res.status(404).json({
           success: false,
-          message: "Ticket not found",
+          message:
+            "Ticket not found",
         });
       }
+
+      // ==========================================
+      // UPDATE STATUS
+      // ==========================================
 
       if (status !== undefined) {
         ticket.status = status;
       }
 
-      if (adminReply !== undefined) {
+      // ==========================================
+      // ADMIN REPLY
+      // ==========================================
+
+      if (
+        adminReply !== undefined
+      ) {
         ticket.adminReply =
-          adminReply;
+          adminReply.trim();
 
         ticket.repliedBy =
           req.user.id;
@@ -276,10 +381,13 @@ const updateTicketController =
 
       return res.status(200).json({
         success: true,
+
         message:
           "Ticket updated successfully",
+
         ticket,
       });
+
     } catch (error) {
       console.log(
         "Update Ticket Error:",
