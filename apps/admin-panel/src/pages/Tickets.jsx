@@ -392,6 +392,28 @@ function Tickets() {
                 </div>
               </div>
 
+              {/* TICKET NUMBER */}
+
+<div
+  style={{
+    marginTop: "15px",
+  }}
+>
+  <strong>
+    Ticket Number:
+  </strong>{" "}
+
+  <span
+    style={{
+      fontFamily: "monospace",
+      fontWeight: "700",
+      color: "#e85d04",
+    }}
+  >
+    {ticket.ticketNumber || "Not available"}
+  </span>
+</div>
+
               {/* CUSTOMER */}
 
               <div
