@@ -88,6 +88,21 @@ function MyTickets() {
   };
 
   // ==========================================
+  // FORMAT STATUS
+  // ==========================================
+
+  const formatStatus = (status) => {
+    if (!status) {
+      return "OPEN";
+    }
+
+    return status.replace(
+      /_/g,
+      " "
+    );
+  };
+
+  // ==========================================
   // LOADING
   // ==========================================
 
@@ -124,6 +139,15 @@ function MyTickets() {
 
         <button
           onClick={fetchTickets}
+          style={{
+            border: "none",
+            borderRadius: "8px",
+            padding: "10px 18px",
+            background: "#e85d04",
+            color: "#fff",
+            fontWeight: "700",
+            cursor: "pointer",
+          }}
         >
           Try Again
         </button>
@@ -144,7 +168,8 @@ function MyTickets() {
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent:
+            "space-between",
           alignItems: "center",
           marginBottom: "25px",
           gap: "15px",
@@ -166,26 +191,49 @@ function MyTickets() {
               marginBottom: 0,
             }}
           >
-            Track your support requests.
+            Track your support requests
+            and admin responses.
           </p>
         </div>
 
-        <button
-          onClick={() =>
-            navigate("/support")
-          }
+        <div
           style={{
-            border: "none",
-            borderRadius: "10px",
-            padding: "12px 18px",
-            background: "#e85d04",
-            color: "#fff",
-            fontWeight: "700",
-            cursor: "pointer",
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
           }}
         >
-          + Create Ticket
-        </button>
+          <button
+            onClick={fetchTickets}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: "10px",
+              padding: "12px 18px",
+              background: "#fff",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            🔄 Refresh
+          </button>
+
+          <button
+            onClick={() =>
+              navigate("/support")
+            }
+            style={{
+              border: "none",
+              borderRadius: "10px",
+              padding: "12px 18px",
+              background: "#e85d04",
+              color: "#fff",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            + Create Ticket
+          </button>
+        </div>
       </div>
 
       {/* EMPTY STATE */}
@@ -197,6 +245,8 @@ function MyTickets() {
             padding: "50px 20px",
             textAlign: "center",
             borderRadius: "16px",
+            boxShadow:
+              "0 4px 20px rgba(0,0,0,0.05)",
           }}
         >
           <div
@@ -211,15 +261,28 @@ function MyTickets() {
             No support tickets yet
           </h2>
 
-          <p>
-            Create a support ticket if you
-            need help.
+          <p
+            style={{
+              color: "#666",
+            }}
+          >
+            Create a support ticket
+            if you need help.
           </p>
 
           <button
             onClick={() =>
               navigate("/support")
             }
+            style={{
+              border: "none",
+              borderRadius: "10px",
+              padding: "12px 18px",
+              background: "#e85d04",
+              color: "#fff",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
           >
             Create Support Ticket
           </button>
@@ -252,79 +315,188 @@ function MyTickets() {
                   flexWrap: "wrap",
                 }}
               >
-                <div>
+                {/* TICKET CONTENT */}
+
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: "220px",
+                  }}
+                >
                   {/* TICKET NUMBER */}
 
                   <div
                     style={{
-                      display: "inline-block",
-                      background: "#f1f1f1",
-                      color: "#e85d04",
-                      padding: "6px 10px",
-                      borderRadius: "8px",
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      marginBottom: "10px",
+                      display:
+                        "inline-block",
+                      background:
+                        "#f1f1f1",
+                      color:
+                        "#e85d04",
+                      padding:
+                        "6px 10px",
+                      borderRadius:
+                        "8px",
+                      fontSize:
+                        "13px",
+                      fontWeight:
+                        "700",
+                      marginBottom:
+                        "10px",
                     }}
                   >
-                    🎫 Ticket ID:{" "}
+                    🎫 Ticket Number:{" "}
+
                     {ticket.ticketNumber ||
                       "Not Available"}
                   </div>
 
+                  {/* SUBJECT */}
+
                   <h3
                     style={{
-                      marginTop: "5px",
+                      margin:
+                        "5px 0 12px",
                     }}
                   >
                     {ticket.subject}
                   </h3>
 
-                  <p>
+                  {/* CATEGORY */}
+
+                  <p
+                    style={{
+                      margin:
+                        "8px 0",
+                    }}
+                  >
                     Category:{" "}
+
                     <strong>
-                      {ticket.category}
+                      {ticket.category ||
+                        "OTHER"}
                     </strong>
                   </p>
 
-                  <p>
-                    {ticket.message}
-                  </p>
+                  {/* CUSTOMER MESSAGE */}
 
-                  <small>
-                    Created:{" "}
-                    {new Date(
-                      ticket.createdAt
-                    ).toLocaleString()}
-                  </small>
+                  <div
+                    style={{
+                      marginTop:
+                        "15px",
+                      padding:
+                        "15px",
+                      background:
+                        "#f8f9fa",
+                      borderRadius:
+                        "10px",
+                    }}
+                  >
+                    <strong>
+                      Your Message
+                    </strong>
+
+                    <p
+                      style={{
+                        marginBottom: 0,
+                        marginTop: "8px",
+                        lineHeight: "1.6",
+                      }}
+                    >
+                      {ticket.message}
+                    </p>
+                  </div>
 
                   {/* ADMIN REPLY */}
 
                   {ticket.adminReply && (
                     <div
                       style={{
-                        marginTop: "15px",
-                        padding: "15px",
+                        marginTop:
+                          "15px",
+                        padding:
+                          "15px",
                         background:
-                          "#f8f9fa",
+                          "#e8f4ff",
                         borderRadius:
                           "10px",
+                        border:
+                          "1px solid #cfe2ff",
                       }}
                     >
                       <strong>
-                        Admin Reply:
+                        💬 Admin Reply
                       </strong>
 
                       <p
                         style={{
-                          marginBottom: 0,
-                          marginTop: "8px",
+                          margin:
+                            "8px 0 0",
+                          lineHeight:
+                            "1.6",
                         }}
                       >
                         {ticket.adminReply}
                       </p>
+
+                      {ticket.repliedAt && (
+                        <small
+                          style={{
+                            display:
+                              "block",
+                            marginTop:
+                              "10px",
+                            color:
+                              "#666",
+                          }}
+                        >
+                          Replied on:{" "}
+
+                          {new Date(
+                            ticket.repliedAt
+                          ).toLocaleString()}
+                        </small>
+                      )}
+
+                      {ticket.repliedBy?.name && (
+                        <small
+                          style={{
+                            display:
+                              "block",
+                            marginTop:
+                              "5px",
+                            color:
+                              "#666",
+                          }}
+                        >
+                          Support Team:{" "}
+
+                          {ticket.repliedBy.name}
+                        </small>
+                      )}
                     </div>
                   )}
+
+                  {/* CREATED DATE */}
+
+                  <small
+                    style={{
+                      display:
+                        "block",
+                      marginTop:
+                        "18px",
+                      color:
+                        "#777",
+                    }}
+                  >
+                    Created:{" "}
+
+                    {ticket.createdAt
+                      ? new Date(
+                          ticket.createdAt
+                        ).toLocaleString()
+                      : "Not Available"}
+                  </small>
                 </div>
 
                 {/* STATUS */}
@@ -334,16 +506,28 @@ function MyTickets() {
                     ...getStatusStyle(
                       ticket.status
                     ),
-                    padding: "7px 12px",
-                    borderRadius: "20px",
-                    height: "fit-content",
-                    fontSize: "12px",
-                    fontWeight: "700",
+
+                    padding:
+                      "7px 12px",
+
+                    borderRadius:
+                      "20px",
+
+                    height:
+                      "fit-content",
+
+                    fontSize:
+                      "12px",
+
+                    fontWeight:
+                      "700",
+
+                    whiteSpace:
+                      "nowrap",
                   }}
                 >
-                  {ticket.status.replace(
-                    "_",
-                    " "
+                  {formatStatus(
+                    ticket.status
                   )}
                 </span>
               </div>
