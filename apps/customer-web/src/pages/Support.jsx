@@ -1,5 +1,5 @@
-import { useState } from "react"; import { useNavigate } from 
-"react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Support() {
   const navigate = useNavigate();
@@ -8,26 +8,102 @@ function Support() {
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (e) => {
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000";
+
+  // ==========================================
+  // CREATE SUPPORT TICKET
+  // ==========================================
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setError("");
+
     if (!subject || !category || !message) {
-      alert("Please fill all required fields");
+      setError(
+        "Please fill all required fields"
+      );
       return;
     }
 
-    // Backend API integration next step
-    console.log({
-      subject,
-      category,
-      message,
-    });
+    try {
+      setLoading(true);
 
-    alert("Your support request is ready to submit");
+      const token =
+        localStorage.getItem(
+          "enjoMealToken"
+        );
 
-    setSubject("");
-    setCategory("");
-    setMessage("");
+      if (!token) {
+        setError(
+          "Please login again to submit a ticket"
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/tickets/create`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({
+            subject: subject.trim(),
+            category,
+            message: message.trim(),
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Failed to create support ticket"
+        );
+      }
+
+      alert(
+        data.message ||
+          "Support ticket created successfully"
+      );
+
+      setSubject("");
+      setCategory("");
+      setMessage("");
+
+      navigate("/my-tickets");
+
+    } catch (error) {
+      console.error(
+        "Create Ticket Error:",
+        error
+      );
+
+      setError(
+        error.message ||
+          "Unable to create support ticket"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -74,11 +150,12 @@ function Support() {
             marginBottom: "25px",
           }}
         >
-          Need help? Tell us about your issue and our
-          support team will assist you.
+          Need help? Tell us about your issue and
+          our support team will assist you.
         </p>
 
         <form onSubmit={handleSubmit}>
+
           <div
             style={{
               marginBottom: "18px",
@@ -101,6 +178,7 @@ function Support() {
                 setSubject(e.target.value)
               }
               placeholder="Enter issue subject"
+              disabled={loading}
               style={{
                 width: "100%",
                 padding: "13px",
@@ -132,6 +210,7 @@ function Support() {
               onChange={(e) =>
                 setCategory(e.target.value)
               }
+              disabled={loading}
               style={{
                 width: "100%",
                 padding: "13px",
@@ -194,6 +273,7 @@ function Support() {
               placeholder="Explain your problem in detail..."
               rows="6"
               maxLength="1000"
+              disabled={loading}
               style={{
                 width: "100%",
                 padding: "13px",
@@ -214,22 +294,43 @@ function Support() {
             </small>
           </div>
 
+          {error && (
+            <p
+              style={{
+                color: "#d32f2f",
+                marginBottom: "15px",
+              }}
+            >
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
+            disabled={loading}
             style={{
               width: "100%",
               padding: "15px",
               border: "none",
               borderRadius: "10px",
-              background: "#e85d04",
+              background:
+                loading
+                  ? "#ccc"
+                  : "#e85d04",
               color: "#fff",
               fontSize: "16px",
               fontWeight: "700",
-              cursor: "pointer",
+              cursor:
+                loading
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
-            Submit Support Ticket
+            {loading
+              ? "Submitting..."
+              : "Submit Support Ticket"}
           </button>
+
         </form>
 
         <div
@@ -240,44 +341,21 @@ function Support() {
             borderRadius: "10px",
           }}
         >
-          <strong>Already submitted a ticket?</strong>
-		<p
-  style={{
-    marginTop: "8px",
-    marginBottom: "0",
-  }}
->
-  Track your support requests and check their status.
-</p>
+          <strong>
+            Already submitted a ticket?
+          </strong>
 
-<button
-  type="button"
-  onClick={() =>
-    navigate("/my-tickets")
-  }
-  style={{
-    marginTop: "15px",
-    padding: "10px 18px",
-    border: "none",
-    borderRadius: "8px",
-    background: "#e85d04",
-    color: "#fff",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-  }}
->
-  My Tickets
-</button>	
-	
-          <br />
+          <p>
+            Track your support requests and
+            check their status.
+          </p>
 
           <button
+            type="button"
             onClick={() =>
               navigate("/my-tickets")
             }
             style={{
-              marginTop: "10px",
               border: "none",
               background: "transparent",
               color: "#e85d04",
