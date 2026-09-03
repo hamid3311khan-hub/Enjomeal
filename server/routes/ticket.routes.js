@@ -8,7 +8,7 @@ const {
   getSingleTicketController,
   getAllTicketsController,
   updateTicketController,
-} = require("../controllers/ticket.controller");
+} = require("../controllers/ticket.Controller");
 
 const authMiddleware =
   require("../middlewares/auth.middleware");
