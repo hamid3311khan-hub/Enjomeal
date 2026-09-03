@@ -11,10 +11,10 @@ const {
 } = require("../controllers/ticketController");
 
 const authMiddleware =
-  require("../middlewares/auth.middleware");
+  require("../middleware/auth.middleware");
 
 const roleMiddleware =
-  require("../middlewares/role.middleware");
+  require("../middleware/role.middleware");
 
 
 // ========================================
