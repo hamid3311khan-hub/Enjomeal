@@ -2,30 +2,6 @@ const mongoose = require("mongoose");
 const Ticket = require("../models/ticketModel");
 
 // =====================================================
-// GENERATE UNIQUE TICKET NUMBER
-// =====================================================
-
-const generateTicketNumber = () => {
-  const date = new Date();
-
-  const year = date.getFullYear();
-
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
-
-  const randomNumber = Math.floor(
-    100000 + Math.random() * 900000
-  );
-
-  return `ENJ-${year}${month}${day}-${randomNumber}`;
-};
-
-// =====================================================
 // CREATE SUPPORT TICKET
 // CUSTOMER ONLY
 // =====================================================
@@ -61,34 +37,13 @@ const createTicketController = async (
     }
 
     // ==========================================
-    // GENERATE UNIQUE TICKET NUMBER
-    // ==========================================
-
-    let ticketNumber;
-    let ticketExists = true;
-
-    while (ticketExists) {
-      ticketNumber =
-        generateTicketNumber();
-
-      const existingTicket =
-        await Ticket.findOne({
-          ticketNumber,
-        });
-
-      if (!existingTicket) {
-        ticketExists = false;
-      }
-    }
-
-    // ==========================================
     // CREATE TICKET
+    // Ticket number is automatically generated
+    // by ticketModel
     // ==========================================
 
     const ticket = await Ticket.create({
       customer: customerId,
-
-      ticketNumber,
 
       subject: subject.trim(),
 
@@ -125,10 +80,10 @@ const createTicketController = async (
       success: false,
       message:
         "Unable to create support ticket",
-      error: error.message,
     });
   }
 };
+
 
 // =====================================================
 // GET MY TICKETS
@@ -138,7 +93,8 @@ const createTicketController = async (
 const getMyTicketsController =
   async (req, res) => {
     try {
-      const customerId = req.user.id;
+      const customerId =
+        req.user.id;
 
       const tickets =
         await Ticket.find({
@@ -171,10 +127,10 @@ const getMyTicketsController =
         success: false,
         message:
           "Unable to fetch support tickets",
-        error: error.message,
       });
     }
   };
+
 
 // =====================================================
 // GET SINGLE TICKET
@@ -220,10 +176,6 @@ const getSingleTicketController =
         });
       }
 
-      // ==========================================
-      // CUSTOMER CAN ONLY VIEW OWN TICKET
-      // ==========================================
-
       if (
         ticket.customer._id.toString() !==
         req.user.id.toString()
@@ -250,10 +202,10 @@ const getSingleTicketController =
         success: false,
         message:
           "Unable to fetch support ticket",
-        error: error.message,
       });
     }
   };
+
 
 // =====================================================
 // GET ALL TICKETS
@@ -296,10 +248,10 @@ const getAllTicketsController =
         success: false,
         message:
           "Unable to fetch support tickets",
-        error: error.message,
       });
     }
   };
+
 
 // =====================================================
 // UPDATE TICKET
@@ -355,7 +307,8 @@ const updateTicketController =
       // ==========================================
 
       if (
-        adminReply !== undefined
+        adminReply !== undefined &&
+        adminReply.trim()
       ) {
         ticket.adminReply =
           adminReply.trim();
@@ -398,10 +351,10 @@ const updateTicketController =
         success: false,
         message:
           "Unable to update support ticket",
-        error: error.message,
       });
     }
   };
+
 
 // =====================================================
 // EXPORT
