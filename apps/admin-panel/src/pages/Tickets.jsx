@@ -17,6 +17,9 @@ function Tickets() {
   const [updatingId, setUpdatingId] =
     useState(null);
 
+  const [replies, setReplies] =
+    useState({});
+
   // ===============================
   // GET ALL SUPPORT TICKETS
   // ===============================
@@ -32,7 +35,7 @@ function Tickets() {
         );
 
       const response = await fetch(
-        `${API_URL}/api/tickets/admin`,
+        `${API_URL}/api/tickets/admin/all`,
         {
           headers: {
             Authorization:
@@ -51,9 +54,25 @@ function Tickets() {
         );
       }
 
+      const fetchedTickets =
+        data.tickets || [];
+
       setTickets(
-        data.tickets || data.data || []
+        fetchedTickets
       );
+
+      // Existing replies load
+      const replyData = {};
+
+      fetchedTickets.forEach(
+        (ticket) => {
+          replyData[ticket._id] =
+            ticket.adminReply || "";
+        }
+      );
+
+      setReplies(replyData);
+
     } catch (error) {
       console.error(
         "Fetch tickets error:",
@@ -74,10 +93,11 @@ function Tickets() {
   }, []);
 
   // ===============================
-  // UPDATE TICKET STATUS
+  // UPDATE TICKET
+  // STATUS + ADMIN REPLY
   // ===============================
 
-  const updateStatus = async (
+  const updateTicket = async (
     ticketId,
     status
   ) => {
@@ -89,10 +109,13 @@ function Tickets() {
           "enjoMealToken"
         );
 
+      const adminReply =
+        replies[ticketId] || "";
+
       const response = await fetch(
-        `${API_URL}/api/tickets/${ticketId}/status`,
+        `${API_URL}/api/tickets/admin/${ticketId}`,
         {
-          method: "PATCH",
+          method: "PUT",
 
           headers: {
             "Content-Type":
@@ -104,6 +127,7 @@ function Tickets() {
 
           body: JSON.stringify({
             status,
+            adminReply,
           }),
         }
       );
@@ -118,16 +142,20 @@ function Tickets() {
         );
       }
 
-      setTickets((currentTickets) =>
-        currentTickets.map((ticket) =>
-          ticket._id === ticketId
-            ? {
-                ...ticket,
-                status,
-              }
-            : ticket
-        )
+      setTickets(
+        (currentTickets) =>
+          currentTickets.map(
+            (ticket) =>
+              ticket._id === ticketId
+                ? data.ticket
+                : ticket
+          )
       );
+
+      alert(
+        "Ticket updated successfully"
+      );
+
     } catch (error) {
       alert(
         error.message ||
@@ -136,6 +164,20 @@ function Tickets() {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  // ===============================
+  // REPLY CHANGE
+  // ===============================
+
+  const handleReplyChange = (
+    ticketId,
+    value
+  ) => {
+    setReplies((currentReplies) => ({
+      ...currentReplies,
+      [ticketId]: value,
+    }));
   };
 
   // ===============================
@@ -394,25 +436,27 @@ function Tickets() {
 
               {/* TICKET NUMBER */}
 
-<div
-  style={{
-    marginTop: "15px",
-  }}
->
-  <strong>
-    Ticket Number:
-  </strong>{" "}
+              <div
+                style={{
+                  marginTop: "15px",
+                }}
+              >
+                <strong>
+                  Ticket Number:
+                </strong>{" "}
 
-  <span
-    style={{
-      fontFamily: "monospace",
-      fontWeight: "700",
-      color: "#e85d04",
-    }}
-  >
-    {ticket.ticketNumber || "Not available"}
-  </span>
-</div>
+                <span
+                  style={{
+                    fontFamily:
+                      "monospace",
+                    fontWeight: "700",
+                    color: "#e85d04",
+                  }}
+                >
+                  {ticket.ticketNumber ||
+                    "Not available"}
+                </span>
+              </div>
 
               {/* CUSTOMER */}
 
@@ -425,8 +469,7 @@ function Tickets() {
                   Customer:
                 </strong>{" "}
 
-                {ticket.user?.name ||
-                  ticket.customer?.name ||
+                {ticket.customer?.name ||
                   "Unknown"}
 
                 <br />
@@ -437,9 +480,7 @@ function Tickets() {
                     fontSize: "14px",
                   }}
                 >
-                  {ticket.user?.email ||
-                    ticket.customer
-                      ?.email ||
+                  {ticket.customer?.email ||
                     ""}
                 </span>
               </div>
@@ -484,6 +525,59 @@ function Tickets() {
                 </p>
               </div>
 
+              {/* ADMIN REPLY */}
+
+              <div
+                style={{
+                  marginTop: "20px",
+                }}
+              >
+                <strong>
+                  Admin Reply:
+                </strong>
+
+                <textarea
+                  value={
+                    replies[ticket._id] || ""
+                  }
+                  onChange={(event) =>
+                    handleReplyChange(
+                      ticket._id,
+                      event.target.value
+                    )
+                  }
+                  disabled={
+                    updatingId ===
+                    ticket._id
+                  }
+                  placeholder="Write a reply to the customer..."
+                  rows="4"
+                  style={{
+                    width: "100%",
+                    marginTop: "10px",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border:
+                      "1px solid #ddd",
+                    boxSizing:
+                      "border-box",
+                    resize: "vertical",
+                  }}
+                />
+
+                {ticket.repliedBy && (
+                  <small
+                    style={{
+                      color: "#666",
+                    }}
+                  >
+                    Last replied by:{" "}
+                    {ticket.repliedBy.name ||
+                      "Admin"}
+                  </small>
+                )}
+              </div>
+
               {/* STATUS CONTROL */}
 
               <div
@@ -500,7 +594,7 @@ function Tickets() {
                 </strong>
 
                 <select
-                  value={
+                  defaultValue={
                     ticket.status ||
                     "OPEN"
                   }
@@ -509,7 +603,7 @@ function Tickets() {
                     ticket._id
                   }
                   onChange={(event) =>
-                    updateStatus(
+                    updateTicket(
                       ticket._id,
                       event.target.value
                     )
@@ -544,16 +638,38 @@ function Tickets() {
                   </option>
                 </select>
 
-                {updatingId ===
-                  ticket._id && (
-                  <span
-                    style={{
-                      color: "#666",
-                    }}
-                  >
-                    Updating...
-                  </span>
-                )}
+                <button
+                  onClick={() =>
+                    updateTicket(
+                      ticket._id,
+                      ticket.status ||
+                        "OPEN"
+                    )
+                  }
+                  disabled={
+                    updatingId ===
+                    ticket._id
+                  }
+                  style={{
+                    padding:
+                      "10px 18px",
+                    border: "none",
+                    borderRadius:
+                      "8px",
+                    background:
+                      "#e85d04",
+                    color: "#fff",
+                    fontWeight:
+                      "600",
+                    cursor:
+                      "pointer",
+                  }}
+                >
+                  {updatingId ===
+                  ticket._id
+                    ? "Updating..."
+                    : "Save Reply"}
+                </button>
               </div>
             </div>
           ))}
