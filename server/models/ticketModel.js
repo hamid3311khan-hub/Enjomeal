@@ -119,19 +119,13 @@ ticketSchema.pre(
         return next();
       }
 
-      const Ticket =
-        mongoose.model("Ticket");
-
-      const count =
-        await Ticket.countDocuments();
-
       const random =
         Math.floor(
           1000 + Math.random() * 9000
         );
 
       this.ticketNumber =
-        `ENJO-${Date.now()}-${count + 1}-${random}`;
+        `ENJO-${Date.now()}-${random}`;
 
       next();
     } catch (error) {
@@ -144,10 +138,9 @@ ticketSchema.pre(
 // EXPORT MODEL
 // =====================================================
 
-const Ticket =
-  mongoose.model(
-    "Ticket",
-    ticketSchema
-  );
+const Ticket = mongoose.model(
+  "Ticket",
+  ticketSchema
+);
 
 module.exports = Ticket;
