@@ -6,30 +6,18 @@ const mongoose = require("mongoose");
 
 const ticketSchema = new mongoose.Schema(
   {
-    // ==========================================
-    // CUSTOMER
-    // ==========================================
-
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
-    // ==========================================
-    // TICKET NUMBER
-    // ==========================================
-
     ticketNumber: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       trim: true,
     },
-
-    // ==========================================
-    // SUBJECT
-    // ==========================================
 
     subject: {
       type: String,
@@ -38,20 +26,12 @@ const ticketSchema = new mongoose.Schema(
       maxlength: 200,
     },
 
-    // ==========================================
-    // MESSAGE
-    // ==========================================
-
     message: {
       type: String,
       required: true,
       trim: true,
       maxlength: 1000,
     },
-
-    // ==========================================
-    // CATEGORY
-    // ==========================================
 
     category: {
       type: String,
@@ -66,24 +46,11 @@ const ticketSchema = new mongoose.Schema(
       default: "OTHER",
     },
 
-    // ==========================================
-    // STATUS
-    // ==========================================
-
     status: {
       type: String,
-      enum: [
-        "OPEN",
-        "IN_PROGRESS",
-        "RESOLVED",
-        "CLOSED",
-      ],
+      enum: ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"],
       default: "OPEN",
     },
-
-    // ==========================================
-    // ADMIN REPLY
-    // ==========================================
 
     adminReply: {
       type: String,
@@ -111,36 +78,18 @@ const ticketSchema = new mongoose.Schema(
 // AUTO GENERATE TICKET NUMBER
 // =====================================================
 
-ticketSchema.pre(
-  "validate",
-  async function (next) {
-    try {
-      if (this.ticketNumber) {
-        return next();
-      }
-
-      const random =
-        Math.floor(
-          1000 + Math.random() * 9000
-        );
-
-      this.ticketNumber =
-        `ENJO-${Date.now()}-${random}`;
-
-      next();
-    } catch (error) {
-      next(error);
-    }
+ticketSchema.pre("validate", function (next) {
+  if (!this.ticketNumber) {
+    const random = Math.floor(1000 + Math.random() * 9000);
+    this.ticketNumber = `ENJO-${Date.now()}-${random}`;
   }
-);
+  next();
+});
 
 // =====================================================
 // EXPORT MODEL
 // =====================================================
 
-const Ticket = mongoose.model(
-  "Ticket",
-  ticketSchema
-);
+const Ticket = mongoose.model("Ticket", ticketSchema);
 
 module.exports = Ticket;
