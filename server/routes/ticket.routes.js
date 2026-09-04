@@ -8,18 +8,24 @@ const {
   getSingleTicketController,
   getAllTicketsController,
   updateTicketController,
-} = require("../controllers/ticketController");
+} = require(
+  "../controllers/ticketController"
+);
 
 const authMiddleware =
-  require("../middleware/auth.middleware");
+  require(
+    "../middleware/auth.middleware"
+  );
 
 const roleMiddleware =
-  require("../middleware/role.middleware");
+  require(
+    "../middleware/role.middleware"
+  );
 
-// ========================================
+// =====================================================
 // CUSTOMER - CREATE TICKET
 // POST /api/tickets/create
-// ========================================
+// =====================================================
 
 router.post(
   "/create",
@@ -28,10 +34,10 @@ router.post(
   createTicketController
 );
 
-// ========================================
+// =====================================================
 // CUSTOMER - GET MY TICKETS
 // GET /api/tickets/my-tickets
-// ========================================
+// =====================================================
 
 router.get(
   "/my-tickets",
@@ -40,10 +46,10 @@ router.get(
   getMyTicketsController
 );
 
-// ========================================
+// =====================================================
 // ADMIN - GET ALL TICKETS
 // GET /api/tickets/admin
-// ========================================
+// =====================================================
 
 router.get(
   "/admin",
@@ -52,12 +58,10 @@ router.get(
   getAllTicketsController
 );
 
-// ========================================
+// =====================================================
 // ADMIN - UPDATE TICKET
 // PATCH /api/tickets/:ticketId/status
-//
-// Status and adminReply both can be sent.
-// ========================================
+// =====================================================
 
 router.patch(
   "/:ticketId/status",
@@ -66,12 +70,11 @@ router.patch(
   updateTicketController
 );
 
-// ========================================
+// =====================================================
 // CUSTOMER - GET SINGLE TICKET
 // GET /api/tickets/:ticketId
-//
-// DYNAMIC ROUTE ALWAYS LAST
-// ========================================
+// DYNAMIC ROUTE MUST BE LAST
+// =====================================================
 
 router.get(
   "/:ticketId",
