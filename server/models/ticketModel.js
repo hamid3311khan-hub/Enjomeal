@@ -56,7 +56,7 @@ const ticketSchema = new mongoose.Schema(
     category: {
       type: String,
       enum: [
-        "ORDER",
+        "ORDER ISSUE",
         "PAYMENT",
         "DELIVERY",
         "REFUND",
