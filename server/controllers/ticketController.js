@@ -1,89 +1,78 @@
 const mongoose = require("mongoose");
-const Ticket = require("../models/ticketModel");
+
+const Ticket = require(
+  "../models/ticketModel"
+);
 
 // =====================================================
 // CREATE SUPPORT TICKET
 // CUSTOMER ONLY
 // =====================================================
 
-const createTicketController = async (
-  req,
-  res
-) => {
-  try {
-    const customerId = req.user.id;
+const createTicketController =
+  async (req, res) => {
+    try {
+      const customerId = req.user.id;
 
-    const {
-      subject,
-      message,
-      category,
-    } = req.body;
+      const {
+        subject,
+        message,
+        category,
+      } = req.body;
 
-    // ==========================================
-    // VALIDATION
-    // ==========================================
+      if (
+        !subject ||
+        !subject.trim() ||
+        !message ||
+        !message.trim()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Subject and message are required",
+        });
+      }
 
-    if (
-      !subject ||
-      !subject.trim() ||
-      !message ||
-      !message.trim()
-    ) {
-      return res.status(400).json({
-        success: false,
+      const ticket = await Ticket.create({
+        customer: customerId,
+
+        subject: subject.trim(),
+
+        message: message.trim(),
+
+        category: category || "OTHER",
+      });
+
+      await ticket.populate(
+        "customer",
+        "name email"
+      );
+
+      return res.status(201).json({
+        success: true,
+
         message:
-          "Subject and message are required",
+          "Support ticket created successfully",
+
+        ticketNumber:
+          ticket.ticketNumber,
+
+        ticket,
+      });
+    } catch (error) {
+      console.error(
+        "Create Ticket Error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+
+        message:
+          "Unable to create support ticket",
       });
     }
-
-    // ==========================================
-    // CREATE TICKET
-    // Ticket number is automatically generated
-    // by ticketModel
-    // ==========================================
-
-    const ticket = await Ticket.create({
-      customer: customerId,
-
-      subject: subject.trim(),
-
-      message: message.trim(),
-
-      category:
-        category || "OTHER",
-    });
-
-    await ticket.populate(
-      "customer",
-      "name email"
-    );
-
-    return res.status(201).json({
-      success: true,
-
-      message:
-        "Support ticket created successfully",
-
-      ticketNumber:
-        ticket.ticketNumber,
-
-      ticket,
-    });
-
-  } catch (error) {
-    console.log(
-      "Create Ticket Error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to create support ticket",
-    });
-  }
-};
-
+  };
 
 // =====================================================
 // GET MY TICKETS
@@ -93,8 +82,7 @@ const createTicketController = async (
 const getMyTicketsController =
   async (req, res) => {
     try {
-      const customerId =
-        req.user.id;
+      const customerId = req.user.id;
 
       const tickets =
         await Ticket.find({
@@ -116,21 +104,20 @@ const getMyTicketsController =
 
         tickets,
       });
-
     } catch (error) {
-      console.log(
+      console.error(
         "Get My Tickets Error:",
         error
       );
 
       return res.status(500).json({
         success: false,
+
         message:
           "Unable to fetch support tickets",
       });
     }
   };
-
 
 // =====================================================
 // GET SINGLE TICKET
@@ -140,8 +127,7 @@ const getMyTicketsController =
 const getSingleTicketController =
   async (req, res) => {
     try {
-      const { ticketId } =
-        req.params;
+      const { ticketId } = req.params;
 
       if (
         !mongoose.Types.ObjectId.isValid(
@@ -156,9 +142,10 @@ const getSingleTicketController =
       }
 
       const ticket =
-        await Ticket.findById(
-          ticketId
-        )
+        await Ticket.findOne({
+          _id: ticketId,
+          customer: req.user.id,
+        })
           .populate(
             "customer",
             "name email"
@@ -176,36 +163,24 @@ const getSingleTicketController =
         });
       }
 
-      if (
-        ticket.customer._id.toString() !==
-        req.user.id.toString()
-      ) {
-        return res.status(403).json({
-          success: false,
-          message:
-            "You can access only your own tickets",
-        });
-      }
-
       return res.status(200).json({
         success: true,
         ticket,
       });
-
     } catch (error) {
-      console.log(
+      console.error(
         "Get Ticket Error:",
         error
       );
 
       return res.status(500).json({
         success: false,
+
         message:
           "Unable to fetch support ticket",
       });
     }
   };
-
 
 // =====================================================
 // GET ALL TICKETS
@@ -237,21 +212,20 @@ const getAllTicketsController =
 
         tickets,
       });
-
     } catch (error) {
-      console.log(
+      console.error(
         "Get All Tickets Error:",
         error
       );
 
       return res.status(500).json({
         success: false,
+
         message:
           "Unable to fetch support tickets",
       });
     }
   };
-
 
 // =====================================================
 // UPDATE TICKET
@@ -261,8 +235,7 @@ const getAllTicketsController =
 const updateTicketController =
   async (req, res) => {
     try {
-      const { ticketId } =
-        req.params;
+      const { ticketId } = req.params;
 
       const {
         status,
@@ -282,9 +255,7 @@ const updateTicketController =
       }
 
       const ticket =
-        await Ticket.findById(
-          ticketId
-        );
+        await Ticket.findById(ticketId);
 
       if (!ticket) {
         return res.status(404).json({
@@ -294,20 +265,30 @@ const updateTicketController =
         });
       }
 
-      // ==========================================
-      // UPDATE STATUS
-      // ==========================================
-
       if (status !== undefined) {
+        const allowedStatuses = [
+          "OPEN",
+          "IN_PROGRESS",
+          "RESOLVED",
+          "CLOSED",
+        ];
+
+        if (
+          !allowedStatuses.includes(status)
+        ) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Invalid ticket status",
+          });
+        }
+
         ticket.status = status;
       }
 
-      // ==========================================
-      // ADMIN REPLY
-      // ==========================================
-
       if (
         adminReply !== undefined &&
+        typeof adminReply === "string" &&
         adminReply.trim()
       ) {
         ticket.adminReply =
@@ -340,21 +321,20 @@ const updateTicketController =
 
         ticket,
       });
-
     } catch (error) {
-      console.log(
+      console.error(
         "Update Ticket Error:",
         error
       );
 
       return res.status(500).json({
         success: false,
+
         message:
           "Unable to update support ticket",
       });
     }
   };
-
 
 // =====================================================
 // EXPORT
