@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import API from "../api/api.js";
+
 function Support() {
   const navigate = useNavigate();
 
@@ -13,10 +15,6 @@ function Support() {
 
   const [error, setError] =
     useState("");
-
-  const API_URL =
-    import.meta.env.VITE_API_URL ||
-    "http://localhost:5000";
 
   // ==========================================
   // CREATE SUPPORT TICKET
@@ -37,53 +35,26 @@ function Support() {
     try {
       setLoading(true);
 
-      const token =
-        localStorage.getItem(
-          "enjoMealToken"
-        );
-
-      if (!token) {
-        setError(
-          "Please login again to submit a ticket"
-        );
-        return;
-      }
-
-      const response = await fetch(
-        `${API_URL}/api/tickets/create`,
+      const response = await API.post(
+        "/tickets/create",
         {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-            subject: subject.trim(),
-            category,
-            message: message.trim(),
-          }),
+          subject: subject.trim(),
+          category,
+          message: message.trim(),
         }
       );
 
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Failed to create support ticket"
-        );
-      }
+      const data = response.data;
 
       alert(
-  `${data.message || "Support ticket created successfully"}\n\n` +
-  `Your Ticket Number: ${data.ticketNumber}`
-);
+        `${
+          data.message ||
+          "Support ticket created successfully"
+        }\n\n` +
+        `Your Ticket Number: ${
+          data.ticketNumber
+        }`
+      );
 
       setSubject("");
       setCategory("");
@@ -94,11 +65,12 @@ function Support() {
     } catch (error) {
       console.error(
         "Create Ticket Error:",
-        error
+        error.response?.data || error
       );
 
       setError(
-        error.message ||
+        error.response?.data?.message ||
+          error.message ||
           "Unable to create support ticket"
       );
     } finally {
