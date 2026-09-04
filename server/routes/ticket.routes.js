@@ -52,7 +52,7 @@ router.get(
 // =====================================================
 
 router.get(
-  "/admin",
+  "/admin/all",
   authMiddleware,
   roleMiddleware("admin"),
   getAllTicketsController
