@@ -1,7 +1,11 @@
 import axios from "axios";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://enjomeal-api.onrender.com/api";
+
 const API = axios.create({
-  baseURL: "https://enjomeal-api.onrender.com/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -10,10 +14,14 @@ const API = axios.create({
 // Automatically attach login token
 API.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("enjoMealToken");
+    const token =
+      localStorage.getItem("enjoMealToken");
+
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization =
+        `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -25,13 +33,26 @@ API.interceptors.response.use(
 
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("enjoMealToken");
-      localStorage.removeItem("enjoMealUser");
+      localStorage.removeItem(
+        "enjoMealToken"
+      );
 
-      // current page ko save karke login pe bhejo
-      if (window.location.pathname !== "/login") {
-        const currentPath = window.location.pathname + window.location.search;
-        window.location.href = `/login?from=${encodeURIComponent(currentPath)}`;
+      localStorage.removeItem(
+        "enjoMealUser"
+      );
+
+      if (
+        window.location.pathname !==
+        "/login"
+      ) {
+        const currentPath =
+          window.location.pathname +
+          window.location.search;
+
+        window.location.href =
+          `/login?from=${encodeURIComponent(
+            currentPath
+          )}`;
       }
     }
 
