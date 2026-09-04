@@ -196,7 +196,7 @@ function Support() {
                 Select category
               </option>
 
-              <option value="ORDER">
+              <option value="ORDER ISSUE">
                 Order Issue
               </option>
 
