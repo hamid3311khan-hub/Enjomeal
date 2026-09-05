@@ -109,9 +109,9 @@ function Tickets() {
         replyValues[ticket._id] || "";
 
       const response = await fetch(
-        `${API_URL}/api/tickets/admin/${ticket._id}`,
-        {
-          method: "PUT",
+  `${API_URL}/api/tickets/${ticket._id}/status`,
+  {
+    method: "PATCH",
 
           headers: {
             "Content-Type":
