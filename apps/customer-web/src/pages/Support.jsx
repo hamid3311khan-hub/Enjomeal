@@ -62,17 +62,20 @@ function Support() {
 
       navigate("/my-tickets");
 
-    } catch (error) {
-      console.error(
-        "Create Ticket Error:",
-        error.response?.data || error
-      );
+      } catch (error) {
+  console.error(
+    "Create Ticket Error:",
+    error.response?.data || error
+  );
 
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Unable to create support ticket"
-      );
+  const errorData = error.response?.data;
+
+  setError(
+    errorData?.error ||
+    errorData?.message ||
+    error.message ||
+    "Unable to create support ticket"
+  );
     } finally {
       setLoading(false);
     }
