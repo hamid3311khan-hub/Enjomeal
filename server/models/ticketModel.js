@@ -78,12 +78,11 @@ const ticketSchema = new mongoose.Schema(
 // AUTO GENERATE TICKET NUMBER
 // =====================================================
 
-ticketSchema.pre("validate", function (next) {
+ticketSchema.pre("validate", function () {
   if (!this.ticketNumber) {
     const random = Math.floor(1000 + Math.random() * 9000);
     this.ticketNumber = `ENJO-${Date.now()}-${random}`;
   }
-  next();
 });
 
 // =====================================================
