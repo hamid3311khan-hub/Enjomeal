@@ -338,6 +338,19 @@ const applyCouponController = async (req, res) => {
       });
     }
 
+    // Check whether this customer has already used this coupon
+const existingUsage = await CouponUsage.findOne({
+  user: req.user.id,
+  coupon: coupon._id,
+});
+
+if (existingUsage) {
+  return res.status(400).json({
+    success: false,
+    message: "You have already used this coupon",
+  });
+}
+
     if (!coupon.isActive) {
       return res.status(400).json({
         success: false,
