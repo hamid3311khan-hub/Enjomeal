@@ -139,13 +139,6 @@ const getSingleCouponController = async (req, res) => {
 
     const coupon = await Coupon.findById(couponId);
 
-    if (!coupon) {
-      return res.status(404).json({
-        success: false,
-        message: "Coupon not found",
-      });
-    }
-
     return res.status(200).json({
       success: true,
       message: "Coupon fetched successfully",
