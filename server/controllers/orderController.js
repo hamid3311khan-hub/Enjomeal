@@ -372,6 +372,28 @@ if (couponCode) {
   }
 }
 
+  // ===============================
+// SAVE COUPON USAGE HISTORY
+// ===============================
+
+if (couponCode) {
+  const coupon = await Coupon.findOne({
+    code: couponCode.trim().toUpperCase(),
+  });
+
+  if (coupon) {
+    await CouponUsage.create({
+      coupon: coupon._id,
+      user: userId,
+      order: order._id,
+    });
+
+    coupon.usedCount += 1;
+
+    await coupon.save();
+  }
+}
+
 
     // ===============================
     // CLEAR CART
