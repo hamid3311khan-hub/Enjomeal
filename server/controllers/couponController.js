@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Coupon = require("../models/couponModel");
-
+const CouponUsage = require("../models/couponUsageModel");
 // ===============================
 // CREATE COUPON
 // ADMIN ONLY
