@@ -21,7 +21,7 @@ function CouponHistory() {
           );
 
         const response = await fetch(
-          `${API_URL}/api/coupons/my-history`,
+          `${API_URL}/coupons/my-history`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
