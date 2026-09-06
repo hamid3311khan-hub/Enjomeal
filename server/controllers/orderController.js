@@ -7,6 +7,7 @@ const Delivery = require("../models/deliveryModel");
 const Notification = require("../models/notificationModel");
 const Settings = require("../models/settingsModel");
 const Coupon = require("../models/couponModel");
+const CouponUsage = require("../models/couponUsageModel");
 
 // ===============================
 // CREATE ORDER
@@ -336,6 +337,27 @@ const order =
 
     orderStatus: "PLACED",
   });
+
+    // ===============================
+// SAVE COUPON USAGE
+// ===============================
+
+if (couponCode) {
+  const coupon = await Coupon.findOne({
+    code: couponCode.trim().toUpperCase(),
+  });
+
+  if (coupon) {
+    await CouponUsage.create({
+      coupon: coupon._id,
+      user: userId,
+      order: order._id,
+    });
+
+    coupon.usedCount += 1;
+    await coupon.save();
+  }
+}
 
 
     // ===============================
