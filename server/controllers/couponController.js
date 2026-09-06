@@ -338,13 +338,6 @@ const applyCouponController = async (req, res) => {
       });
     }
 
-    if (!coupon) {
-  return res.status(404).json({
-    success: false,
-    message: "Invalid coupon code",
-  });
-    }
-
     if (!coupon.isActive) {
       return res.status(400).json({
         success: false,
