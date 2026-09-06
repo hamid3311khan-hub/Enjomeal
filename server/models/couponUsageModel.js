@@ -22,6 +22,12 @@ const couponUsageSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // Order where coupon was used
+order: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Order",
+  required: true,
+},
   },
   {
     timestamps: true,
