@@ -24,6 +24,7 @@ import MyOrders from "./pages/MyOrders";
 import Notifications from "./pages/Notifications";
 import CustomerProfile from "./pages/CustomerProfile";
 import Coupons from "./pages/Coupons";
+import CouponHistory from "./pages/CouponHistory";
 
 import CustomerLayout from "./components/CustomerLayout";
 
@@ -221,6 +222,11 @@ function App() {
             path="/coupons"
             element={<Coupons />}
           />
+
+          <Route
+  path="/coupon-history"
+  element={<CouponHistory />}
+/>
 
           <Route
             path="/profile"
