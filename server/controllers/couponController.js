@@ -501,6 +501,101 @@ const getAvailableCouponsController = async (req, res) => {
   }
 };
 
+// ==================================
+// GET MY COUPON HISTORY
+// CUSTOMER ONLY
+// ==================================
+
+const getMyCouponHistoryController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const history = await CouponUsage.find({
+      user: userId,
+    })
+      .populate({
+        path: "coupon",
+        select:
+          "code description discountType discountValue",
+      })
+      .populate({
+        path: "order",
+      })
+      .sort({
+        createdAt: -1,
+      });
+
+    return res.status(200).json({
+      success: true,
+      message: "Coupon history fetched successfully",
+      count: history.length,
+      history,
+    });
+  } catch (error) {
+    console.log(
+      "Get My Coupon History Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error in Get My Coupon History API",
+      error: error.message,
+    });
+  }
+};
+
+
+// ==================================
+// GET ALL COUPON USAGE HISTORY
+// ADMIN ONLY
+// ==================================
+
+const getAllCouponHistoryController = async (
+  req,
+  res
+) => {
+  try {
+    const history = await CouponUsage.find()
+      .populate({
+        path: "user",
+        select: "name email phone",
+      })
+      .populate({
+        path: "coupon",
+        select:
+          "code description discountType discountValue",
+      })
+      .populate({
+        path: "order",
+      })
+      .sort({
+        createdAt: -1,
+      });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "All coupon history fetched successfully",
+      count: history.length,
+      history,
+    });
+  } catch (error) {
+    console.log(
+      "Get All Coupon History Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error in Get All Coupon History API",
+      error: error.message,
+    });
+  }
+};
+
 
 // ===============================
 // EXPORT
@@ -514,4 +609,6 @@ module.exports = {
   applyCouponController,
   getActiveCouponsController,
   getAvailableCouponsController,
+  getMyCouponHistoryController,
+  getAllCouponHistoryController,
 };
