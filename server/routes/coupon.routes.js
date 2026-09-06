@@ -8,6 +8,8 @@ const {
   deleteCouponController,
   applyCouponController,
   getAvailableCouponsController,
+  getMyCouponHistoryController,
+  getAllCouponHistoryController,
 } = require("../controllers/couponController");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -65,6 +67,31 @@ router.post(
   authMiddleware,
   roleMiddleware("customer"),
   applyCouponController
+);
+
+// =====================================================
+// GET MY COUPON HISTORY
+// CUSTOMER ONLY
+// =====================================================
+
+router.get(
+  "/my-history",
+  authMiddleware,
+  roleMiddleware("customer"),
+  getMyCouponHistoryController
+);
+
+
+// =====================================================
+// GET ALL COUPON HISTORY
+// ADMIN ONLY
+// =====================================================
+
+router.get(
+  "/history",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllCouponHistoryController
 );
 
 // =====================================================
