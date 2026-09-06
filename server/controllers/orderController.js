@@ -237,6 +237,19 @@ if (couponCode) {
     });
   }
 
+  // CHECK IF CUSTOMER ALREADY USED THIS COUPON
+const existingCouponUsage = await CouponUsage.findOne({
+  coupon: coupon._id,
+  user: userId,
+});
+
+if (existingCouponUsage) {
+  return res.status(400).json({
+    success: false,
+    message: "You have already used this coupon",
+  });
+}
+
   if (!coupon.isActive) {
     return res.status(400).json({
       success: false,
