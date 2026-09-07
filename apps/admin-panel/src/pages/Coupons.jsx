@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 
-const API = "https://enjomeal-api.onrender.com/api/coupons";
+const API =
+  "https://enjomeal-api.onrender.com/api/coupons";
 
 function Coupons() {
   const [coupons, setCoupons] = useState([]);
+  const [history, setHistory] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] =
+    useState(true);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -29,19 +35,29 @@ function Coupons() {
     Authorization: `Bearer ${getToken()}`,
   });
 
+  // ==================================
+  // LOAD ALL COUPONS
+  // ==================================
+
   const loadCoupons = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API}/all`, {
-        headers: headers(),
-      });
+      const response = await fetch(
+        `${API}/all`,
+        {
+          headers: headers(),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to load coupons");
+        throw new Error(
+          data.message ||
+            "Failed to load coupons"
+        );
       }
 
       setCoupons(data.coupons || []);
@@ -52,18 +68,71 @@ function Coupons() {
     }
   };
 
+  // ==================================
+  // LOAD COUPON HISTORY
+  // ADMIN ONLY
+  // ==================================
+
+  const loadCouponHistory = async () => {
+    try {
+      setHistoryLoading(true);
+
+      const response = await fetch(
+        `${API}/history`,
+        {
+          headers: headers(),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            "Failed to load coupon history"
+        );
+      }
+
+      setHistory(data.history || []);
+    } catch (err) {
+      console.error(
+        "Coupon history error:",
+        err
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadCoupons();
+    loadCouponHistory();
   }, []);
 
+  // ==================================
+  // FORM CHANGE
+  // ==================================
+
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const {
+      name,
+      value,
+      type,
+      checked,
+    } = e.target;
 
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : value,
     }));
   };
+
+  // ==================================
+  // CREATE COUPON
+  // ==================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,39 +142,79 @@ function Coupons() {
       setError("");
 
       const payload = {
-        code: form.code.trim().toUpperCase(),
-        description: form.description.trim(),
-        discountType: form.discountType,
-        discountValue: Number(form.discountValue),
-        minimumOrderAmount: Number(form.minimumOrderAmount || 0),
+        code:
+          form.code
+            .trim()
+            .toUpperCase(),
+
+        description:
+          form.description.trim(),
+
+        discountType:
+          form.discountType,
+
+        discountValue:
+          Number(form.discountValue),
+
+        minimumOrderAmount:
+          Number(
+            form.minimumOrderAmount || 0
+          ),
+
         maximumDiscount:
           form.maximumDiscount === ""
             ? null
-            : Number(form.maximumDiscount),
-        expiryDate: form.expiryDate,
+            : Number(
+                form.maximumDiscount
+              ),
+
+        expiryDate:
+          form.expiryDate,
+
         usageLimit:
-          form.usageLimit === "" ? null : Number(form.usageLimit),
-        isActive: form.isActive,
+          form.usageLimit === ""
+            ? null
+            : Number(
+                form.usageLimit
+              ),
+
+        isActive:
+          form.isActive,
       };
 
-      const response = await fetch(`${API}/create`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `${API}/create`,
+        {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify(
+            payload
+          ),
+        }
+      );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to create coupon");
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.message ||
+            "Failed to create coupon"
+        );
       }
 
-      setMessage("Coupon created successfully.");
+      setMessage(
+        "Coupon created successfully."
+      );
 
       setForm({
         code: "",
         description: "",
-        discountType: "PERCENTAGE",
+        discountType:
+          "PERCENTAGE",
         discountValue: "",
         minimumOrderAmount: "0",
         maximumDiscount: "",
@@ -120,54 +229,111 @@ function Coupons() {
     }
   };
 
+  // ==================================
+  // DELETE COUPON
+  // ==================================
+
   const deleteCoupon = async (id) => {
-    if (!window.confirm("Delete this coupon?")) return;
+    if (
+      !window.confirm(
+        "Delete this coupon?"
+      )
+    ) {
+      return;
+    }
 
     try {
       setMessage("");
       setError("");
 
-      const response = await fetch(`${API}/${id}`, {
-        method: "DELETE",
-        headers: headers(),
-      });
+      const response = await fetch(
+        `${API}/${id}`,
+        {
+          method: "DELETE",
+          headers: headers(),
+        }
+      );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to delete coupon");
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.message ||
+            "Failed to delete coupon"
+        );
       }
 
-      setMessage("Coupon deleted successfully.");
+      setMessage(
+        "Coupon deleted successfully."
+      );
+
       loadCoupons();
     } catch (err) {
       setError(err.message);
     }
   };
 
+  // ==================================
+  // REFRESH EVERYTHING
+  // ==================================
+
+  const refreshData = () => {
+    loadCoupons();
+    loadCouponHistory();
+  };
+
   return (
     <div style={styles.container}>
+
       <div style={styles.header}>
         <div>
-          <h1 style={styles.title}>Coupons</h1>
+          <h1 style={styles.title}>
+            Coupons
+          </h1>
+
           <p style={styles.subtitle}>
             Manage EnjoMeal discount coupons
           </p>
         </div>
 
-        <button style={styles.refreshButton} onClick={loadCoupons}>
+        <button
+          style={styles.refreshButton}
+          onClick={refreshData}
+        >
           ↻ Refresh
         </button>
       </div>
 
-      {message && <div style={styles.success}>{message}</div>}
-      {error && <div style={styles.error}>{error}</div>}
+      {message && (
+        <div style={styles.success}>
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div style={styles.error}>
+          {error}
+        </div>
+      )}
+
+      {/* ========================= */}
+      {/* CREATE COUPON */}
+      {/* ========================= */}
 
       <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Create Coupon</h2>
+
+        <h2 style={styles.cardTitle}>
+          Create Coupon
+        </h2>
 
         <form onSubmit={handleSubmit}>
+
           <div style={styles.grid}>
+
             <Field
               label="Coupon Code"
               name="code"
@@ -186,15 +352,27 @@ function Coupons() {
             />
 
             <div style={styles.field}>
-              <label style={styles.label}>Discount Type</label>
+              <label style={styles.label}>
+                Discount Type
+              </label>
+
               <select
                 name="discountType"
-                value={form.discountType}
-                onChange={handleChange}
+                value={
+                  form.discountType
+                }
+                onChange={
+                  handleChange
+                }
                 style={styles.input}
               >
-                <option value="PERCENTAGE">Percentage</option>
-                <option value="FIXED">Fixed</option>
+                <option value="PERCENTAGE">
+                  Percentage
+                </option>
+
+                <option value="FIXED">
+                  Fixed
+                </option>
               </select>
             </div>
 
@@ -203,8 +381,12 @@ function Coupons() {
               name="discountValue"
               type="number"
               min="0"
-              value={form.discountValue}
-              onChange={handleChange}
+              value={
+                form.discountValue
+              }
+              onChange={
+                handleChange
+              }
               required
             />
 
@@ -213,8 +395,12 @@ function Coupons() {
               name="minimumOrderAmount"
               type="number"
               min="0"
-              value={form.minimumOrderAmount}
-              onChange={handleChange}
+              value={
+                form.minimumOrderAmount
+              }
+              onChange={
+                handleChange
+              }
             />
 
             <Field
@@ -222,18 +408,29 @@ function Coupons() {
               name="maximumDiscount"
               type="number"
               min="0"
-              value={form.maximumDiscount}
-              onChange={handleChange}
+              value={
+                form.maximumDiscount
+              }
+              onChange={
+                handleChange
+              }
               placeholder="Optional"
             />
 
             <div style={styles.field}>
-              <label style={styles.label}>Expiry Date</label>
+              <label style={styles.label}>
+                Expiry Date
+              </label>
+
               <input
                 type="date"
                 name="expiryDate"
-                value={form.expiryDate}
-                onChange={handleChange}
+                value={
+                  form.expiryDate
+                }
+                onChange={
+                  handleChange
+                }
                 style={styles.input}
                 required
               />
@@ -244,114 +441,336 @@ function Coupons() {
               name="usageLimit"
               type="number"
               min="1"
-              value={form.usageLimit}
-              onChange={handleChange}
+              value={
+                form.usageLimit
+              }
+              onChange={
+                handleChange
+              }
               placeholder="Optional"
             />
+
           </div>
 
           <label style={styles.checkbox}>
+
             <input
               type="checkbox"
               name="isActive"
-              checked={form.isActive}
-              onChange={handleChange}
+              checked={
+                form.isActive
+              }
+              onChange={
+                handleChange
+              }
             />
-            <span>Active Coupon</span>
+
+            <span>
+              Active Coupon
+            </span>
+
           </label>
 
-          <button type="submit" style={styles.saveButton}>
+          <button
+            type="submit"
+            style={styles.saveButton}
+          >
             Create Coupon
           </button>
+
         </form>
+
       </div>
+            {/* ========================= */}
+      {/* ALL COUPONS */}
+      {/* ========================= */}
 
       <div style={styles.card}>
-        <h2 style={styles.cardTitle}>All Coupons</h2>
+
+        <h2 style={styles.cardTitle}>
+          All Coupons
+        </h2>
 
         {loading ? (
-          <p>Loading coupons...</p>
+          <p>
+            Loading coupons...
+          </p>
         ) : coupons.length === 0 ? (
-          <p>No coupons found.</p>
+          <p>
+            No coupons found.
+          </p>
         ) : (
+
           <div style={styles.tableWrapper}>
+
             <table style={styles.table}>
+
               <thead>
                 <tr>
-                  <th style={styles.th}>Code</th>
-                  <th style={styles.th}>Discount</th>
-                  <th style={styles.th}>Min Order</th>
-                  <th style={styles.th}>Expiry</th>
-                  <th style={styles.th}>Used</th>
-                  <th style={styles.th}>Status</th>
-                  <th style={styles.th}>Action</th>
+                  <th style={styles.th}>
+                    Code
+                  </th>
+
+                  <th style={styles.th}>
+                    Discount
+                  </th>
+
+                  <th style={styles.th}>
+                    Min Order
+                  </th>
+
+                  <th style={styles.th}>
+                    Expiry
+                  </th>
+
+                  <th style={styles.th}>
+                    Used
+                  </th>
+
+                  <th style={styles.th}>
+                    Status
+                  </th>
+
+                  <th style={styles.th}>
+                    Action
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {coupons.map((coupon) => (
-                  <tr key={coupon._id}>
-                    <td style={styles.td}>
-                      <strong>{coupon.code}</strong>
-                    </td>
 
-                    <td style={styles.td}>
-                      {coupon.discountType === "PERCENTAGE"
-                        ? `${coupon.discountValue}%`
-                        : `₹${coupon.discountValue}`}
-                    </td>
+                {coupons.map(
+                  (coupon) => (
+                    <tr
+                      key={
+                        coupon._id
+                      }
+                    >
 
-                    <td style={styles.td}>
-                      ₹{coupon.minimumOrderAmount || 0}
-                    </td>
+                      <td style={styles.td}>
+                        <strong>
+                          {coupon.code}
+                        </strong>
+                      </td>
 
-                    <td style={styles.td}>
-                      {coupon.expiryDate
-                        ? new Date(coupon.expiryDate).toLocaleDateString()
-                        : "-"}
-                    </td>
+                      <td style={styles.td}>
+                        {coupon.discountType ===
+                        "PERCENTAGE"
+                          ? `${coupon.discountValue}%`
+                          : `₹${coupon.discountValue}`}
+                      </td>
 
-                    <td style={styles.td}>
-                      {coupon.usedCount || 0}
-                      {coupon.usageLimit
-                        ? ` / ${coupon.usageLimit}`
-                        : ""}
-                    </td>
+                      <td style={styles.td}>
+                        ₹
+                        {coupon.minimumOrderAmount ||
+                          0}
+                      </td>
 
-                    <td style={styles.td}>
-                      <span
-                        style={{
-                          ...styles.status,
-                          backgroundColor: coupon.isActive
-                            ? "#dcfce7"
-                            : "#fee2e2",
-                          color: coupon.isActive
-                            ? "#166534"
-                            : "#991b1b",
-                        }}
-                      >
-                        {coupon.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
+                      <td style={styles.td}>
+                        {coupon.expiryDate
+                          ? new Date(
+                              coupon.expiryDate
+                            ).toLocaleDateString()
+                          : "-"}
+                      </td>
 
-                    <td style={styles.td}>
-                      <button
-                        style={styles.deleteButton}
-                        onClick={() => deleteCoupon(coupon._id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td style={styles.td}>
+                        {coupon.usedCount || 0}
+
+                        {coupon.usageLimit
+                          ? ` / ${coupon.usageLimit}`
+                          : ""}
+                      </td>
+
+                      <td style={styles.td}>
+
+                        <span
+                          style={{
+                            ...styles.status,
+
+                            backgroundColor:
+                              coupon.isActive
+                                ? "#dcfce7"
+                                : "#fee2e2",
+
+                            color:
+                              coupon.isActive
+                                ? "#166534"
+                                : "#991b1b",
+                          }}
+                        >
+                          {coupon.isActive
+                            ? "Active"
+                            : "Inactive"}
+                        </span>
+
+                      </td>
+
+                      <td style={styles.td}>
+
+                        <button
+                          style={
+                            styles.deleteButton
+                          }
+                          onClick={() =>
+                            deleteCoupon(
+                              coupon._id
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
+
+                      </td>
+
+                    </tr>
+                  )
+                )}
+
               </tbody>
+
             </table>
+
           </div>
         )}
+
       </div>
+
+      {/* ========================= */}
+      {/* COUPON USAGE HISTORY */}
+      {/* ADMIN ONLY */}
+      {/* ========================= */}
+
+      <div style={styles.card}>
+
+        <h2 style={styles.cardTitle}>
+          Coupon Usage History
+        </h2>
+
+        <p style={styles.subtitle}>
+          View all customers who have
+          used coupons.
+        </p>
+
+        {historyLoading ? (
+          <p>
+            Loading coupon history...
+          </p>
+        ) : history.length === 0 ? (
+          <p>
+            No coupon usage history found.
+          </p>
+        ) : (
+
+          <div style={styles.tableWrapper}>
+
+            <table style={styles.table}>
+
+              <thead>
+                <tr>
+
+                  <th style={styles.th}>
+                    Customer
+                  </th>
+
+                  <th style={styles.th}>
+                    Email
+                  </th>
+
+                  <th style={styles.th}>
+                    Coupon
+                  </th>
+
+                  <th style={styles.th}>
+                    Discount
+                  </th>
+
+                  <th style={styles.th}>
+                    Order
+                  </th>
+
+                  <th style={styles.th}>
+                    Used On
+                  </th>
+
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {history.map(
+                  (item) => (
+
+                    <tr
+                      key={item._id}
+                    >
+
+                      <td style={styles.td}>
+                        {item.user?.name ||
+                          "Deleted User"}
+                      </td>
+
+                      <td style={styles.td}>
+                        {item.user?.email ||
+                          "-"}
+                      </td>
+
+                      <td style={styles.td}>
+                        <strong>
+                          {item.coupon?.code ||
+                            "Coupon Deleted"}
+                        </strong>
+                      </td>
+
+                      <td style={styles.td}>
+
+                        {item.coupon
+                          ?.discountType ===
+                        "PERCENTAGE"
+                          ? `${item.coupon.discountValue}%`
+                          : item.coupon
+                              ?.discountValue !==
+                            undefined
+                          ? `₹${item.coupon.discountValue}`
+                          : "-"}
+
+                      </td>
+
+                      <td style={styles.td}>
+                        {item.order?._id
+                          ? `#${item.order._id}`
+                          : "-"}
+                      </td>
+
+                      <td style={styles.td}>
+                        {item.createdAt
+                          ? new Date(
+                              item.createdAt
+                            ).toLocaleString()
+                          : "-"}
+                      </td>
+
+                    </tr>
+                  )
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+        )}
+
+      </div>
+
     </div>
   );
 }
+
+
+// ==================================
+// REUSABLE FIELD
+// ==================================
 
 function Field({
   label,
@@ -363,7 +782,11 @@ function Field({
 }) {
   return (
     <div style={styles.field}>
-      <label style={styles.label}>{label}</label>
+
+      <label style={styles.label}>
+        {label}
+      </label>
+
       <input
         type={type}
         name={name}
@@ -372,11 +795,18 @@ function Field({
         style={styles.input}
         {...props}
       />
+
     </div>
   );
 }
 
+
+// ==================================
+// STYLES
+// ==================================
+
 const styles = {
+
   container: {
     padding: "24px",
     maxWidth: "1200px",
@@ -385,7 +815,8 @@ const styles = {
 
   header: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     alignItems: "center",
     marginBottom: "24px",
     gap: "16px",
@@ -432,17 +863,19 @@ const styles = {
     borderRadius: "14px",
     padding: "24px",
     marginBottom: "24px",
-    boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 2px 12px rgba(0,0,0,0.08)",
   },
 
   cardTitle: {
     marginTop: 0,
-    marginBottom: "22px",
+    marginBottom: "10px",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(240px, 1fr))",
     gap: "18px",
   },
 
@@ -461,7 +894,8 @@ const styles = {
     width: "100%",
     boxSizing: "border-box",
     padding: "12px",
-    border: "1px solid #d1d5db",
+    border:
+      "1px solid #d1d5db",
     borderRadius: "8px",
     fontSize: "15px",
     background: "#fff",
@@ -499,12 +933,14 @@ const styles = {
   th: {
     textAlign: "left",
     padding: "12px",
-    borderBottom: "2px solid #e5e7eb",
+    borderBottom:
+      "2px solid #e5e7eb",
   },
 
   td: {
     padding: "12px",
-    borderBottom: "1px solid #e5e7eb",
+    borderBottom:
+      "1px solid #e5e7eb",
   },
 
   status: {
@@ -522,6 +958,9 @@ const styles = {
     color: "#fff",
     cursor: "pointer",
   },
+
 };
 
+
 export default Coupons;
+      
