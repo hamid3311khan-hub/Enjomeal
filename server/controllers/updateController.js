@@ -96,3 +96,166 @@ const getActiveUpdatesController =
       });
     }
   };
+// ===============================
+// GET ALL UPDATES
+// ADMIN ONLY
+// ===============================
+const getAllUpdatesController =
+  async (req, res) => {
+    try {
+      const updates = await Update.find()
+        .sort({
+          createdAt: -1,
+        })
+        .populate(
+          "createdBy",
+          "name email"
+        );
+
+      return res.status(200).json({
+        success: true,
+        count: updates.length,
+        updates,
+      });
+    } catch (error) {
+      console.error(
+        "Get all updates error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to fetch all updates",
+        error: error.message,
+      });
+    }
+  };
+
+// ===============================
+// UPDATE / EDIT UPDATE
+// ADMIN ONLY
+// ===============================
+const updateUpdateController =
+  async (req, res) => {
+    try {
+      const { updateId } = req.params;
+
+      const update =
+        await Update.findById(updateId);
+
+      if (!update) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Update not found",
+        });
+      }
+
+      const {
+        title,
+        description,
+        youtubeUrl,
+        image,
+        isActive,
+      } = req.body;
+
+      if (title !== undefined) {
+        update.title = title;
+      }
+
+      if (description !== undefined) {
+        update.description =
+          description;
+      }
+
+      if (youtubeUrl !== undefined) {
+        update.youtubeUrl =
+          youtubeUrl;
+      }
+
+      if (image !== undefined) {
+        update.image = image;
+      }
+
+      if (isActive !== undefined) {
+        update.isActive = isActive;
+      }
+
+      await update.save();
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Update modified successfully",
+        update,
+      });
+    } catch (error) {
+      console.error(
+        "Update edit error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to update",
+        error: error.message,
+      });
+    }
+  };
+
+// ===============================
+// DELETE UPDATE
+// ADMIN ONLY
+// ===============================
+const deleteUpdateController =
+  async (req, res) => {
+    try {
+      const { updateId } = req.params;
+
+      const update =
+        await Update.findById(updateId);
+
+      if (!update) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Update not found",
+        });
+      }
+
+      await Update.findByIdAndDelete(
+        updateId
+      );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Update deleted successfully",
+      });
+    } catch (error) {
+      console.error(
+        "Delete update error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to delete update",
+        error: error.message,
+      });
+    }
+  };
+
+// ===============================
+// EXPORT CONTROLLERS
+// ===============================
+module.exports = {
+  createUpdateController,
+  getActiveUpdatesController,
+  getAllUpdatesController,
+  updateUpdateController,
+  deleteUpdateController,
+};
