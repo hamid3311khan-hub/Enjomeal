@@ -47,11 +47,11 @@ function Updates() {
       setError("");
 
       const response = await fetch(
-        `${API}/admin/all`,
-        {
-          headers: headers(),
-        }
-      );
+  `${API}/all`,
+  {
+    headers: headers(),
+  }
+);
 
       const data =
         await response.json();
