@@ -6,6 +6,9 @@ function RestaurantList() {
   const navigate = useNavigate();
 
   const [restaurants, setRestaurants] = useState([]);
+  const [updates, setUpdates] = useState([]);
+  const [updatesLoading, setUpdatesLoading] =
+  useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -54,12 +57,40 @@ function RestaurantList() {
     }
   };
 
+	// =====================================================
+// FETCH ACTIVE APP UPDATES
+// =====================================================
+
+const fetchUpdates = async () => {
+  try {
+    setUpdatesLoading(true);
+
+    const response = await API.get(
+      "/updates/active"
+    );
+
+    if (response.data.success) {
+      setUpdates(
+        response.data.updates || []
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Updates API Error:",
+      error
+    );
+  } finally {
+    setUpdatesLoading(false);
+  }
+};
+
   // =====================================================
   // INITIAL LOAD
   // =====================================================
 
   useEffect(() => {
     fetchRestaurants();
+	fetchUpdates();
   }, []);
 
   // =====================================================
@@ -351,6 +382,82 @@ function RestaurantList() {
           </div>
 
         </div>
+
+		  {/* =================================================
+    LATEST UPDATES
+================================================= */}
+
+{!updatesLoading &&
+  updates.length > 0 && (
+    <section className="customer-updates-section">
+
+      <div className="updates-heading">
+
+        <div>
+          <p className="section-label">
+            Latest Updates
+          </p>
+
+          <h2>
+            News & Offers
+          </h2>
+        </div>
+
+      </div>
+
+      <div className="customer-updates-list">
+
+        {updates.map((update) => (
+          <article
+            key={update._id}
+            className="customer-update-card"
+          >
+
+            {update.image && (
+              <div className="customer-update-image">
+                <img
+                  src={update.image}
+                  alt={update.title}
+                  onError={(event) => {
+                    event.currentTarget.style.display =
+                      "none";
+                  }}
+                />
+              </div>
+            )}
+
+            <div className="customer-update-content">
+
+              <h3>
+                {update.title}
+              </h3>
+
+              {update.description && (
+                <p>
+                  {update.description}
+                </p>
+              )}
+
+              {update.youtubeUrl && (
+                <a
+                  href={update.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="watch-youtube-button"
+                >
+                  ▶ Watch on YouTube
+                </a>
+              )}
+
+            </div>
+
+          </article>
+        ))}
+
+      </div>
+
+    </section>
+  )}
 
         {/* =================================================
             CUISINE FILTERS
