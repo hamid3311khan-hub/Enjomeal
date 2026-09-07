@@ -87,7 +87,7 @@ function Updates() {
 
         <div>
           <h1 style={styles.title}>
-            App Updates
+            Lates Updates
           </h1>
 
           <p style={styles.subtitle}>
