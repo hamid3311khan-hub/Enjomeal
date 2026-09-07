@@ -888,6 +888,25 @@ function App() {
     "Support Tickets"}
 </button>
 		  {activePage === "updates" && <Updates />}
+		  {/* UPDATES */}
+
+<button
+  style={{
+    ...styles.menuButton,
+    ...(activePage === "updates"
+      ? styles.activeButton
+      : {}),
+  }}
+  onClick={() =>
+    setActivePage("updates")
+  }
+>
+  <span style={styles.menuIcon}>
+    📢
+  </span>
+
+  {!isMobile && "Updates"}
+</button>
 
 
         {/* LOGOUT */}
