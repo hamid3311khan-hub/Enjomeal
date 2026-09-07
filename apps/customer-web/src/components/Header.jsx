@@ -35,7 +35,9 @@ function Header({ unreadCount = 0 }) {
           className="brand"
           onClick={() => navigate("/restaurants")}
         >
-          <span className="brand-icon">🍴</span>
+          <span className="brand-icon">
+            🍴
+          </span>
 
           <span className="brand-text">
             Enjo<span>Meal</span>
@@ -79,6 +81,50 @@ function Header({ unreadCount = 0 }) {
           </NavLink>
 
           <NavLink
+            to="/coupon-history"
+            className={({ isActive }) =>
+              isActive
+                ? "nav-link active"
+                : "nav-link"
+            }
+          >
+            📜 Coupon History
+          </NavLink>
+
+          <NavLink
+            to="/updates"
+            className={({ isActive }) =>
+              isActive
+                ? "nav-link active"
+                : "nav-link"
+            }
+          >
+            📢 Updates
+          </NavLink>
+
+          <NavLink
+            to="/support"
+            className={({ isActive }) =>
+              isActive
+                ? "nav-link active"
+                : "nav-link"
+            }
+          >
+            🛟 Support
+          </NavLink>
+
+          <NavLink
+            to="/my-tickets"
+            className={({ isActive }) =>
+              isActive
+                ? "nav-link active"
+                : "nav-link"
+            }
+          >
+            🎫 My Tickets
+          </NavLink>
+
+          <NavLink
             to="/notifications"
             className={({ isActive }) =>
               isActive
@@ -86,49 +132,6 @@ function Header({ unreadCount = 0 }) {
                 : "nav-icon-link"
             }
           >
-
-            <NavLink
-  to="/updates"
-  className={({ isActive }) =>
-    isActive
-      ? "nav-link active"
-      : "nav-link"
-  }
->
-  📢 Updates
-</NavLink>
-
-            <NavLink
-  to="/coupon-history"
-  className={({ isActive }) =>
-    isActive
-      ? "nav-link active"
-      : "nav-link"
-  }
->
-  📜 Coupon History
-</NavLink>
-            
-            <NavLink
-  to="/support"
-  className={({ isActive }) =>
-    isActive
-      ? "nav-link active"
-      : "nav-link"
-  }
->
-  🛟 Support
-</NavLink>
-            <NavLink
-  to="/my-tickets"
-  className={({ isActive }) =>
-    isActive
-      ? "nav-link active"
-      : "nav-link"
-  }
->
-  🎫 My Tickets
-</NavLink>
             <span className="notification-icon">
               🔔
 
@@ -183,9 +186,9 @@ function Header({ unreadCount = 0 }) {
         >
           {menuOpen ? "✕" : "☰"}
         </button>
-      </div>
 
-      {/* MOBILE NAVIGATION */}
+      </div>
+            {/* MOBILE NAVIGATION */}
       {menuOpen && (
         <div className="mobile-nav">
 
@@ -238,30 +241,55 @@ function Header({ unreadCount = 0 }) {
                 : "mobile-nav-link"
             }
           >
-
-            <NavLink
-  to="/updates"
-  onClick={closeMenu}
-  className={({ isActive }) =>
-    isActive
-      ? "mobile-nav-link active"
-      : "mobile-nav-link"
-  }
->
-  📢 App Updates
-</NavLink>
             🎟️ Coupons
-            <NavLink
-  to="/coupon-history"
-  onClick={closeMenu}
-  className={({ isActive }) =>
-    isActive
-      ? "mobile-nav-link active"
-      : "mobile-nav-link"
-  }
->
-  📜 Coupon History
-</NavLink>
+          </NavLink>
+
+          <NavLink
+            to="/coupon-history"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              isActive
+                ? "mobile-nav-link active"
+                : "mobile-nav-link"
+            }
+          >
+            📜 Coupon History
+          </NavLink>
+
+          <NavLink
+            to="/updates"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              isActive
+                ? "mobile-nav-link active"
+                : "mobile-nav-link"
+            }
+          >
+            📢 App Updates
+          </NavLink>
+
+          <NavLink
+            to="/support"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              isActive
+                ? "mobile-nav-link active"
+                : "mobile-nav-link"
+            }
+          >
+            🛟 Support
+          </NavLink>
+
+          <NavLink
+            to="/my-tickets"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              isActive
+                ? "mobile-nav-link active"
+                : "mobile-nav-link"
+            }
+          >
+            🎫 My Tickets
           </NavLink>
 
           <NavLink
@@ -273,29 +301,6 @@ function Header({ unreadCount = 0 }) {
                 : "mobile-nav-link"
             }
           >
-            <NavLink
-  to="/support"
-  onClick={closeMenu}
-  className={({ isActive }) =>
-    isActive
-      ? "mobile-nav-link active"
-      : "mobile-nav-link"
-  }
->
-  🛟 Support
-</NavLink>
-
-<NavLink
-  to="/my-tickets"
-  onClick={closeMenu}
-  className={({ isActive }) =>
-    isActive
-      ? "mobile-nav-link active"
-      : "mobile-nav-link"
-  }
->
-  🎫 My Tickets
-</NavLink>
             🔔 Notifications
 
             {unreadCount > 0 && (
