@@ -474,6 +474,8 @@ function App() {
         return "Notifications";
 	  case "tickets":
         return "Support Tickets";
+	  case "updates":
+        return "App Updates";
 
       default:
         return "Admin Dashboard";
@@ -514,6 +516,8 @@ function App() {
 
 	  case "tickets":
         return "Manage customer support tickets";
+	  case "updates":
+        return "Manage app updates and customer information";
 			
 
       default:
