@@ -35,6 +35,7 @@ import {
 import WriteReview from "./pages/WriteReview";
 import Support from "./pages/Support";
 import MyTickets from "./pages/MyTickets";
+import Updates from "./pages/Updates";
 
 // =====================================================
 // LOGIN PAGE
@@ -226,6 +227,10 @@ function App() {
           <Route
   path="/coupon-history"
   element={<CouponHistory />}
+/>
+          <Route
+  path="/updates"
+  element={<Updates />}
 />
 
           <Route
