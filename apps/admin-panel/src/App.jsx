@@ -891,8 +891,6 @@ function App() {
   {!isMobile &&
     "Support Tickets"}
 </button>
-		  {activePage === "updates" && <Updates />}
-		  {/* UPDATES */}
 
 <button
   style={{
