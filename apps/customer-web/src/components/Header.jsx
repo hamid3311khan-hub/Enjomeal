@@ -88,6 +88,17 @@ function Header({ unreadCount = 0 }) {
           >
 
             <NavLink
+  to="/updates"
+  className={({ isActive }) =>
+    isActive
+      ? "nav-link active"
+      : "nav-link"
+  }
+>
+  📢 Updates
+</NavLink>
+
+            <NavLink
   to="/coupon-history"
   className={({ isActive }) =>
     isActive
@@ -227,6 +238,18 @@ function Header({ unreadCount = 0 }) {
                 : "mobile-nav-link"
             }
           >
+
+            <NavLink
+  to="/updates"
+  onClick={closeMenu}
+  className={({ isActive }) =>
+    isActive
+      ? "mobile-nav-link active"
+      : "mobile-nav-link"
+  }
+>
+  📢 App Updates
+</NavLink>
             🎟️ Coupons
             <NavLink
   to="/coupon-history"
