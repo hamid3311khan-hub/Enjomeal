@@ -10,6 +10,7 @@ import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Coupons from "./pages/Coupons";
 import Tickets from "./pages/Tickets";
+import Updates from "./pages/Updates";
 
 
 // =================================================
@@ -559,6 +560,9 @@ function App() {
 
 	  case "tickets":
         return <Tickets />;
+			
+	  case "updates":
+        return <Updates />;
 
       default:
         return <Dashboard />;
@@ -883,6 +887,7 @@ function App() {
   {!isMobile &&
     "Support Tickets"}
 </button>
+		  {activePage === "updates" && <Updates />}
 
 
         {/* LOGOUT */}
