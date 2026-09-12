@@ -7,6 +7,7 @@ function Menu() {
 
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Edit mode
   const [editingFood, setEditingFood] = useState(null);
@@ -127,6 +128,88 @@ function Menu() {
           : value,
     });
   };
+
+  // =====================================================
+// CLOUDINARY IMAGE UPLOAD
+// =====================================================
+
+const handleImageUpload = async (event) => {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  // Image check
+  if (!file.type.startsWith("image/")) {
+    setError("Please select a valid image file.");
+    event.target.value = "";
+    return;
+  }
+
+  // 5 MB limit
+  if (file.size > 5 * 1024 * 1024) {
+    setError("Image size must be less than 5 MB.");
+    event.target.value = "";
+    return;
+  }
+
+  try {
+    setUploadingImage(true);
+    setError("");
+
+    const token = localStorage.getItem(
+      "enjoMealRestaurantToken"
+    );
+
+    if (!token) {
+      setError("Restaurant login required.");
+      return;
+    }
+
+    const formData = new FormData();
+
+    formData.append("image", file);
+
+    const response = await fetch(
+      "https://enjomeal-api.onrender.com/api/uploads/food-image",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Image upload failed."
+      );
+    }
+
+    // Save Cloudinary URL into existing formData.image
+    setFormData((current) => ({
+      ...current,
+      image: data.image,
+    }));
+  } catch (error) {
+    console.error(
+      "Cloudinary Image Upload Error:",
+      error
+    );
+
+    setError(
+      error.message ||
+        "Failed to upload image."
+    );
+  } finally {
+    setUploadingImage(false);
+    event.target.value = "";
+  }
+};
 
   // =====================================================
   // RESET FORM
@@ -778,20 +861,66 @@ function Menu() {
               )}
             </select>
 
-            {/* IMAGE */}
+            {/* =================================================
+    FOOD IMAGE - CLOUDINARY
+================================================= */}
 
-            <label>
-              Image URL
-            </label>
+<label>
+  Food Image
+</label>
 
-            <input
-              type="text"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              placeholder="https://..."
-              style={inputStyle}
-            />
+<input
+  type="file"
+  accept="image/*"
+  onChange={handleImageUpload}
+  disabled={uploadingImage}
+  style={{
+    ...inputStyle,
+    padding: "10px",
+    background: "#fff",
+  }}
+/>
+
+<p
+  style={{
+    marginTop: "-8px",
+    marginBottom: "15px",
+    fontSize: "13px",
+    color: "#777",
+  }}
+>
+  JPG, JPEG, PNG or WebP • Maximum 5 MB
+</p>
+
+{uploadingImage && (
+  <div
+    style={{
+      marginBottom: "15px",
+      padding: "12px",
+      background: "#fff3cd",
+      color: "#856404",
+      borderRadius: "8px",
+      fontWeight: "700",
+    }}
+  >
+    ⏳ Uploading image to Cloudinary...
+  </div>
+)}
+
+{formData.image && !uploadingImage && (
+  <div
+    style={{
+      marginBottom: "20px",
+      padding: "12px",
+      background: "#e8f5e9",
+      borderRadius: "8px",
+      color: "#198754",
+      fontWeight: "700",
+    }}
+  >
+    ✅ Image uploaded successfully
+  </div>
+)}
 
             {/* IMAGE PREVIEW */}
 
