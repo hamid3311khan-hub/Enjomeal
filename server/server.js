@@ -23,6 +23,7 @@ const updateRoutes = require(
   "./routes/updateRoutes"
 );
 const ticketRoutes = require("./routes/ticket.routes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 // =====================================================
 // APP CONFIG
@@ -330,6 +331,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/tickets", ticketRoutes);
+app.use("/api/uploads", uploadRoutes);
 app.use(
   "/api/updates",
   updateRoutes
