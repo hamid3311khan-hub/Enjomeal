@@ -495,6 +495,7 @@ const handleImageUpload = async (e) => {
                 }
                 placeholder="https://youtube.com/..."
               />
+            </div>
 
                         <div style={styles.field}>
               <label style={styles.label}>
