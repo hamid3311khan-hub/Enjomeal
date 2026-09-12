@@ -9,6 +9,8 @@ function Updates() {
 
   const [message, setMessage] =
     useState("");
+  
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [error, setError] =
     useState("");
@@ -106,6 +108,82 @@ function Updates() {
           : value,
     }));
   };
+
+  // =========================
+// CLOUDINARY IMAGE UPLOAD
+// =========================
+
+const handleImageUpload = async (e) => {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    setError("Please select a valid image file.");
+    e.target.value = "";
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    setError("Image size must be less than 5 MB.");
+    e.target.value = "";
+    return;
+  }
+
+  try {
+    setUploadingImage(true);
+    setError("");
+    setMessage("");
+
+    const token = getToken();
+
+    if (!token) {
+      throw new Error("Admin login required.");
+    }
+
+    const uploadData = new FormData();
+
+    uploadData.append("image", file);
+
+    const response = await fetch(
+      "https://enjomeal-api.onrender.com/api/uploads/food-image",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: uploadData,
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Image upload failed."
+      );
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      image: data.image,
+    }));
+
+    setMessage("Image uploaded successfully.");
+  } catch (err) {
+    console.error(
+      "Cloudinary Upload Error:",
+      err
+    );
+
+    setError(
+      err.message || "Image upload failed."
+    );
+  } finally {
+    setUploadingImage(false);
+    e.target.value = "";
+  }
+};
 
   // =========================
   // CREATE UPDATE
@@ -420,34 +498,76 @@ function Updates() {
 
             </div>
 
-            <div style={styles.field}>
+            <label style={styles.label}>
+  Update Image
+</label>
 
-              <label
-                style={
-                  styles.label
-                }
-              >
-                Image URL
-              </label>
+<input
+  type="file"
+  accept="image/*"
+  onChange={handleImageUpload}
+  disabled={uploadingImage}
+  style={{
+    ...styles.input,
+    padding: "10px",
+    background: "#fff",
+  }}
+/>
 
-              <input
-                type="url"
-                name="image"
-                value={
-                  form.image
-                }
-                onChange={
-                  handleChange
-                }
-                style={
-                  styles.input
-                }
-                placeholder="https://..."
-              />
+<p
+  style={{
+    margin: "0",
+    fontSize: "13px",
+    color: "#6b7280",
+  }}
+>
+  JPG, JPEG, PNG or WebP • Maximum 5 MB
+</p>
 
-            </div>
+{uploadingImage && (
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px",
+      background: "#fff3cd",
+      color: "#856404",
+      borderRadius: "8px",
+      fontWeight: "600",
+    }}
+  >
+    ⏳ Uploading image to Cloudinary...
+  </div>
+)}
 
-          </div>
+{form.image && !uploadingImage && (
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px",
+      background: "#dcfce7",
+      color: "#166534",
+      borderRadius: "8px",
+      fontWeight: "600",
+    }}
+  >
+    ✅ Image uploaded successfully
+  </div>
+)}
+
+{form.image && (
+  <img
+    src={form.image}
+    alt="Update Preview"
+    style={{
+      width: "180px",
+      height: "120px",
+      objectFit: "cover",
+      borderRadius: "10px",
+      marginTop: "12px",
+      border: "1px solid #e5e7eb",
+    }}
+  />
+)}
 
           <label
             style={
