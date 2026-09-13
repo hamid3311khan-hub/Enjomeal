@@ -11,6 +11,7 @@ import Settings from "./pages/Settings";
 import Coupons from "./pages/Coupons";
 import Tickets from "./pages/Tickets";
 import Updates from "./pages/Updates";
+import RestaurantReports from "./pages/RestaurantReports";
 
 
 // =================================================
@@ -476,6 +477,8 @@ function App() {
         return "Support Tickets";
 	  case "updates":
         return "App Updates";
+	  case "restaurant-reports":
+        return "Restaurant Reports";
 
       default:
         return "Admin Dashboard";
@@ -516,9 +519,12 @@ function App() {
 
 	  case "tickets":
         return "Manage customer support tickets";
+	  
 	  case "updates":
         return "Manage app updates and customer information";
-			
+	   
+	  case "restaurant-reports":
+        return "View restaurant-wise orders and sales reports";
 
       default:
 
@@ -567,6 +573,9 @@ function App() {
 			
 	  case "updates":
         return <Updates />;
+
+	  case "restaurant-reports":
+        return <RestaurantReports />;
 
       default:
         return <Dashboard />;
@@ -808,6 +817,25 @@ function App() {
 
         </button>
 
+	{/* RESTAURANT REPORTS */}
+
+<button
+  style={{
+    ...styles.menuButton,
+    ...(activePage === "restaurant-reports"
+      ? styles.activeButton
+      : {}),
+  }}
+  onClick={() =>
+    setActivePage("restaurant-reports")
+  }
+>
+  <span style={styles.menuIcon}>
+    📈
+  </span>
+
+  {!isMobile && "Restaurant Reports"}
+</button>
 
     {/* SETTINGS */}
     <button
