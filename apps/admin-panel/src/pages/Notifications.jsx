@@ -30,10 +30,13 @@ function Notifications() {
   // FETCH NOTIFICATIONS
   // =====================================================
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const fetchNotifications = async (showLoader = true) => {
+  try {
+    if (showLoader) {
+      setLoading(false);
+    }
+
+    setError("");
 
       const token = getToken();
 
@@ -291,8 +294,19 @@ function Notifications() {
   // =====================================================
 
   useEffect(() => {
+  // Initial notification load
+  fetchNotifications();
+
+  // Automatically check for new notifications
+  const notificationInterval = setInterval(() => {
     fetchNotifications();
-  }, []);
+  }, 10000);
+
+  // Cleanup when page is closed/unmounted
+  return () => {
+    clearInterval(notificationInterval);
+  };
+}, []);
 
   // =====================================================
   // LOADING
