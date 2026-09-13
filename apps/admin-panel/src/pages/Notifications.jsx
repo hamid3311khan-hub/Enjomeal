@@ -12,7 +12,8 @@ function Notifications() {
   // API BASE URL
   // =====================================================
 
-  const API_URL = "https://enjomeal-api.onrender.com/api/notifications";
+  const API_URL =
+    "https://enjomeal-api.onrender.com/api/notifications";
 
   // =====================================================
   // GET TOKEN
@@ -31,18 +32,24 @@ function Notifications() {
   // =====================================================
 
   const fetchNotifications = async (showLoader = true) => {
-  try {
-    if (showLoader) {
-      setLoading(false);
-    }
+    try {
+      if (showLoader) {
+        setLoading(true);
+      }
 
-    setError("");
+      setError("");
 
       const token = getToken();
 
       if (!token) {
-        setError("Authentication token not found. Please login again.");
-        setLoading(false);
+        setError(
+          "Authentication token not found. Please login again."
+        );
+
+        if (showLoader) {
+          setLoading(false);
+        }
+
         return;
       }
 
@@ -61,7 +68,8 @@ function Notifications() {
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to fetch notifications"
+          data.message ||
+            "Failed to fetch notifications"
         );
       }
 
@@ -82,7 +90,9 @@ function Notifications() {
 
       setError(error.message);
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   };
 
@@ -290,23 +300,23 @@ function Notifications() {
   };
 
   // =====================================================
-  // LOAD
+  // LOAD + AUTO REFRESH
   // =====================================================
 
   useEffect(() => {
-  // Initial notification load
-  fetchNotifications();
+    // Initial notification load
+    fetchNotifications(true);
 
-  // Automatically check for new notifications
-  const notificationInterval = setInterval(() => {
-    fetchNotifications();
-  }, 10000);
+    // Automatically check for new notifications
+    const notificationInterval = setInterval(() => {
+      fetchNotifications(false);
+    }, 10000);
 
-  // Cleanup when page is closed/unmounted
-  return () => {
-    clearInterval(notificationInterval);
-  };
-}, []);
+    // Cleanup when page is closed/unmounted
+    return () => {
+      clearInterval(notificationInterval);
+    };
+  }, []);
 
   // =====================================================
   // LOADING
@@ -374,7 +384,7 @@ function Notifications() {
         </div>
 
         <button
-          onClick={fetchNotifications}
+          onClick={() => fetchNotifications(true)}
           disabled={loading}
           style={{
             padding: "10px 16px",
@@ -412,7 +422,7 @@ function Notifications() {
           <span>{error}</span>
 
           <button
-            onClick={fetchNotifications}
+            onClick={() => fetchNotifications(true)}
             style={{
               padding: "8px 14px",
               border: "none",
@@ -588,17 +598,19 @@ function Notifications() {
             gap: "14px",
           }}
         >
-          {notifications.map(
+                    {notifications.map(
             (notification) => (
               <div
                 key={notification._id}
                 style={{
-                  background: notification.isRead
-                    ? "#fff"
-                    : "#eef6ff",
-                  border: notification.isRead
-                    ? "1px solid #e5e5e5"
-                    : "1px solid #b6d4fe",
+                  background:
+                    notification.isRead
+                      ? "#fff"
+                      : "#eef6ff",
+                  border:
+                    notification.isRead
+                      ? "1px solid #e5e5e5"
+                      : "1px solid #b6d4fe",
                   borderRadius: "12px",
                   padding: "18px",
                   boxShadow:
