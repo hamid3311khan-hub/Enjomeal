@@ -206,6 +206,50 @@ const updateUpdateController =
   };
 
 // ===============================
+// TOGGLE UPDATE STATUS
+// ADMIN ONLY
+// ===============================
+const toggleUpdateController =
+  async (req, res) => {
+    try {
+      const { updateId } = req.params;
+
+      const update =
+        await Update.findById(updateId);
+
+      if (!update) {
+        return res.status(404).json({
+          success: false,
+          message: "Update not found",
+        });
+      }
+
+      update.isActive = !update.isActive;
+
+      await update.save();
+
+      return res.status(200).json({
+        success: true,
+        message: update.isActive
+          ? "Update activated successfully"
+          : "Update deactivated successfully",
+        update,
+      });
+    } catch (error) {
+      console.error(
+        "Toggle update error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to toggle update",
+        error: error.message,
+      });
+    }
+  };
+
+// ===============================
 // DELETE UPDATE
 // ADMIN ONLY
 // ===============================
@@ -257,5 +301,6 @@ module.exports = {
   getActiveUpdatesController,
   getAllUpdatesController,
   updateUpdateController,
+  toggleUpdateController
   deleteUpdateController,
 };
