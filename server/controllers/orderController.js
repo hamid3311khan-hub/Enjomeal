@@ -417,6 +417,42 @@ await Notification.create({
   isRead: false,
 });
 
+
+    // ===============================
+// ADMIN NEW ORDER NOTIFICATION
+// ===============================
+
+const User = mongoose.model("User");
+
+const admins = await User.find({
+  role: "admin",
+  isActive: true,
+}).select("_id");
+
+const io = req.app.get("io");
+
+for (const admin of admins) {
+  const adminNotification =
+    await Notification.create({
+      user: admin._id,
+      title: "New Order Received",
+      message: `A new order has been placed. Order ID: ${order._id}`,
+      type: "ORDER_PLACED",
+      order: order._id,
+      isRead: false,
+    });
+
+  if (io) {
+    io.to(`user:${admin._id.toString()}`).emit(
+      "notification:new",
+      {
+        success: true,
+        notification: adminNotification,
+      }
+    );
+  }
+}
+
     // ===============================
     // RESPONSE
     // ===============================
