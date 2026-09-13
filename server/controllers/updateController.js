@@ -301,6 +301,6 @@ module.exports = {
   getActiveUpdatesController,
   getAllUpdatesController,
   updateUpdateController,
-  toggleUpdateController
+  toggleUpdateController,
   deleteUpdateController,
 };
