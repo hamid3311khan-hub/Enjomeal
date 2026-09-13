@@ -498,78 +498,95 @@ const handleImageUpload = async (e) => {
             </div>
 
                         <div style={styles.field}>
-              <label style={styles.label}>
-                Update Image
-              </label>
+  <label style={styles.label}>
+    Update Image
+  </label>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={uploadingImage}
-                style={{
-                  ...styles.input,
-                  padding: "10px",
-                  background: "#fff",
-                }}
-              />
+  <label
+    htmlFor="updateImage"
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "fit-content",
+      padding: "11px 18px",
+      background: "#2563eb",
+      color: "#fff",
+      borderRadius: "8px",
+      cursor: uploadingImage ? "not-allowed" : "pointer",
+      fontWeight: "600",
+      opacity: uploadingImage ? 0.7 : 1,
+    }}
+  >
+    {uploadingImage ? "Uploading..." : "Choose File"}
 
-              <p
-                style={{
-                  margin: "0",
-                  fontSize: "13px",
-                  color: "#6b7280",
-                }}
-              >
-                JPG, JPEG, PNG or WebP • Maximum 5 MB
-              </p>
+    <input
+      id="updateImage"
+      type="file"
+      accept="image/*"
+      onChange={handleImageUpload}
+      disabled={uploadingImage}
+      style={{
+        display: "none",
+      }}
+    />
+  </label>
 
-              {uploadingImage && (
-                <div
-                  style={{
-                    marginTop: "10px",
-                    padding: "10px",
-                    background: "#fff3cd",
-                    color: "#856404",
-                    borderRadius: "8px",
-                    fontWeight: "600",
-                  }}
-                >
-                  ⏳ Uploading image to Cloudinary...
-                </div>
-              )}
+  <p
+    style={{
+      margin: "0",
+      fontSize: "13px",
+      color: "#6b7280",
+    }}
+  >
+    JPG, JPEG, PNG or WebP • Maximum 5 MB
+  </p>
 
-              {form.image && !uploadingImage && (
-                <div
-                  style={{
-                    marginTop: "10px",
-                    padding: "10px",
-                    background: "#dcfce7",
-                    color: "#166534",
-                    borderRadius: "8px",
-                    fontWeight: "600",
-                  }}
-                >
-                  ✅ Image uploaded successfully
-                </div>
-              )}
+  {form.image && !uploadingImage && (
+    <div
+      style={{
+        marginTop: "12px",
+      }}
+    >
+      <p
+        style={{
+          margin: "0 0 8px",
+          fontWeight: "600",
+        }}
+      >
+        Image Preview
+      </p>
 
-              {form.image && (
-                <img
-                  src={form.image}
-                  alt="Update Preview"
-                  style={{
-                    width: "180px",
-                    height: "120px",
-                    objectFit: "cover",
-                    borderRadius: "10px",
-                    marginTop: "12px",
-                    border: "1px solid #e5e7eb",
-                  }}
-                />
-              )}
-            </div>
-          </div>
+      <img
+        src={form.image}
+        alt="Update Preview"
+        style={{
+          width: "180px",
+          height: "120px",
+          objectFit: "cover",
+          borderRadius: "10px",
+          border: "1px solid #e5e7eb",
+          display: "block",
+        }}
+      />
+    </div>
+  )}
+
+  {uploadingImage && (
+    <div
+      style={{
+        marginTop: "10px",
+        padding: "10px",
+        background: "#fff3cd",
+        color: "#856404",
+        borderRadius: "8px",
+        fontWeight: "600",
+      }}
+    >
+      ⏳ Uploading image to Cloudinary...
+    </div>
+  )}
+</div>
 
           <label
             style={
