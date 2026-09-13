@@ -5,6 +5,7 @@ const {
   getActiveUpdatesController,
   getAllUpdatesController,
   updateUpdateController,
+  toggleUpdateController,
   deleteUpdateController,
 } = require("../controllers/updateController");
 
@@ -61,6 +62,18 @@ router.put(
   authMiddleware,
   roleMiddleware("admin"),
   updateUpdateController
+);
+
+// ======================================
+// TOGGLE UPDATE STATUS
+// ADMIN ONLY
+// ======================================
+
+router.patch(
+  "/:updateId/toggle",
+  authMiddleware,
+  roleMiddleware("admin"),
+  toggleUpdateController
 );
 
 // ======================================
