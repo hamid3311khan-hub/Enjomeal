@@ -587,6 +587,7 @@ const handleImageUpload = async (e) => {
     </div>
   )}
 </div>
+</div>
 
           <label
             style={
