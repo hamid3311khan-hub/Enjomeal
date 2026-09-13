@@ -1731,274 +1731,6 @@ const updatePaymentStatusController = async (
       });
     }
 
-    // =================================================
-// RESTAURANT-WISE REPORT
-// ADMIN ONLY
-// =================================================
-const getRestaurantReportsController = async (
-  req,
-  res
-) => {
-  try {
-    const {
-      startDate,
-      endDate,
-    } = req.query;
-
-    // ===============================
-    // DATE FILTER
-    // ===============================
-
-    const matchStage = {};
-
-    if (startDate || endDate) {
-      matchStage.createdAt = {};
-
-      if (startDate) {
-        const start = new Date(startDate);
-
-        if (isNaN(start.getTime())) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid start date",
-          });
-        }
-
-        start.setHours(0, 0, 0, 0);
-        matchStage.createdAt.$gte = start;
-      }
-
-      if (endDate) {
-        const end = new Date(endDate);
-
-        if (isNaN(end.getTime())) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid end date",
-          });
-        }
-
-        end.setHours(23, 59, 59, 999);
-        matchStage.createdAt.$lte = end;
-      }
-    }
-
-    // ===============================
-    // RESTAURANT-WISE AGGREGATION
-    // ===============================
-
-    const reports = await Order.aggregate([
-      {
-        $match: matchStage,
-      },
-
-      {
-        $group: {
-          _id: "$restaurant",
-
-          totalOrders: {
-            $sum: 1,
-          },
-
-          completedOrders: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: [
-                    "$orderStatus",
-                    "DELIVERED",
-                  ],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-
-          cancelledOrders: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: [
-                    "$orderStatus",
-                    "CANCELLED",
-                  ],
-                },
-                1,
-                0,
-              ],
-            },
-          },
-
-          foodSales: {
-            $sum: "$subtotal",
-          },
-
-          discount: {
-            $sum: "$discountAmount",
-          },
-
-          deliveryCharges: {
-            $sum: "$deliveryFee",
-          },
-
-          platformCharges: {
-            $sum: "$platformCharge",
-          },
-
-          customerCollection: {
-            $sum: "$totalAmount",
-          },
-        },
-      },
-
-      {
-        $lookup: {
-          from: "restaurants",
-          localField: "_id",
-          foreignField: "_id",
-          as: "restaurant",
-        },
-      },
-
-      {
-        $unwind: {
-          path: "$restaurant",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-
-      {
-        $project: {
-          _id: 0,
-
-          restaurantId: "$_id",
-
-          restaurantName: {
-            $ifNull: [
-              "$restaurant.name",
-              "Unknown Restaurant",
-            ],
-          },
-
-          totalOrders: 1,
-          completedOrders: 1,
-          cancelledOrders: 1,
-
-          foodSales: 1,
-          discount: 1,
-          deliveryCharges: 1,
-          platformCharges: 1,
-
-          customerCollection: 1,
-
-          // Restaurant sales before
-          // platform/delivery charges
-          restaurantSales: {
-            $subtract: [
-              "$foodSales",
-              "$discount",
-            ],
-          },
-        },
-      },
-
-      {
-        $sort: {
-          restaurantName: 1,
-        },
-      },
-    ]);
-
-    // ===============================
-    // GRAND TOTAL
-    // ===============================
-
-    const grandTotal = reports.reduce(
-      (total, report) => {
-        total.totalOrders +=
-          report.totalOrders || 0;
-
-        total.completedOrders +=
-          report.completedOrders || 0;
-
-        total.cancelledOrders +=
-          report.cancelledOrders || 0;
-
-        total.foodSales +=
-          report.foodSales || 0;
-
-        total.discount +=
-          report.discount || 0;
-
-        total.deliveryCharges +=
-          report.deliveryCharges || 0;
-
-        total.platformCharges +=
-          report.platformCharges || 0;
-
-        total.customerCollection +=
-          report.customerCollection || 0;
-
-        total.restaurantSales +=
-          report.restaurantSales || 0;
-
-        return total;
-      },
-      {
-        totalOrders: 0,
-        completedOrders: 0,
-        cancelledOrders: 0,
-        foodSales: 0,
-        discount: 0,
-        deliveryCharges: 0,
-        platformCharges: 0,
-        customerCollection: 0,
-        restaurantSales: 0,
-      }
-    );
-
-    // ===============================
-    // RESPONSE
-    // ===============================
-
-    return res.status(200).json({
-      success: true,
-
-      message:
-        "Restaurant reports fetched successfully",
-
-      filters: {
-        startDate:
-          startDate || null,
-
-        endDate:
-          endDate || null,
-      },
-
-      count: reports.length,
-
-      reports,
-
-      grandTotal,
-    });
-  } catch (error) {
-    console.error(
-      "Restaurant Reports Error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-
-      message:
-        "Error in Restaurant Reports API",
-
-      error: error.message,
-    });
-  }
-};
-    
 
     // ===============================
     // UPDATE PAYMENT STATUS
@@ -2046,6 +1778,317 @@ const getRestaurantReportsController = async (
       success: false,
       message:
         "Error in Update Payment Status API",
+      error: error.message,
+    });
+  }
+};
+
+// =====================================
+// RESTAURANT-WISE REPORT
+// ADMIN ONLY
+// =====================================
+
+const getRestaurantReportsController = async (
+  req,
+  res
+) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // =====================================
+    // DATE FILTER
+    // =====================================
+
+    const matchStage = {};
+
+    if (startDate || endDate) {
+      matchStage.createdAt = {};
+
+      if (startDate) {
+        const start = new Date(startDate);
+
+        if (isNaN(start.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid start date",
+          });
+        }
+
+        start.setHours(0, 0, 0, 0);
+
+        matchStage.createdAt.$gte = start;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+
+        if (isNaN(end.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid end date",
+          });
+        }
+
+        end.setHours(23, 59, 59, 999);
+
+        matchStage.createdAt.$lte = end;
+      }
+    }
+
+    // =====================================
+    // RESTAURANT-WISE AGGREGATION
+    // =====================================
+
+    const reports = await Order.aggregate([
+      {
+        $match: matchStage,
+      },
+
+      {
+        $group: {
+          _id: "$restaurant",
+
+          // Total orders
+          totalOrders: {
+            $sum: 1,
+          },
+
+          // Delivered orders
+          completedOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "DELIVERED",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          // Cancelled orders
+          cancelledOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "CANCELLED",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          // Food sales
+          foodSales: {
+            $sum: "$subtotal",
+          },
+
+          // Discount
+          discount: {
+            $sum: "$discountAmount",
+          },
+
+          // Delivery charges
+          deliveryCharges: {
+            $sum: "$deliveryFee",
+          },
+
+          // Platform charges
+          platformCharges: {
+            $sum: "$platformCharge",
+          },
+
+          // Customer collection
+          customerCollection: {
+            $sum: "$totalAmount",
+          },
+
+          // Delivered restaurant sales
+          restaurantSales: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "DELIVERED",
+                  ],
+                },
+                {
+                  $max: [
+                    {
+                      $subtract: [
+                        "$subtotal",
+                        "$discountAmount",
+                      ],
+                    },
+                    0,
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      },
+
+      // =====================================
+      // RESTAURANT DETAILS
+      // =====================================
+
+      {
+        $lookup: {
+          from: "restaurants",
+          localField: "_id",
+          foreignField: "_id",
+          as: "restaurant",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$restaurant",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // =====================================
+      // FINAL RESPONSE FIELDS
+      // =====================================
+
+      {
+        $project: {
+          _id: 0,
+
+          restaurantId: "$_id",
+
+          restaurantName: {
+            $ifNull: [
+              "$restaurant.name",
+              "Unknown Restaurant",
+            ],
+          },
+
+          totalOrders: 1,
+          completedOrders: 1,
+          cancelledOrders: 1,
+
+          foodSales: 1,
+          discount: 1,
+
+          deliveryCharges: 1,
+          platformCharges: 1,
+
+          customerCollection: 1,
+
+          // Amount belonging to restaurant
+          // from successfully delivered orders
+          restaurantSales: 1,
+        },
+      },
+
+      // =====================================
+      // SORT BY RESTAURANT NAME
+      // =====================================
+
+      {
+        $sort: {
+          restaurantName: 1,
+        },
+      },
+    ]);
+
+    // =====================================
+    // GRAND TOTAL
+    // =====================================
+
+    const grandTotal = reports.reduce(
+      (total, report) => {
+        total.totalOrders +=
+          report.totalOrders || 0;
+
+        total.completedOrders +=
+          report.completedOrders || 0;
+
+        total.cancelledOrders +=
+          report.cancelledOrders || 0;
+
+        total.foodSales +=
+          report.foodSales || 0;
+
+        total.discount +=
+          report.discount || 0;
+
+        total.deliveryCharges +=
+          report.deliveryCharges || 0;
+
+        total.platformCharges +=
+          report.platformCharges || 0;
+
+        total.customerCollection +=
+          report.customerCollection || 0;
+
+        total.restaurantSales +=
+          report.restaurantSales || 0;
+
+        return total;
+      },
+      {
+        totalOrders: 0,
+        completedOrders: 0,
+        cancelledOrders: 0,
+
+        foodSales: 0,
+        discount: 0,
+
+        deliveryCharges: 0,
+        platformCharges: 0,
+
+        customerCollection: 0,
+
+        restaurantSales: 0,
+      }
+    );
+
+    // =====================================
+    // RESPONSE
+    // =====================================
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "Restaurant reports fetched successfully",
+
+      filters: {
+        startDate: startDate || null,
+        endDate: endDate || null,
+      },
+
+      count: reports.length,
+
+      reports,
+
+      grandTotal,
+    });
+  } catch (error) {
+    console.error(
+      "Restaurant Reports Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+
+      message:
+        "Error in Restaurant Reports API",
+
       error: error.message,
     });
   }
