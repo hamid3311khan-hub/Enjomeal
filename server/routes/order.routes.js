@@ -9,6 +9,7 @@ const {
   assignDeliveryPartnerController,
   cancelOrderController,
   updatePaymentStatusController,
+  getRestaurantReportsController,
   getRestaurantOrdersController,  
 } = require("../controllers/orderController");
 
@@ -47,6 +48,14 @@ router.get(
   authMiddleware,
   roleMiddleware("admin"),
   getAllOrdersController
+);
+
+// RESTAURANT-WISE REPORT
+router.get(
+  "/restaurant-reports",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getRestaurantReportsController
 );
 
 // SINGLE ORDER
