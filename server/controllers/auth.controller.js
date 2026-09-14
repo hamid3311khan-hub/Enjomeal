@@ -61,7 +61,7 @@ const register = async (req, res) => {
       city,
       state,
       pincode,
-      fssaiNumber
+      fssaiNumber,
       cuisine,
 
       // Delivery fields
