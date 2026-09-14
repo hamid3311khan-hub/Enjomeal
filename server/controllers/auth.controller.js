@@ -61,6 +61,7 @@ const register = async (req, res) => {
       city,
       state,
       pincode,
+      fssaiNumber
       cuisine,
 
       // Delivery fields
@@ -120,14 +121,22 @@ const register = async (req, res) => {
         !address ||
         !city ||
         !state ||
-        !pincode
+        !pincode ||
+        !fssaiNumber
       ) {
         return res.status(400).json({
           success: false,
           message:
-            "Restaurant name, owner name, phone, address, city, state and pincode are required.",
+            "Restaurant name, owner name, phone, address, city, state, pincode and FASAI  Number are required.",
         });
       }
+    }
+
+    if (!/^\d{14}$/.test(String(fssaiNumber).trim())) {
+  return res.status(400).json({
+    success: false,
+    message: "FSSAI number must be exactly 14 digits.",
+  });
     }
 
     // ===============================
@@ -240,6 +249,8 @@ const register = async (req, res) => {
             state: state.trim(),
 
             pincode: pincode.trim(),
+
+            fssaiNumber: fssaiNumber.trim(),
 
             cuisine:
               Array.isArray(cuisine)
