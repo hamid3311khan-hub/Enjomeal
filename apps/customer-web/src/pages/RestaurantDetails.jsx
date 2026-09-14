@@ -410,6 +410,61 @@ const [reviewsLoading, setReviewsLoading] =
                 </p>
               )}
 
+              {/* =================================================
+    RESTAURANT BUSINESS DETAILS
+================================================= */}
+
+<div className="restaurant-business-details">
+
+  <h3>
+    🏪 Restaurant Information
+  </h3>
+
+  {restaurant.fssaiNumber && (
+    <p>
+      <strong>🧾 FSSAI License No:</strong>{" "}
+      {restaurant.fssaiNumber}
+    </p>
+  )}
+
+  {restaurant.phone && (
+    <p>
+      <strong>📞 Phone:</strong>{" "}
+      {restaurant.phone}
+    </p>
+  )}
+
+  {restaurant.email && (
+    <p>
+      <strong>✉️ Email:</strong>{" "}
+      {restaurant.email}
+    </p>
+  )}
+
+  {restaurant.address && (
+    <p>
+      <strong>📍 Address:</strong>{" "}
+      {restaurant.address}
+    </p>
+  )}
+
+  {(restaurant.city ||
+    restaurant.state ||
+    restaurant.pincode) && (
+    <p>
+      <strong>📌 Location:</strong>{" "}
+      {restaurant.city || ""}
+      {restaurant.state
+        ? `, ${restaurant.state}`
+        : ""}
+      {restaurant.pincode
+        ? ` - ${restaurant.pincode}`
+        : ""}
+    </p>
+  )}
+
+</div>
+
             </div>
 
           </div>
