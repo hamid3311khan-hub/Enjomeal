@@ -701,6 +701,12 @@ const fetchUpdates = async () => {
                           : ""}
                       </p>
 
+					  {restaurant.fssaiNumber && (
+  <p className="restaurant-fssai">
+    🧾 FSSAI: {restaurant.fssaiNumber}
+  </p>
+)}
+
                       <button
                         type="button"
                         className="view-menu-button"
