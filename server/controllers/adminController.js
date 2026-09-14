@@ -138,6 +138,15 @@ const approveRestaurantController = async (
     restaurant.isActive = true;
 
     await restaurant.save();
+    if (restaurant.owner) {
+  await User.findByIdAndUpdate(
+    restaurant.owner,
+    {
+      isActive: true,
+      approvalStatus: "APPROVED",
+    }
+  );
+    }
 
     return res.status(200).json({
       success: true,
