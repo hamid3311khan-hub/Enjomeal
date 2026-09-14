@@ -34,6 +34,21 @@ const restaurantSchema = new mongoose.Schema(
     },
 
     // ===================================================
+// FSSAI INFORMATION
+// ===================================================
+
+fssaiNumber: {
+  type: String,
+  required: [true, "FSSAI number is required"],
+  trim: true,
+  match: [
+    /^\d{14}$/,
+    "FSSAI number must be exactly 14 digits",
+  ],
+  index: true,
+},
+
+    // ===================================================
     // CONTACT INFORMATION
     // ===================================================
 
@@ -231,6 +246,10 @@ restaurantSchema.pre("save", function () {
 
   if (this.pincode) {
     this.pincode = this.pincode.trim();
+  }
+
+  if (this.fssaiNumber) {
+  this.fssaiNumber = this.fssaiNumber.trim();
   }
 
   if (Array.isArray(this.cuisine)) {
