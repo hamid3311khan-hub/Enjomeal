@@ -15,6 +15,7 @@ function RestaurantRegister() {
     city: "",
     state: "",
     pincode: "",
+    fssaiNumber: "",
     cuisine: "",
   });
 
@@ -53,7 +54,7 @@ function RestaurantRegister() {
         city: formData.city,
         state: formData.state,
         pincode: formData.pincode,
-
+        fssaiNumber: formData.fssaiNumber,
         cuisine: formData.cuisine
           ? [formData.cuisine]
           : [],
@@ -77,6 +78,7 @@ function RestaurantRegister() {
           city: "",
           state: "",
           pincode: "",
+          fssaiNumber: "",
           cuisine: "",
         });
 
@@ -286,6 +288,21 @@ function RestaurantRegister() {
             required
             style={inputStyle}
           />
+
+          <label>FSSAI Number</label>
+
+<input
+  type="text"
+  name="fssaiNumber"
+  value={formData.fssaiNumber}
+  onChange={handleChange}
+  placeholder="Enter 14-digit FSSAI number"
+  required
+  maxLength="14"
+  inputMode="numeric"
+  pattern="[0-9]{14}"
+  style={inputStyle}
+/>
 
           <label>Cuisine</label>
 
