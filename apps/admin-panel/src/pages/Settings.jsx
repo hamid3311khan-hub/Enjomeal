@@ -5,11 +5,15 @@ const API_URL = "https://enjomeal-api.onrender.com/api/settings";
 
 function Settings() {
   const [settings, setSettings] = useState({
-    deliveryFee: 0,
-    platformCharge: 0,
-    freeDelivery: false,
-  });
+  deliveryFee: 0,
+  platformCharge: 0,
+  freeDelivery: false,
 
+  deliveryPartnerAdmissionCharge: 0,
+  deliveryPartnerOffer: "",
+  deliveryPartnerOfferValidUntil: "",
+  deliveryPartnerInfo: "",
+});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -45,10 +49,28 @@ function Settings() {
       }
 
       setSettings({
-        deliveryFee: data.settings?.deliveryFee ?? 0,
-        platformCharge: data.settings?.platformCharge ?? 0,
-        freeDelivery: data.settings?.freeDelivery ?? false,
-      });
+  deliveryFee: data.settings?.deliveryFee ?? 0,
+  platformCharge: data.settings?.platformCharge ?? 0,
+  freeDelivery: data.settings?.freeDelivery ?? false,
+
+  deliveryPartnerAdmissionCharge:
+    data.settings?.deliveryPartnerAdmissionCharge ?? 0,
+
+  deliveryPartnerOffer:
+    data.settings?.deliveryPartnerOffer ?? "",
+
+  deliveryPartnerOfferValidUntil:
+    data.settings?.deliveryPartnerOfferValidUntil
+      ? new Date(
+          data.settings.deliveryPartnerOfferValidUntil
+        )
+          .toISOString()
+          .split("T")[0]
+      : "",
+
+  deliveryPartnerInfo:
+    data.settings?.deliveryPartnerInfo ?? "",
+});
     } catch (err) {
       console.error("Settings Load Error:", err);
       setError(err.message || "Failed to load settings");
@@ -84,12 +106,22 @@ function Settings() {
         method: "PUT",
         headers,
         body: JSON.stringify({
-          deliveryFee: Number(settings.deliveryFee),
-          platformCharge: Number(settings.platformCharge),
-          freeDelivery: settings.freeDelivery,
-        }),
-      });
+  deliveryFee: Number(settings.deliveryFee),
+  platformCharge: Number(settings.platformCharge),
+  freeDelivery: settings.freeDelivery,
 
+  deliveryPartnerAdmissionCharge:
+    Number(settings.deliveryPartnerAdmissionCharge),
+
+  deliveryPartnerOffer:
+    settings.deliveryPartnerOffer,
+
+  deliveryPartnerOfferValidUntil:
+    settings.deliveryPartnerOfferValidUntil || null,
+
+  deliveryPartnerInfo:
+    settings.deliveryPartnerInfo,
+}),
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -99,10 +131,28 @@ function Settings() {
       }
 
       setSettings({
-        deliveryFee: data.settings?.deliveryFee ?? 0,
-        platformCharge: data.settings?.platformCharge ?? 0,
-        freeDelivery: data.settings?.freeDelivery ?? false,
-      });
+  deliveryFee: data.settings?.deliveryFee ?? 0,
+  platformCharge: data.settings?.platformCharge ?? 0,
+  freeDelivery: data.settings?.freeDelivery ?? false,
+
+  deliveryPartnerAdmissionCharge:
+    data.settings?.deliveryPartnerAdmissionCharge ?? 0,
+
+  deliveryPartnerOffer:
+    data.settings?.deliveryPartnerOffer ?? "",
+
+  deliveryPartnerOfferValidUntil:
+    data.settings?.deliveryPartnerOfferValidUntil
+      ? new Date(
+          data.settings.deliveryPartnerOfferValidUntil
+        )
+          .toISOString()
+          .split("T")[0]
+      : "",
+
+  deliveryPartnerInfo:
+    data.settings?.deliveryPartnerInfo ?? "",
+});
 
       setMessage("Settings updated successfully.");
     } catch (err) {
