@@ -637,6 +637,23 @@ const retryProfile = () => {
         >
           Logout
         </button>
+	<button
+  onClick={() =>
+    (window.location.href = "/delivery/reports")
+  }
+  style={{
+    marginTop: "12px",
+    padding: "11px 18px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#0d6efd",
+    color: "#fff",
+    fontWeight: "700",
+    cursor: "pointer",
+  }}
+>
+  📊 My Reports
+</button>
       </div>
 
       {/* =================================================
