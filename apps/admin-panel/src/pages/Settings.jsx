@@ -268,6 +268,113 @@ function Settings() {
               </p>
             </div>
           </div>
+                    {/* ========================================
+              DELIVERY PARTNER SETTINGS
+          ======================================== */}
+
+          <div
+            style={{
+              marginTop: "30px",
+              paddingTop: "25px",
+              borderTop: "1px solid #e5e7eb",
+            }}
+          >
+            <h3 style={styles.cardTitle}>
+              Delivery Partner Offers & Charges
+            </h3>
+
+            {/* ADMISSION CHARGE */}
+            <div style={styles.field}>
+              <label style={styles.label}>
+                💰 Admission / Registration Charge
+              </label>
+
+              <input
+                type="number"
+                name="deliveryPartnerAdmissionCharge"
+                min="0"
+                step="0.01"
+                value={
+                  settings.deliveryPartnerAdmissionCharge
+                }
+                onChange={handleChange}
+                style={styles.input}
+              />
+
+              <p style={styles.help}>
+                Registration or admission charge for delivery
+                partners.
+              </p>
+            </div>
+
+            {/* OFFER */}
+            <div style={styles.field}>
+              <label style={styles.label}>
+                🎁 Current Offer
+              </label>
+
+              <input
+                type="text"
+                name="deliveryPartnerOffer"
+                value={settings.deliveryPartnerOffer}
+                onChange={handleChange}
+                placeholder="Example: Join now and get ₹500 joining benefit"
+                maxLength="500"
+                style={styles.input}
+              />
+
+              <p style={styles.help}>
+                Enter the current offer or promotional message.
+              </p>
+            </div>
+
+            {/* OFFER VALIDITY */}
+            <div style={styles.field}>
+              <label style={styles.label}>
+                📅 Offer Valid Until
+              </label>
+
+              <input
+                type="date"
+                name="deliveryPartnerOfferValidUntil"
+                value={
+                  settings.deliveryPartnerOfferValidUntil
+                }
+                onChange={handleChange}
+                style={styles.input}
+              />
+
+              <p style={styles.help}>
+                Leave empty if the offer has no expiry date.
+              </p>
+            </div>
+
+            {/* INFORMATION */}
+            <div style={styles.field}>
+              <label style={styles.label}>
+                ℹ️ Delivery Partner Information
+              </label>
+
+              <textarea
+                name="deliveryPartnerInfo"
+                value={settings.deliveryPartnerInfo}
+                onChange={handleChange}
+                placeholder="Enter important information, requirements, payment details, joining instructions, etc."
+                maxLength="2000"
+                rows="6"
+                style={{
+                  ...styles.input,
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+              />
+
+              <p style={styles.help}>
+                Important information that delivery partners
+                should see in their panel.
+              </p>
+            </div>
+          </div>
 
           <button
             type="submit"
