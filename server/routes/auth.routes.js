@@ -14,6 +14,7 @@ const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
 const {
+  authRateLimiter,
   passwordResetRateLimiter,
 } = require("../middleware/rateLimit.middleware");
 
@@ -26,6 +27,7 @@ const router = express.Router();
 
 router.post(
   "/register",
+  authRateLimiter,
   register
 );
 
@@ -36,6 +38,7 @@ router.post(
 
 router.post(
   "/login",
+  authRateLimiter,
   login
 );
 
