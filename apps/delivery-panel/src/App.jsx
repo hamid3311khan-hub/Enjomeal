@@ -3,6 +3,7 @@ import Dashboard from "./pages/Dashboard";
 import DeliveryRegister from "./pages/DeliveryRegister";
 import DeliveryReports from "./pages/DeliveryReports";
 import DeliveryNotifications from "./pages/DeliveryNotifications";
+import DeliveryOffers from "./pages/DeliveryOffers";
 import "./App.css";
 
 function App() {
@@ -14,6 +15,10 @@ function App() {
 
   if (path === "/delivery/notifications") {
   return <DeliveryNotifications />;
+  }
+
+  if (path === "/delivery/offers") {
+  return <DeliveryOffers />;
   }
 
   if (path === "/delivery/reports") {
