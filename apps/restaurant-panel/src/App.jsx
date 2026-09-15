@@ -8,6 +8,7 @@ import Menu from "./pages/Menu";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyResetOTP from "./pages/VerifyResetOTP";
 import ResetPassword from "./pages/ResetPassword";
+import RestaurantReports from "./pages/RestaurantReports";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem(
@@ -139,6 +140,25 @@ function Dashboard() {
       >
         Logout
       </button>
+
+		{/* Business Report */}
+<button
+  onClick={() => {
+    navigate("/reports");
+  }}
+  style={{
+    padding: "12px 20px",
+    marginRight: "10px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#198754",
+    color: "#fff",
+    fontWeight: "700",
+    cursor: "pointer",
+  }}
+>
+  Business Report
+</button>
     </div>
   );
 }
@@ -224,6 +244,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+		  {/* Restaurant Business Report */}
+<Route
+  path="/reports"
+  element={
+    <ProtectedRoute>
+      <RestaurantReports />
+    </ProtectedRoute>
+  }
+/>
 
       </Routes>
     </BrowserRouter>
