@@ -2094,6 +2094,270 @@ const getRestaurantReportsController = async (
   }
 };
 
+// =====================================
+// MY RESTAURANT REPORT
+// RESTAURANT ONLY
+// =====================================
+
+const getMyRestaurantReportController = async (
+  req,
+  res
+) => {
+  try {
+    // =====================================
+    // FIND LOGGED-IN RESTAURANT
+    // =====================================
+
+    const restaurant = await Restaurant.findOne({
+      owner: req.user.id,
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant profile not found",
+      });
+    }
+
+    // =====================================
+    // RESTAURANT STATUS
+    // =====================================
+
+    if (
+      restaurant.approvalStatus !== "APPROVED" ||
+      !restaurant.isActive
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Restaurant account is not active or approved",
+      });
+    }
+
+    // =====================================
+    // DATE FILTER
+    // =====================================
+
+    const { startDate, endDate } = req.query;
+
+    const matchStage = {
+      restaurant: restaurant._id,
+    };
+
+    if (startDate || endDate) {
+      matchStage.createdAt = {};
+
+      if (startDate) {
+        const start = new Date(startDate);
+
+        if (isNaN(start.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid start date",
+          });
+        }
+
+        start.setHours(0, 0, 0, 0);
+
+        matchStage.createdAt.$gte = start;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+
+        if (isNaN(end.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid end date",
+          });
+        }
+
+        end.setHours(23, 59, 59, 999);
+
+        matchStage.createdAt.$lte = end;
+      }
+    }
+
+    // =====================================
+    // RESTAURANT REPORT
+    // =====================================
+
+    const report = await Order.aggregate([
+      {
+        $match: matchStage,
+      },
+
+      {
+        $group: {
+          _id: null,
+
+          // Total orders
+          totalOrders: {
+            $sum: 1,
+          },
+
+          // Delivered orders
+          completedOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "DELIVERED",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          // Cancelled orders
+          cancelledOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "CANCELLED",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          // Food sales
+          foodSales: {
+            $sum: "$subtotal",
+          },
+
+          // Discount
+          discount: {
+            $sum: "$discountAmount",
+          },
+
+          // Delivery charges
+          deliveryCharges: {
+            $sum: "$deliveryFee",
+          },
+
+          // Platform charges
+          platformCharges: {
+            $sum: "$platformCharge",
+          },
+
+          // Total amount collected from customers
+          customerCollection: {
+            $sum: "$totalAmount",
+          },
+
+          // Restaurant's actual sales
+          // from delivered orders
+          restaurantSales: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "DELIVERED",
+                  ],
+                },
+                {
+                  $max: [
+                    {
+                      $subtract: [
+                        "$subtotal",
+                        "$discountAmount",
+                      ],
+                    },
+                    0,
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      },
+
+      {
+        $project: {
+          _id: 0,
+
+          totalOrders: 1,
+          completedOrders: 1,
+          cancelledOrders: 1,
+
+          foodSales: 1,
+          discount: 1,
+
+          deliveryCharges: 1,
+          platformCharges: 1,
+
+          customerCollection: 1,
+          restaurantSales: 1,
+        },
+      },
+    ]);
+
+    // =====================================
+    // EMPTY REPORT
+    // =====================================
+
+    const summary = report[0] || {
+      totalOrders: 0,
+      completedOrders: 0,
+      cancelledOrders: 0,
+
+      foodSales: 0,
+      discount: 0,
+
+      deliveryCharges: 0,
+      platformCharges: 0,
+
+      customerCollection: 0,
+      restaurantSales: 0,
+    };
+
+    // =====================================
+    // RESPONSE
+    // =====================================
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "My restaurant report fetched successfully",
+
+      restaurant: {
+        id: restaurant._id,
+        name: restaurant.name,
+      },
+
+      filters: {
+        startDate: startDate || null,
+        endDate: endDate || null,
+      },
+
+      summary,
+    });
+  } catch (error) {
+    console.error(
+      "My Restaurant Report Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error in My Restaurant Report API",
+      error: error.message,
+    });
+  }
+};
+
 // ===============================
 // EXPORT
 // ===============================
@@ -2103,6 +2367,7 @@ module.exports = {
   getUserOrdersController,
   getSingleOrderController,
   getRestaurantOrdersController,
+  getMyRestaurantReportController,
   getAllOrdersController,
   getRestaurantReportsController,
   updateOrderStatusController,
