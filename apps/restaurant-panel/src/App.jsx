@@ -172,7 +172,7 @@ function Dashboard() {
     Logout
   </button>
 </div>
-</div>
+   </div>
   );
 }
 
