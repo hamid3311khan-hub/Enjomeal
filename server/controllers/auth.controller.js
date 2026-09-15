@@ -695,6 +695,11 @@ const verifyResetOTP = async (req, res) => {
     algorithm: "HS256",
   }
 );
+    // Invalidate OTP after successful verification
+user.resetPasswordOTPHash = null;
+user.resetPasswordOTPExpires = null;
+
+await user.save();
 
     return res.status(200).json({
       success: true,
