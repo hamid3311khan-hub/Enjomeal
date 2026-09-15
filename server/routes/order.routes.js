@@ -10,7 +10,8 @@ const {
   cancelOrderController,
   updatePaymentStatusController,
   getRestaurantReportsController,
-  getRestaurantOrdersController,  
+  getRestaurantOrdersController,
+  getMyRestaurantReportController,
 } = require("../controllers/orderController");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -40,6 +41,14 @@ router.get(
   authMiddleware,
   roleMiddleware("restaurant"),
   getRestaurantOrdersController
+);
+
+// RESTAURANT MY REPORT
+router.get(
+  "/restaurant/my-report",
+  authMiddleware,
+  roleMiddleware("restaurant"),
+  getMyRestaurantReportController
 );
 
 // GET ALL ORDERS
