@@ -685,15 +685,16 @@ const verifyResetOTP = async (req, res) => {
     }
 
     const resetToken = jwt.sign(
-      {
-        id: user._id.toString(),
-        purpose: "PASSWORD_RESET",
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "10m",
-      }
-    );
+  {
+    id: user._id.toString(),
+    purpose: "PASSWORD_RESET",
+  },
+  process.env.JWT_SECRET,
+  {
+    expiresIn: "10m",
+    algorithm: "HS256",
+  }
+);
 
     return res.status(200).json({
       success: true,
@@ -770,9 +771,12 @@ const resetPassword = async (
 
     try {
       decoded = jwt.verify(
-        resetToken,
-        process.env.JWT_SECRET
-      );
+  resetToken,
+  process.env.JWT_SECRET,
+  {
+    algorithms: ["HS256"],
+  }
+);
     } catch (tokenError) {
       return res.status(401).json({
         success: false,
