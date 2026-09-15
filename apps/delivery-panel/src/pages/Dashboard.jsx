@@ -673,6 +673,24 @@ const retryProfile = () => {
       >
         🔔 Notifications
       </button>
+	  <button
+  onClick={() =>
+    (window.location.href = "/delivery/offers")
+  }
+  style={{
+    marginTop: "12px",
+    padding: "11px 18px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#f59e0b",
+    color: "#fff",
+    fontWeight: "700",
+    cursor: "pointer",
+    width: "100%",
+  }}
+>
+  🎁 Offers & Charges
+</button>
       </div>
 
       {/* =================================================
