@@ -123,25 +123,8 @@ function Dashboard() {
     >
         Manage Menu
       </button>
-        
 
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        style={{
-          padding: "12px 20px",
-          border: "none",
-          borderRadius: "8px",
-          background: "#dc3545",
-          color: "#fff",
-          fontWeight: "700",
-          cursor: "pointer",
-        }}
-      >
-        Logout
-      </button>
-
-		{/* Business Report */}
+	  {/* Business Report */}
 <button
   onClick={() => {
     navigate("/reports");
@@ -159,6 +142,22 @@ function Dashboard() {
 >
   Business Report
 </button>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        style={{
+          padding: "12px 20px",
+          border: "none",
+          borderRadius: "8px",
+          background: "#dc3545",
+          color: "#fff",
+          fontWeight: "700",
+          cursor: "pointer",
+        }}
+      >
+        Logout
+      </button>
     </div>
   );
 }
