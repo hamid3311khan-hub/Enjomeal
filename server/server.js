@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -174,7 +175,18 @@ io.on("connection", (socket) => {
     );
   });
 });
+// =====================================================
+// SECURITY HEADERS
+// =====================================================
+
 app.disable("x-powered-by");
+
+app.use(
+  helmet({
+    // API server + existing frontend compatibility
+    contentSecurityPolicy: false,
+  })
+);
 
 // =====================================================
 // TRUST PROXY
@@ -345,7 +357,6 @@ app.get("/", (req, res) => {
   return res.status(200).json({
     success: true,
     message: "EnjoMeal API is running",
-    environment: NODE_ENV,
     version: "1.0.0",
     requestId: req.requestId,
   });
@@ -360,7 +371,6 @@ app.get("/api/health", (req, res) => {
     success: true,
     message: "EnjoMeal API is healthy",
     status: "UP",
-    environment: NODE_ENV,
     timestamp: new Date().toISOString(),
     requestId: req.requestId,
   });
