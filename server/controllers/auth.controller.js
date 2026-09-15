@@ -272,8 +272,10 @@ const register = async (req, res) => {
         return res.status(500).json({
           success: false,
           message:
-            restaurantError.message ||
-            "Restaurant profile creation failed.",
+  process.env.NODE_ENV === "production"
+    ? "Restaurant profile creation failed."
+    : restaurantError.message ||
+      "Restaurant profile creation failed.",
 
           error:
             process.env.NODE_ENV === "production"
@@ -366,8 +368,10 @@ const register = async (req, res) => {
       success: false,
 
       message:
-        error.message ||
-        "Registration failed.",
+  process.env.NODE_ENV === "production"
+    ? "Registration failed."
+    : error.message ||
+      "Registration failed.",
     });
   }
 };
