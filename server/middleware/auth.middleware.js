@@ -73,11 +73,6 @@ const authMiddleware = async (req, res, next) => {
       process.env.JWT_SECRET
     );
 
-    console.log(
-      "JWT Decoded Payload:",
-      decoded
-    );
-
     // ==========================================
     // GET USER ID
     // SUPPORT:
@@ -189,17 +184,15 @@ const authMiddleware = async (req, res, next) => {
     };
 
     // ==========================================
-    // DEBUG
-    // ==========================================
+// SAFE DEBUG LOG
+// ==========================================
 
-    console.log(
-      "Authenticated User:",
-      {
-        id: req.user.id,
-        role: req.user.role,
-        email: req.user.email,
-      }
-    );
+if (process.env.NODE_ENV !== "production") {
+  console.log("Authenticated User:", {
+    id: req.user.id,
+    role: req.user.role,
+  });
+}
 
     // ==========================================
     // CONTINUE
