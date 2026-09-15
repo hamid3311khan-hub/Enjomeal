@@ -225,7 +225,62 @@ const updateSettingsController = async (req, res) => {
   }
 };
 
+// ==========================================
+// GET DELIVERY PARTNER SETTINGS
+// DELIVERY PARTNER ONLY
+// ==========================================
+
+const getDeliveryPartnerSettingsController = async (
+  req,
+  res
+) => {
+  try {
+    let settings = await Settings.findOne();
+
+    if (!settings) {
+      settings = await Settings.create({
+        deliveryFee: 0,
+        platformCharge: 0,
+        freeDelivery: false,
+        deliveryPartnerAdmissionCharge: 0,
+        deliveryPartnerOffer: "",
+        deliveryPartnerOfferValidUntil: null,
+        deliveryPartnerInfo: "",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      settings: {
+        deliveryPartnerAdmissionCharge:
+          settings.deliveryPartnerAdmissionCharge ?? 0,
+
+        deliveryPartnerOffer:
+          settings.deliveryPartnerOffer ?? "",
+
+        deliveryPartnerOfferValidUntil:
+          settings.deliveryPartnerOfferValidUntil ?? null,
+
+        deliveryPartnerInfo:
+          settings.deliveryPartnerInfo ?? "",
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Get Delivery Partner Settings Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to fetch delivery partner settings",
+    });
+  }
+};
+
 module.exports = {
   getSettingsController,
   updateSettingsController,
+  getDeliveryPartnerSettingsController,
 };
