@@ -1123,12 +1123,358 @@ const updateMyLiveLocationController = async (
   }
 };
 
+// =====================================================
+// GET MY DELIVERY REPORT
+// DELIVERY PARTNER ONLY
+// =====================================================
+
+const getMyDeliveryReportController = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      startDate,
+      endDate,
+    } = req.query;
+
+    // =================================================
+    // FIND LOGGED-IN DELIVERY PARTNER
+    // =================================================
+
+    const delivery = await Delivery.findOne({
+      user: req.user.id,
+    });
+
+    if (!delivery) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery profile not found",
+      });
+    }
+
+    if (!delivery.isActive) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Delivery partner account is inactive",
+      });
+    }
+
+    // =================================================
+    // DATE FILTER
+    // =================================================
+
+    const match = {
+      deliveryPartner: delivery._id,
+    };
+
+    if (startDate || endDate) {
+      match.createdAt = {};
+
+      if (startDate) {
+        const start = new Date(startDate);
+
+        if (Number.isNaN(start.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid startDate",
+          });
+        }
+
+        start.setHours(0, 0, 0, 0);
+        match.createdAt.$gte = start;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+
+        if (Number.isNaN(end.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid endDate",
+          });
+        }
+
+        end.setHours(23, 59, 59, 999);
+        match.createdAt.$lte = end;
+      }
+    }
+
+    // =================================================
+    // REPORT AGGREGATION
+    // =================================================
+
+    const report = await Order.aggregate([
+      {
+        $match: match,
+      },
+
+      {
+        $group: {
+          _id: null,
+
+          totalOrders: {
+            $sum: 1,
+          },
+
+          deliveredOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "DELIVERED",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          cancelledOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "CANCELLED",
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          activeOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $in: [
+                    "$orderStatus",
+                    [
+                      "READY",
+                      "OUT_FOR_DELIVERY",
+                    ],
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          pendingOrders: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    {
+                      $ne: [
+                        "$orderStatus",
+                        "DELIVERED",
+                      ],
+                    },
+                    {
+                      $ne: [
+                        "$orderStatus",
+                        "CANCELLED",
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+
+          totalDeliveryCharges: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [
+                    "$orderStatus",
+                    "DELIVERED",
+                  ],
+                },
+                {
+                  $ifNull: [
+                    "$deliveryFee",
+                    0,
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+
+    const summary = report[0] || {
+      totalOrders: 0,
+      deliveredOrders: 0,
+      cancelledOrders: 0,
+      activeOrders: 0,
+      pendingOrders: 0,
+      totalDeliveryCharges: 0,
+    };
+
+    // =================================================
+    // DATE-WISE ORDER COUNT
+    // =================================================
+
+    const dateWiseOrders =
+      await Order.aggregate([
+        {
+          $match: match,
+        },
+
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$createdAt",
+              },
+            },
+
+            orders: {
+              $sum: 1,
+            },
+
+            delivered: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$orderStatus",
+                      "DELIVERED",
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+
+            cancelled: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$orderStatus",
+                      "CANCELLED",
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+
+            deliveryCharges: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$orderStatus",
+                      "DELIVERED",
+                    ],
+                  },
+                  {
+                    $ifNull: [
+                      "$deliveryFee",
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
+            },
+          },
+        },
+
+        {
+          $sort: {
+            _id: -1,
+          },
+        },
+      ]);
+
+    // =================================================
+    // RESPONSE
+    // =================================================
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "Delivery report fetched successfully",
+
+      deliveryPartner: {
+        id: delivery._id,
+        name: delivery.name,
+        phone: delivery.phone,
+        vehicleType:
+          delivery.vehicleType,
+        vehicleNumber:
+          delivery.vehicleNumber || null,
+      },
+
+      filters: {
+        startDate: startDate || null,
+        endDate: endDate || null,
+      },
+
+      summary: {
+        totalOrders:
+          summary.totalOrders || 0,
+
+        deliveredOrders:
+          summary.deliveredOrders || 0,
+
+        cancelledOrders:
+          summary.cancelledOrders || 0,
+
+        activeOrders:
+          summary.activeOrders || 0,
+
+        pendingOrders:
+          summary.pendingOrders || 0,
+
+        totalDeliveryCharges:
+          summary.totalDeliveryCharges || 0,
+      },
+
+      dateWiseOrders,
+    });
+  } catch (error) {
+    console.error(
+      "Get My Delivery Report Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error fetching delivery report",
+      error: error.message,
+    });
+  }
+};
+
+
   // =====================================================
 // EXPORT
 // =====================================================
 module.exports = {
   createDeliveryController,
   getMyDeliveryProfileController,
+  getMyDeliveryReportController,
   getAllDeliveryController,
   getAvailableDeliveryController,
   getAssignedOrdersController,
