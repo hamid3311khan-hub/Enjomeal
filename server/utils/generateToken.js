@@ -17,6 +17,7 @@ const generateToken = (user) => {
     process.env.JWT_SECRET,
     {
       expiresIn: "7d",
+      algorithm: "HS256",
     }
   );
 };
