@@ -68,97 +68,110 @@ function Dashboard() {
   Your dashboard is ready to manage your Menu, Incoming Orders, and Business Growth.
 </p>
 
-      {/* Manage Orders */}
-      <button
-        onClick={() => {
-          navigate("/orders");
-        }}
-        style={{
-          padding: "12px 20px",
-          marginRight: "10px",
-          border: "none",
-          borderRadius: "8px",
-          background: "#e85d04",
-          color: "#fff",
-          fontWeight: "700",
-          cursor: "pointer",
-        }}
-      >
-        Manage Orders
-      </button>
-
-      {/* View Orders */}
-      <button
-        onClick={() => {
-          navigate("/orders");
-        }}
-        style={{
-          padding: "12px 20px",
-          marginRight: "10px",
-          border: "none",
-          borderRadius: "8px",
-          background: "#e85d04",
-          color: "#fff",
-          fontWeight: "700",
-          cursor: "pointer",
-        }}
-      >
-        View Orders
-      </button>
-        
-        <button
-        onClick={() => {
-          navigate("/menu");
-      }}
-      style={{
-        padding: "12px 20px",
-        marginRight: "10px",
-        border: "none",
-        borderRadius: "8px",
-        background: "#e85d04",
-        color: "#fff",
-        fontWeight: "700",
-        cursor: "pointer",
-      }}
-    >
-        Manage Menu
-      </button>
-
-	  {/* Business Report */}
-<button
-  onClick={() => {
-    navigate("/reports");
-  }}
+{/* DASHBOARD ACTIONS */}
+<div
   style={{
-    padding: "12px 20px",
-    marginRight: "10px",
-    border: "none",
-    borderRadius: "8px",
-    background: "#198754",
-    color: "#fff",
-    fontWeight: "700",
-    cursor: "pointer",
+    width: "100%",
+    maxWidth: "760px",
+    margin: "25px auto 0",
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
+    gap: "12px",
   }}
 >
-  Business Report
-</button>
+  {/* Manage Orders */}
+  <button
+    onClick={() => navigate("/orders")}
+    style={{
+      width: "100%",
+      padding: "14px 12px",
+      border: "none",
+      borderRadius: "10px",
+      background: "#e85d04",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    Manage Orders
+  </button>
 
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        style={{
-          padding: "12px 20px",
-          border: "none",
-          borderRadius: "8px",
-          background: "#dc3545",
-          color: "#fff",
-          fontWeight: "700",
-          cursor: "pointer",
-        }}
-      >
-        Logout
-      </button>
-    </div>
+  {/* View Orders */}
+  <button
+    onClick={() => navigate("/orders")}
+    style={{
+      width: "100%",
+      padding: "14px 12px",
+      border: "none",
+      borderRadius: "10px",
+      background: "#e85d04",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    View Orders
+  </button>
+
+  {/* Manage Menu */}
+  <button
+    onClick={() => navigate("/menu")}
+    style={{
+      width: "100%",
+      padding: "14px 12px",
+      border: "none",
+      borderRadius: "10px",
+      background: "#e85d04",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    Manage Menu
+  </button>
+
+  {/* Business Report */}
+  <button
+    onClick={() => navigate("/reports")}
+    style={{
+      width: "100%",
+      padding: "14px 12px",
+      border: "none",
+      borderRadius: "10px",
+      background: "#198754",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    Business Report
+  </button>
+
+  {/* Logout */}
+  <button
+    onClick={handleLogout}
+    style={{
+      gridColumn: "1 / -1",
+      justifySelf: "center",
+      width: "220px",
+      padding: "14px 20px",
+      border: "none",
+      borderRadius: "10px",
+      background: "#dc3545",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    Logout
+  </button>
+</div>
   );
 }
 
