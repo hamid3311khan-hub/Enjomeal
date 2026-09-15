@@ -121,7 +121,7 @@ function Settings() {
 
   deliveryPartnerInfo:
     settings.deliveryPartnerInfo,
-}),
+});
       const data = await response.json();
 
       if (!response.ok || !data.success) {
