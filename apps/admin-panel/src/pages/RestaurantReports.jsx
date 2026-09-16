@@ -702,18 +702,7 @@ const RestaurantReports = () => {
 
           {/* TABLE */}
 
-          <div style={styles.tableCard}>
-            <div style={styles.tableHeader}>
-              <button
-  style={{
-    ...styles.refreshButton,
-    background: "#16a34a",
-  }}
-  onClick={handleDownloadPDF}
->
-  📄 Download PDF
-</button>
-              <div
+          <div
   style={{
     ...styles.tableHeader,
     display: "flex",
