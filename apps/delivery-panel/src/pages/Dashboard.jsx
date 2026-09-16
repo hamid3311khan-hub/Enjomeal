@@ -141,6 +141,90 @@ useEffect(() => {
     }
   };
 
+    // =====================================================
+  // LIVE LOCATION SHARING
+  // =====================================================
+
+  useEffect(() => {
+    if (
+      !delivery?._id ||
+      !delivery?.isActive ||
+      !delivery?.isAvailable
+    ) {
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setError(
+        "Live location is not supported by this browser."
+      );
+      return;
+    }
+
+    const token = localStorage.getItem(
+      "enjoMealDeliveryToken"
+    );
+
+    if (!token) {
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude, accuracy } =
+            position.coords;
+
+          await fetch(
+            "https://enjomeal-api.onrender.com/api/delivery/my-location",
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                latitude,
+                longitude,
+                accuracy,
+              }),
+            }
+          );
+        } catch (error) {
+          console.error(
+            "Live Location Update Error:",
+            error
+          );
+        }
+      },
+      (error) => {
+        console.error(
+          "Live Location Error:",
+          error
+        );
+
+        if (error.code === 1) {
+          setError(
+            "Location permission is required for live delivery tracking."
+          );
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 15000,
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [
+    delivery?._id,
+    delivery?.isActive,
+    delivery?.isAvailable,
+  ]);
+
   // =====================================================
   // FETCH ASSIGNED ORDERS
   // =====================================================
