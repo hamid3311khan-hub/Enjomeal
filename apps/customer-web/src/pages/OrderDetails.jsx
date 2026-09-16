@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../api/api";
@@ -14,6 +14,9 @@ function OrderDetails() {
   const [liveLocation, setLiveLocation] = useState(null);
 const [trackingConnected, setTrackingConnected] =
   useState(false);
+const mapRef = useRef(null);
+const googleMapRef = useRef(null);
+const deliveryMarkerRef = useRef(null);
 
   useEffect(() => {
     fetchOrder();
@@ -122,6 +125,107 @@ const [trackingConnected, setTrackingConnected] =
       setTrackingConnected(false);
     };
   }, [order, orderId]);
+
+  // ==========================================
+// GOOGLE MAP - LIVE DELIVERY MARKER
+// ==========================================
+
+useEffect(() => {
+  if (!liveLocation) {
+    return;
+  }
+
+  const loadGoogleMaps = async () => {
+    try {
+      // Load Google Maps script only once
+      if (!window.google?.maps) {
+        const existingScript = document.querySelector(
+          'script[data-google-maps="true"]'
+        );
+
+        if (existingScript) {
+          await new Promise((resolve, reject) => {
+            existingScript.addEventListener(
+              "load",
+              resolve,
+              { once: true }
+            );
+
+            existingScript.addEventListener(
+              "error",
+              reject,
+              { once: true }
+            );
+          });
+        } else {
+          const script =
+            document.createElement("script");
+
+          script.src =
+            `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&v=weekly`;
+
+          script.async = true;
+          script.defer = true;
+          script.setAttribute(
+            "data-google-maps",
+            "true"
+          );
+
+          document.head.appendChild(script);
+
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = reject;
+          });
+        }
+      }
+
+      const position = {
+        lat: Number(liveLocation.latitude),
+        lng: Number(liveLocation.longitude),
+      };
+
+      // Create map first time
+      if (!googleMapRef.current) {
+        googleMapRef.current =
+          new window.google.maps.Map(
+            mapRef.current,
+            {
+              center: position,
+              zoom: 16,
+              mapId: "DEMO_MAP_ID",
+            }
+          );
+      } else {
+        // Move map with delivery partner
+        googleMapRef.current.panTo(position);
+      }
+
+      // Create delivery marker first time
+      if (!deliveryMarkerRef.current) {
+        deliveryMarkerRef.current =
+          new window.google.maps.Marker({
+            position,
+            map: googleMapRef.current,
+            title: "Delivery Partner",
+          });
+      } else {
+        // Move existing marker
+        deliveryMarkerRef.current.setPosition(
+          position
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Google Maps loading error:",
+        error
+      );
+    }
+  };
+
+  loadGoogleMaps();
+}, [liveLocation]);
+  
 
   // ==========================================
   // FETCH ORDER
@@ -426,41 +530,52 @@ const [trackingConnected, setTrackingConnected] =
       </p>
 
       {liveLocation ? (
-        <>
-          <p>
-            <strong>Latitude:</strong>{" "}
-            {liveLocation.latitude}
-          </p>
+  <>
+    <div
+      ref={mapRef}
+      style={{
+        width: "100%",
+        height: "350px",
+        marginTop: "20px",
+        borderRadius: "12px",
+        overflow: "hidden",
+      }}
+    />
 
-          <p>
-            <strong>Longitude:</strong>{" "}
-            {liveLocation.longitude}
-          </p>
+    <p>
+      <strong>Latitude:</strong>{" "}
+      {liveLocation.latitude}
+    </p>
 
-          {liveLocation.accuracy && (
-            <p>
-              <strong>Accuracy:</strong>{" "}
-              {Math.round(liveLocation.accuracy)} m
-            </p>
-          )}
+    <p>
+      <strong>Longitude:</strong>{" "}
+      {liveLocation.longitude}
+    </p>
 
-          <p
-            style={{
-              fontSize: "13px",
-              color: "#666",
-            }}
-          >
-            Last updated:{" "}
-            {new Date(
-              liveLocation.updatedAt
-            ).toLocaleTimeString("en-IN")}
-          </p>
-        </>
-      ) : (
-        <p style={{ color: "#666" }}>
-          Waiting for delivery partner's live location...
-        </p>
-      )}
+    {liveLocation.accuracy && (
+      <p>
+        <strong>Accuracy:</strong>{" "}
+        {Math.round(liveLocation.accuracy)} m
+      </p>
+    )}
+
+    <p
+      style={{
+        fontSize: "13px",
+        color: "#666",
+      }}
+    >
+      Last updated:{" "}
+      {new Date(
+        liveLocation.updatedAt
+      ).toLocaleTimeString("en-IN")}
+    </p>
+  </>
+) : (
+  <p style={{ color: "#666" }}>
+    Waiting for delivery partner's live location...
+  </p>
+)}
     </div>
   )}
       
