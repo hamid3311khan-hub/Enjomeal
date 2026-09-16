@@ -19,6 +19,110 @@ const [trackingConnected, setTrackingConnected] =
     fetchOrder();
   }, [orderId]);
 
+    // ==========================================
+  // LIVE DELIVERY LOCATION
+  // ==========================================
+
+  useEffect(() => {
+    if (!order) {
+      return;
+    }
+
+    if (
+      !["READY", "OUT_FOR_DELIVERY"].includes(
+        order.orderStatus
+      )
+    ) {
+      return;
+    }
+
+    if (!order.deliveryPartner) {
+      return;
+    }
+
+    const token = localStorage.getItem(
+      "enjoMealToken"
+    );
+
+    if (!token) {
+      return;
+    }
+
+    const socket = io(
+      "https://enjomeal-api.onrender.com",
+      {
+        auth: {
+          token,
+        },
+      }
+    );
+
+    socket.on("connect", () => {
+      setTrackingConnected(true);
+
+      socket.emit(
+        "order:join",
+        orderId,
+        (response) => {
+          if (!response?.success) {
+            console.warn(
+              "Order tracking join failed:",
+              response?.message
+            );
+            setTrackingConnected(false);
+          }
+        }
+      );
+    });
+
+    socket.on(
+      "delivery:location",
+      (locationData) => {
+        if (!locationData) {
+          return;
+        }
+
+        setLiveLocation({
+          latitude: Number(
+            locationData.latitude
+          ),
+          longitude: Number(
+            locationData.longitude
+          ),
+          accuracy: locationData.accuracy
+            ? Number(locationData.accuracy)
+            : null,
+          updatedAt:
+            locationData.updatedAt ||
+            new Date().toISOString(),
+        });
+      }
+    );
+
+    socket.on("disconnect", () => {
+      setTrackingConnected(false);
+    });
+
+    socket.on("connect_error", (socketError) => {
+      console.error(
+        "Live tracking connection error:",
+        socketError.message
+      );
+
+      setTrackingConnected(false);
+    });
+
+    return () => {
+      socket.emit(
+        "order:leave",
+        orderId
+      );
+
+      socket.disconnect();
+      setTrackingConnected(false);
+    };
+  }, [order, orderId]);
+
   // ==========================================
   // FETCH ORDER
   // ==========================================
