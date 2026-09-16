@@ -666,36 +666,6 @@ const handleDownloadInvoice = () => {
   }
 };
 
-  {/* ====================================
-    DOWNLOAD INVOICE
-==================================== */}
-
-<div
-  style={{
-    padding: "20px",
-    background: "#fff",
-    border: "1px solid #ddd",
-    borderRadius: "12px",
-    marginBottom: "20px",
-  }}
->
-  <button
-    onClick={handleDownloadInvoice}
-    style={{
-      width: "100%",
-      padding: "14px",
-      border: "none",
-      borderRadius: "8px",
-      background: "#ff7a00",
-      color: "#fff",
-      fontWeight: "700",
-      fontSize: "16px",
-      cursor: "pointer",
-    }}
-  >
-    📄 Download Invoice PDF
-  </button>
-</div>
 
   // ==========================================
   // CANCEL ORDER
@@ -1690,6 +1660,37 @@ const handleDownloadInvoice = () => {
             </p>
           )}
         </div>
+
+        {/* ====================================
+    DOWNLOAD INVOICE
+==================================== */}
+
+<div
+  style={{
+    padding: "20px",
+    background: "#fff",
+    border: "1px solid #ddd",
+    borderRadius: "12px",
+    marginBottom: "20px",
+  }}
+>
+  <button
+    onClick={handleDownloadInvoice}
+    style={{
+      width: "100%",
+      padding: "14px",
+      border: "none",
+      borderRadius: "8px",
+      background: "#ff7a00",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    📄 Download Invoice PDF
+  </button>
+</div>
 
         {/* ====================================
             CANCEL ORDER
