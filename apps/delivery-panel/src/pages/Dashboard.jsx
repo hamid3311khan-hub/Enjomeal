@@ -2004,6 +2004,7 @@ const retryProfile = () => {
       }}
     >
       🗺️ Open in Google Maps
+		</button>
 	  {/* CUSTOMER LOCATION MAP */}
 
 <div
@@ -2035,7 +2036,6 @@ const retryProfile = () => {
     Loading customer location...
   </div>
 </div>
-    </button>
   </div>
 )}
 
