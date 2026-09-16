@@ -8,6 +8,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const User = require("./models/user");
+const Order = require("./models/orderModel");
 const connectDB = require("./database/db");
 
 
@@ -167,6 +168,84 @@ io.on("connection", (socket) => {
     message: "Real-time connection established",
     userId: socket.user.id,
     role: socket.user.role,
+  });
+
+    // ==========================================
+  // CUSTOMER JOINS OWN ORDER ROOM
+  // ==========================================
+
+  socket.on("order:join", async (orderId, callback) => {
+    try {
+      if (!orderId) {
+        return callback?.({
+          success: false,
+          message: "Order ID is required",
+        });
+      }
+
+      const order = await Order.findById(orderId)
+        .select("_id user orderStatus deliveryPartner");
+
+      if (!order) {
+        return callback?.({
+          success: false,
+          message: "Order not found",
+        });
+      }
+
+      // Only the customer who owns this order
+      // can join its private room.
+      if (
+        socket.user.role !== "customer" ||
+        order.user.toString() !== socket.user.id
+      ) {
+        return callback?.({
+          success: false,
+          message: "Access denied",
+        });
+      }
+
+      // Live tracking only while delivery is active
+      if (
+        !["READY", "OUT_FOR_DELIVERY"].includes(
+          order.orderStatus
+        )
+      ) {
+        return callback?.({
+          success: false,
+          message:
+            "Live tracking is not available for this order yet",
+        });
+      }
+
+      if (!order.deliveryPartner) {
+        return callback?.({
+          success: false,
+          message:
+            "Delivery partner has not been assigned",
+        });
+      }
+
+      const room = `order:${order._id}`;
+
+      socket.join(room);
+
+      return callback?.({
+        success: true,
+        message: "Joined order tracking",
+        orderId: order._id.toString(),
+      });
+    } catch (error) {
+      console.error(
+        "Order room join error:",
+        error.message
+      );
+
+      return callback?.({
+        success: false,
+        message: "Failed to join order tracking",
+      });
+    }
   });
 
   socket.on("disconnect", (reason) => {
