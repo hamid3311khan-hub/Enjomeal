@@ -394,6 +394,76 @@ const [trackingConnected, setTrackingConnected] =
         background: "#fff8f3",
       }}
     >
+
+
+
+    {/* ====================================
+    LIVE DELIVERY LOCATION
+==================================== */}
+
+{["READY", "OUT_FOR_DELIVERY"].includes(
+  order.orderStatus
+) &&
+  order.deliveryPartner && (
+    <div
+      style={{
+        padding: "25px",
+        background: "#fff",
+        border: "1px solid #ddd",
+        borderRadius: "12px",
+        marginBottom: "20px",
+      }}
+    >
+      <h2 style={{ marginTop: 0 }}>
+        📍 Live Delivery Location
+      </h2>
+
+      <p>
+        <strong>Status:</strong>{" "}
+        {trackingConnected
+          ? "🟢 Live tracking connected"
+          : "🟡 Connecting..."}
+      </p>
+
+      {liveLocation ? (
+        <>
+          <p>
+            <strong>Latitude:</strong>{" "}
+            {liveLocation.latitude}
+          </p>
+
+          <p>
+            <strong>Longitude:</strong>{" "}
+            {liveLocation.longitude}
+          </p>
+
+          {liveLocation.accuracy && (
+            <p>
+              <strong>Accuracy:</strong>{" "}
+              {Math.round(liveLocation.accuracy)} m
+            </p>
+          )}
+
+          <p
+            style={{
+              fontSize: "13px",
+              color: "#666",
+            }}
+          >
+            Last updated:{" "}
+            {new Date(
+              liveLocation.updatedAt
+            ).toLocaleTimeString("en-IN")}
+          </p>
+        </>
+      ) : (
+        <p style={{ color: "#666" }}>
+          Waiting for delivery partner's live location...
+        </p>
+      )}
+    </div>
+  )}
+      
       {/* ======================================
           BACK BUTTON
       ====================================== */}
