@@ -702,6 +702,7 @@ const RestaurantReports = () => {
 
           {/* TABLE */}
 
+            <div style={styles.tableCard}>
           <div
   style={{
     ...styles.tableHeader,
