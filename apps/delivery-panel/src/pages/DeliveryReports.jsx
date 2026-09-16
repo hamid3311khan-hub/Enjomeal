@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
 
 const API_URL = "https://enjomeal-api.onrender.com";
 
@@ -145,6 +146,244 @@ function DeliveryReports() {
   };
 
   const summary = report?.summary || {};
+    const handleDownloadPDF = () => {
+    try {
+
+      const doc = new jsPDF();
+
+      const pdfCurrency = (amount) =>
+        `Rs. ${Number(amount || 0).toLocaleString(
+          "en-IN",
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }
+        )}`;
+
+      const deliveryPartner =
+        report?.deliveryPartner?.name ||
+        "Delivery Partner";
+
+      const phone =
+        report?.deliveryPartner?.phone || "";
+
+      const start = startDate || "All Time";
+      const end = endDate || "Today";
+
+      let y = 20;
+
+      // HEADER
+      doc.setFontSize(20);
+      doc.setFont(undefined, "bold");
+      doc.text("EnjoMeal", 20, y);
+
+      y += 10;
+
+      doc.setFontSize(16);
+      doc.text("DELIVERY REPORT", 20, y);
+
+      y += 10;
+
+      doc.setFontSize(11);
+      doc.setFont(undefined, "normal");
+
+      doc.text(
+        `Delivery Partner: ${deliveryPartner}`,
+        20,
+        y
+      );
+
+      y += 7;
+
+      if (phone) {
+        doc.text(`Phone: ${phone}`, 20, y);
+        y += 7;
+      }
+
+      doc.text(
+        `Report Period: ${start} to ${end}`,
+        20,
+        y
+      );
+
+      y += 14;
+
+      // ORDER SUMMARY
+      doc.setFontSize(14);
+      doc.setFont(undefined, "bold");
+      doc.text("Order Summary", 20, y);
+
+      y += 9;
+
+      doc.setFontSize(11);
+      doc.setFont(undefined, "normal");
+
+      doc.text(
+        `Total Orders: ${summary.totalOrders || 0}`,
+        20,
+        y
+      );
+
+      y += 7;
+
+      doc.text(
+        `Delivered Orders: ${
+          summary.deliveredOrders || 0
+        }`,
+        20,
+        y
+      );
+
+      y += 7;
+
+      doc.text(
+        `Cancelled Orders: ${
+          summary.cancelledOrders || 0
+        }`,
+        20,
+        y
+      );
+
+      y += 7;
+
+      doc.text(
+        `Active Orders: ${
+          summary.activeOrders || 0
+        }`,
+        20,
+        y
+      );
+
+      y += 7;
+
+      doc.text(
+        `Pending Orders: ${
+          summary.pendingOrders || 0
+        }`,
+        20,
+        y
+      );
+
+      y += 14;
+
+      // EARNINGS
+      doc.setFontSize(14);
+      doc.setFont(undefined, "bold");
+      doc.text("Earnings Summary", 20, y);
+
+      y += 9;
+
+      doc.setFontSize(11);
+      doc.setFont(undefined, "normal");
+
+      doc.text(
+        `Total Delivery Charges: ${pdfCurrency(
+          summary.totalDeliveryCharges
+        )}`,
+        20,
+        y
+      );
+
+      y += 14;
+
+      // DATE WISE
+      doc.setFontSize(14);
+      doc.setFont(undefined, "bold");
+      doc.text("Date-wise Report", 20, y);
+
+      y += 9;
+
+      doc.setFontSize(10);
+      doc.setFont(undefined, "bold");
+
+      doc.text("Date", 20, y);
+      doc.text("Orders", 65, y);
+      doc.text("Delivered", 95, y);
+      doc.text("Cancelled", 135, y);
+      doc.text("Charges", 170, y);
+
+      y += 7;
+
+      doc.setFont(undefined, "normal");
+
+      dateWiseOrders.forEach((item) => {
+        if (y > 275) {
+          doc.addPage();
+          y = 20;
+
+          doc.setFont(undefined, "bold");
+          doc.text("Date-wise Report (Continued)", 20, y);
+
+          y += 10;
+
+          doc.text("Date", 20, y);
+          doc.text("Orders", 65, y);
+          doc.text("Delivered", 95, y);
+          doc.text("Cancelled", 135, y);
+          doc.text("Charges", 170, y);
+
+          y += 7;
+          doc.setFont(undefined, "normal");
+        }
+
+        doc.text(formatDate(item._id), 20, y);
+
+        doc.text(
+          String(item.orders || 0),
+          65,
+          y
+        );
+
+        doc.text(
+          String(item.delivered || 0),
+          95,
+          y
+        );
+
+        doc.text(
+          String(item.cancelled || 0),
+          135,
+          y
+        );
+
+        doc.text(
+          pdfCurrency(item.deliveryCharges),
+          170,
+          y
+        );
+
+        y += 7;
+      });
+
+      y += 10;
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, "normal");
+
+      doc.text(
+        "Generated from EnjoMeal Delivery Panel",
+        20,
+        y
+      );
+
+      const safeName = deliveryPartner
+        .replace(/[^a-z0-9]/gi, "-")
+        .toLowerCase();
+
+      doc.save(
+        `EnjoMeal-${safeName}-delivery-report.pdf`
+      );
+    } catch (error) {
+      console.error(
+        "PDF generation failed:",
+        error
+      );
+
+      setError(
+        "Unable to generate PDF. Please try again."
+      );
+    }
+  };
 
   const dateWiseOrders = report?.dateWiseOrders || [];
 
@@ -241,6 +480,16 @@ function DeliveryReports() {
           }}
         >
           <h3 style={{ marginTop: 0 }}>Report Period</h3>
+                    <button
+            onClick={handleDownloadPDF}
+            style={{
+              ...buttonStyle,
+              marginBottom: "15px",
+              background: "#28a745",
+            }}
+          >
+            📄 Download PDF
+          </button>
 
           <div
             style={{
