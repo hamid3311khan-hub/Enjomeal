@@ -6,6 +6,8 @@ function Dashboard() {
   const [delivery, setDelivery] = useState(null);
 
   const [orders, setOrders] = useState([]);
+  const customerMapRefs = useRef({});
+  const customerMapInstances = useRef({});
   const [newOrderMessage, setNewOrderMessage] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -224,6 +226,181 @@ useEffect(() => {
     delivery?.isActive,
     delivery?.isAvailable,
   ]);
+
+	// =====================================================
+// CUSTOMER LOCATION MAPS
+// =====================================================
+
+useEffect(() => {
+  if (!orders || orders.length === 0) {
+    return;
+  }
+
+  const loadCustomerMaps = async () => {
+    try {
+      // Load Google Maps
+      if (!window.google?.maps) {
+        const apiKey =
+          import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+        if (!apiKey) {
+          console.error(
+            "VITE_GOOGLE_MAPS_API_KEY is missing."
+          );
+          return;
+        }
+
+        const existingScript =
+          document.querySelector(
+            'script[data-enjomeal-google-maps="true"]'
+          );
+
+        if (!existingScript) {
+          const script =
+            document.createElement("script");
+
+          script.src =
+            `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly`;
+
+          script.async = true;
+          script.defer = true;
+
+          script.setAttribute(
+            "data-enjomeal-google-maps",
+            "true"
+          );
+
+          document.head.appendChild(script);
+
+          await new Promise(
+            (resolve, reject) => {
+              script.onload = resolve;
+              script.onerror = reject;
+            }
+          );
+        } else {
+          await new Promise((resolve) => {
+            const checkGoogle = () => {
+              if (window.google?.maps) {
+                resolve();
+              } else {
+                setTimeout(
+                  checkGoogle,
+                  100
+                );
+              }
+            };
+
+            checkGoogle();
+          });
+        }
+      }
+
+      const geocoder =
+        new window.google.maps.Geocoder();
+
+      orders.forEach((order) => {
+        const address =
+          typeof order.deliveryAddress ===
+          "string"
+            ? order.deliveryAddress
+            : [
+                order.deliveryAddress?.address,
+                order.deliveryAddress?.city,
+                order.deliveryAddress?.state,
+                order.deliveryAddress?.pincode,
+              ]
+                .filter(Boolean)
+                .join(", ");
+
+        if (!address) {
+          return;
+        }
+
+        const mapElement =
+          customerMapRefs.current[
+            order._id
+          ];
+
+        if (!mapElement) {
+          return;
+        }
+
+        geocoder.geocode(
+          {
+            address: address,
+          },
+          (results, status) => {
+            if (
+              status !== "OK" ||
+              !results?.[0]
+            ) {
+              console.error(
+                "Customer address geocoding failed:",
+                status,
+                address
+              );
+              return;
+            }
+
+            const location =
+              results[0].geometry.location;
+
+            const position = {
+              lat: location.lat(),
+              lng: location.lng(),
+            };
+
+            // Create map
+            if (
+              !customerMapInstances.current[
+                order._id
+              ]
+            ) {
+              const map =
+                new window.google.maps.Map(
+                  mapElement,
+                  {
+                    center: position,
+                    zoom: 16,
+                    mapTypeControl: true,
+                    streetViewControl: true,
+                    fullscreenControl: true,
+                  }
+                );
+
+              customerMapInstances.current[
+                order._id
+              ] = map;
+
+              // Customer marker
+              new window.google.maps.Marker({
+                position: position,
+                map: map,
+                title: "Customer Location",
+              });
+            } else {
+              customerMapInstances.current[
+                order._id
+              ].setCenter(position);
+            }
+          }
+        );
+      });
+    } catch (error) {
+      console.error(
+        "Customer Google Maps Error:",
+        error
+      );
+    }
+  };
+
+  loadCustomerMaps();
+
+  return () => {
+    // Maps are kept for existing assigned orders.
+  };
+}, [orders]);
 
   // =====================================================
   // FETCH ASSIGNED ORDERS
@@ -1827,6 +2004,37 @@ const retryProfile = () => {
       }}
     >
       🗺️ Open in Google Maps
+	  {/* CUSTOMER LOCATION MAP */}
+
+<div
+  ref={(element) => {
+    customerMapRefs.current[
+      order._id
+    ] = element;
+  }}
+  style={{
+    width: "100%",
+    height: "300px",
+    marginTop: "12px",
+    marginBottom: "10px",
+    borderRadius: "10px",
+    overflow: "hidden",
+    background: "#e9ecef",
+  }}
+>
+  <div
+    style={{
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#666",
+      fontSize: "14px",
+    }}
+  >
+    Loading customer location...
+  </div>
+</div>
     </button>
   </div>
 )}
