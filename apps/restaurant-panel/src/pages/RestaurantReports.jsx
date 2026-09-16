@@ -228,6 +228,14 @@ function RestaurantReports() {
 
       const summary =
         report?.summary || {};
+      const pdfCurrency = (amount) =>
+  `Rs. ${Number(amount || 0).toLocaleString(
+    "en-IN",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  )}`;
 
       const start =
         report?.filters?.startDate ||
@@ -263,10 +271,10 @@ function RestaurantReports() {
       y += 6;
 
       doc.text(
-        `Report Period: ${start} → ${end}`,
-        20,
-        y
-      );
+  `Report Period: ${start} to ${end}`,
+  20,
+  y
+);
 
       y += 10;
 
@@ -345,31 +353,31 @@ function RestaurantReports() {
       const salesRows = [
         [
           "Food Sales",
-          formatCurrency(
+          pdfCurrency(
             summary.foodSales
           ),
         ],
         [
           "Discount",
-          `- ${formatCurrency(
+          `- ${pdfCurrency(
             summary.discount
           )}`,
         ],
         [
           "Delivery Charges",
-          formatCurrency(
+          pdfCurrency(
             summary.deliveryCharges
           ),
         ],
         [
           "Platform Charges",
-          formatCurrency(
+          pdfCurrency(
             summary.platformCharges
           ),
         ],
         [
           "Customer Collection",
-          formatCurrency(
+          pdfCurrency(
             summary.customerCollection
           ),
         ],
@@ -411,7 +419,7 @@ function RestaurantReports() {
       );
 
       doc.text(
-        formatCurrency(
+        pdfCurrency(
           summary.restaurantSales
         ),
         pageWidth - 20,
