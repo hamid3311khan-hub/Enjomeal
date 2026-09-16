@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
-import XLSX from "xlsx";
+import * as XLSX from "xlsx";
 
 const API =
   "https://enjomeal-api.onrender.com/api/orders/restaurant/my-report";
