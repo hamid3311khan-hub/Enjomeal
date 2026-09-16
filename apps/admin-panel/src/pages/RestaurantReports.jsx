@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
 
 const API_URL =
   "https://enjomeal-api.onrender.com/api/orders/restaurant-reports";
@@ -13,6 +14,292 @@ const getToken = () => {
 
 const formatMoney = (value) => {
   return `₹${Number(value || 0).toFixed(2)}`;
+};
+
+const handleDownloadPDF = () => {
+  try {
+    const doc = new jsPDF();
+
+    const pdfMoney = (value) =>
+      `Rs. ${Number(value || 0).toLocaleString(
+        "en-IN",
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }
+      )}`;
+
+    const getReportPeriod = () => {
+      if (filter === "today") return "Today";
+      if (filter === "week") return "This Week";
+      if (filter === "month") return "This Month";
+
+      if (filter === "custom") {
+        return `${startDate || "N/A"} to ${
+          endDate || "N/A"
+        }`;
+      }
+
+      return "All Time";
+    };
+
+    const period = getReportPeriod();
+
+    let y = 20;
+
+    // HEADER
+    doc.setFontSize(20);
+    doc.setFont(undefined, "bold");
+    doc.text("EnjoMeal", 20, y);
+
+    y += 10;
+
+    doc.setFontSize(16);
+    doc.text("ADMIN RESTAURANT REPORT", 20, y);
+
+    y += 10;
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, "normal");
+
+    doc.text(
+      `Report Period: ${period}`,
+      20,
+      y
+    );
+
+    y += 15;
+
+    // GRAND SUMMARY
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text("Grand Summary", 20, y);
+
+    y += 9;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+
+    const summaryData = [
+      [
+        "Total Orders",
+        grandTotal?.totalOrders || 0,
+      ],
+      [
+        "Delivered",
+        grandTotal?.completedOrders || 0,
+      ],
+      [
+        "Cancelled",
+        grandTotal?.cancelledOrders || 0,
+      ],
+      [
+        "Food Sales",
+        pdfMoney(grandTotal?.foodSales),
+      ],
+      [
+        "Discount",
+        pdfMoney(grandTotal?.discount),
+      ],
+      [
+        "Delivery Charges",
+        pdfMoney(grandTotal?.deliveryCharges),
+      ],
+      [
+        "Platform Charges",
+        pdfMoney(grandTotal?.platformCharges),
+      ],
+      [
+        "Restaurant Sales",
+        pdfMoney(grandTotal?.restaurantSales),
+      ],
+      [
+        "Customer Collection",
+        pdfMoney(
+          grandTotal?.customerCollection
+        ),
+      ],
+    ];
+
+    summaryData.forEach(([label, value]) => {
+      doc.text(`${label}: ${value}`, 20, y);
+      y += 7;
+    });
+
+    y += 8;
+
+    // RESTAURANT-WISE REPORT
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+
+    doc.text(
+      "Restaurant-wise Report",
+      20,
+      y
+    );
+
+    y += 10;
+
+    reports.forEach((restaurant, index) => {
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont(undefined, "bold");
+
+      doc.text(
+        `${index + 1}. ${
+          restaurant.restaurantName ||
+          "Restaurant"
+        }`,
+        20,
+        y
+      );
+
+      y += 8;
+
+      doc.setFontSize(10);
+      doc.setFont(undefined, "normal");
+
+      doc.text(
+        `Orders: ${
+          restaurant.totalOrders || 0
+        }`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Delivered: ${
+          restaurant.completedOrders || 0
+        }`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Cancelled: ${
+          restaurant.cancelledOrders || 0
+        }`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Food Sales: ${pdfMoney(
+          restaurant.foodSales
+        )}`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Discount: ${pdfMoney(
+          restaurant.discount
+        )}`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Delivery Charges: ${pdfMoney(
+          restaurant.deliveryCharges
+        )}`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Platform Charges: ${pdfMoney(
+          restaurant.platformCharges
+        )}`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Restaurant Sales: ${pdfMoney(
+          restaurant.restaurantSales
+        )}`,
+        25,
+        y
+      );
+
+      y += 6;
+
+      doc.text(
+        `Customer Collection: ${pdfMoney(
+          restaurant.customerCollection
+        )}`,
+        25,
+        y
+      );
+
+      y += 10;
+
+      // separator
+      doc.line(20, y, 190, y);
+
+      y += 10;
+    });
+
+    if (reports.length === 0) {
+      doc.setFontSize(11);
+      doc.text(
+        "No restaurant reports found for this period.",
+        20,
+        y
+      );
+
+      y += 10;
+    }
+
+    // FOOTER
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+
+    doc.text(
+      "Generated from EnjoMeal Admin Panel",
+      20,
+      y
+    );
+
+    const fileName = `EnjoMeal-Admin-Restaurant-Report-${period
+      .replace(/[^a-z0-9]/gi, "-")
+      .toLowerCase()}.pdf`;
+
+    doc.save(fileName);
+  } catch (error) {
+    console.error(
+      "Admin Restaurant PDF generation failed:",
+      error
+    );
+
+    setError(
+      "Unable to generate PDF. Please try again."
+    );
+  }
 };
 
 const RestaurantReports = () => {
@@ -417,6 +704,15 @@ const RestaurantReports = () => {
 
           <div style={styles.tableCard}>
             <div style={styles.tableHeader}>
+              <button
+  style={{
+    ...styles.refreshButton,
+    background: "#16a34a",
+  }}
+  onClick={handleDownloadPDF}
+>
+  📄 Download PDF
+</button>
               <div>
                 <h2 style={styles.tableTitle}>
                   Restaurant-wise Report
