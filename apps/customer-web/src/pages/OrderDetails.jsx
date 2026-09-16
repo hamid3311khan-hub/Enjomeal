@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../api/api";
 
@@ -10,6 +11,9 @@ function OrderDetails() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
+  const [liveLocation, setLiveLocation] = useState(null);
+const [trackingConnected, setTrackingConnected] =
+  useState(false);
 
   useEffect(() => {
     fetchOrder();
