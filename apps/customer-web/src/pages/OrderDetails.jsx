@@ -312,6 +312,8 @@ const handleDownloadInvoice = () => {
 
     const restaurantName =
       order.restaurant?.name || "EnjoMeal Restaurant";
+    const fssaiNumber =
+  order.restaurant?.fssaiNumber || "N/A";
 
     const address = order.deliveryAddress || {};
 
@@ -413,7 +415,15 @@ const handleDownloadInvoice = () => {
     doc.setFont("helvetica", "normal");
     doc.text(restaurantName, 20, y);
 
-    y += 12;
+y += 6;
+
+doc.text(
+  `FSSAI No: ${fssaiNumber}`,
+  20,
+  y
+);
+
+y += 12;
 
     // ------------------------------------------
     // DELIVERY ADDRESS
