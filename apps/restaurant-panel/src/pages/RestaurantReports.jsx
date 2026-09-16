@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
+import XLSX from "xlsx";
 
 const API =
   "https://enjomeal-api.onrender.com/api/orders/restaurant/my-report";
@@ -459,6 +460,122 @@ function RestaurantReports() {
     }
   };
 
+    // =====================================================
+  // DOWNLOAD REPORT EXCEL
+  // =====================================================
+
+  const handleDownloadExcel = () => {
+    if (!report) {
+      alert("Report data is not available.");
+      return;
+    }
+
+    try {
+      const restaurantName =
+        report?.restaurant?.name ||
+        "Restaurant";
+
+      const summary =
+        report?.summary || {};
+
+      const start =
+        report?.filters?.startDate ||
+        "All Time";
+
+      const end =
+        report?.filters?.endDate ||
+        "Today";
+
+      const rows = [
+        ["EnjoMeal - Business Report"],
+        ["Restaurant", restaurantName],
+        ["Report Period", `${start} → ${end}`],
+        [],
+        ["ORDER SUMMARY"],
+        ["Total Orders", summary.totalOrders || 0],
+        [
+          "Completed Orders",
+          summary.completedOrders || 0,
+        ],
+        [
+          "Cancelled Orders",
+          summary.cancelledOrders || 0,
+        ],
+        [],
+        ["SALES SUMMARY"],
+        [
+          "Food Sales",
+          Number(summary.foodSales || 0),
+        ],
+        [
+          "Discount",
+          Number(summary.discount || 0),
+        ],
+        [
+          "Delivery Charges",
+          Number(
+            summary.deliveryCharges || 0
+          ),
+        ],
+        [
+          "Platform Charges",
+          Number(
+            summary.platformCharges || 0
+          ),
+        ],
+        [
+          "Customer Collection",
+          Number(
+            summary.customerCollection || 0
+          ),
+        ],
+        [
+          "Restaurant Sales",
+          Number(
+            summary.restaurantSales || 0
+          ),
+        ],
+      ];
+
+      const worksheet =
+        XLSX.utils.aoa_to_sheet(rows);
+
+      worksheet["!cols"] = [
+        { wch: 28 },
+        { wch: 25 },
+      ];
+
+      const workbook =
+        XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Business Report"
+      );
+
+      const safeName =
+        restaurantName
+          .replace(/[^a-z0-9]/gi, "-")
+          .toLowerCase();
+
+      XLSX.writeFile(
+        workbook,
+        `EnjoMeal-${safeName}-report.xlsx`
+      );
+
+    } catch (error) {
+      console.error(
+        "Restaurant Report Excel Error:",
+        error
+      );
+
+      alert(
+        "Failed to generate Excel report."
+      );
+    }
+  };
+
   // =====================================================
   // LOADING
   // =====================================================
@@ -512,6 +629,20 @@ function RestaurantReports() {
             cursor: "pointer",
           }}
         >
+                <button
+          onClick={handleDownloadExcel}
+          style={{
+            border: "none",
+            borderRadius: "8px",
+            padding: "12px 18px",
+            background: "#217346",
+            color: "#fff",
+            fontWeight: "700",
+            cursor: "pointer",
+          }}
+        >
+          📊 Download Excel
+        </button>
           📄 Download PDF
         </button>
 
