@@ -713,19 +713,37 @@ const RestaurantReports = () => {
 >
   📄 Download PDF
 </button>
-              <div>
-                <h2 style={styles.tableTitle}>
-                  Restaurant-wise Report
-                </h2>
+              <div
+  style={{
+    ...styles.tableHeader,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap",
+  }}
+>
+  <div>
+    <h2 style={styles.tableTitle}>
+      Restaurant-wise Report
+    </h2>
 
-                <p style={styles.tableSubtitle}>
-                  {reports.length} restaurant
-                  {reports.length !== 1
-                    ? "s"
-                    : ""} found
-                </p>
-              </div>
-            </div>
+    <p style={styles.tableSubtitle}>
+      {reports.length} restaurant
+      {reports.length !== 1 ? "s" : ""} found
+    </p>
+  </div>
+
+  <button
+    style={{
+      ...styles.refreshButton,
+      background: "#16a34a",
+    }}
+    onClick={handleDownloadPDF}
+  >
+    📄 Download PDF
+  </button>
+</div>
 
             {reports.length === 0 ? (
               <div style={styles.empty}>
