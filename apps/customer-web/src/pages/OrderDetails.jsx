@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../api/api";
-
+import jsPDF from "jspdf";
 function OrderDetails() {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -272,6 +272,430 @@ useEffect(() => {
       setLoading(false);
     }
   };
+
+  // ==========================================
+// DOWNLOAD INVOICE PDF
+// ==========================================
+
+const handleDownloadInvoice = () => {
+  if (!order) {
+    alert("Order details are not available.");
+    return;
+  }
+
+  try {
+    const doc = new jsPDF();
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    let y = 20;
+
+    const orderNumber = order._id
+      ? String(order._id).slice(-8).toUpperCase()
+      : "N/A";
+
+    const orderDate = order.createdAt
+      ? new Date(order.createdAt).toLocaleString("en-IN")
+      : "N/A";
+
+    const customerName =
+      order.user?.name || "Customer";
+
+    const customerPhone =
+      order.user?.phone ||
+      order.deliveryAddress?.contactPhone ||
+      "N/A";
+
+    const customerEmail =
+      order.user?.email || "N/A";
+
+    const restaurantName =
+      order.restaurant?.name || "EnjoMeal Restaurant";
+
+    const address = order.deliveryAddress || {};
+
+    // ------------------------------------------
+    // HEADER
+    // ------------------------------------------
+
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("EnjoMeal", 20, y);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Enjoy your meal", 20, y + 6);
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("INVOICE", pageWidth - 20, y, {
+      align: "right",
+    });
+
+    y += 18;
+
+    doc.setLineWidth(0.5);
+    doc.line(20, y, pageWidth - 20, y);
+
+    y += 12;
+
+    // ------------------------------------------
+    // ORDER INFORMATION
+    // ------------------------------------------
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+
+    doc.text(
+      `Invoice No: EM-${orderNumber}`,
+      20,
+      y
+    );
+
+    doc.text(
+      `Order Date: ${orderDate}`,
+      pageWidth - 20,
+      y,
+      { align: "right" }
+    );
+
+    y += 8;
+
+    doc.text(
+      `Order Status: ${order.orderStatus || "N/A"}`,
+      20,
+      y
+    );
+
+    doc.text(
+      `Payment: ${order.paymentMethod || "N/A"}`,
+      pageWidth - 20,
+      y,
+      { align: "right" }
+    );
+
+    y += 15;
+
+    // ------------------------------------------
+    // CUSTOMER DETAILS
+    // ------------------------------------------
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Customer Details", 20, y);
+
+    y += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    doc.text(`Name: ${customerName}`, 20, y);
+    y += 6;
+
+    doc.text(`Phone: ${customerPhone}`, 20, y);
+    y += 6;
+
+    doc.text(`Email: ${customerEmail}`, 20, y);
+    y += 12;
+
+    // ------------------------------------------
+    // RESTAURANT
+    // ------------------------------------------
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Restaurant", 20, y);
+
+    y += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(restaurantName, 20, y);
+
+    y += 12;
+
+    // ------------------------------------------
+    // DELIVERY ADDRESS
+    // ------------------------------------------
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Delivery Address", 20, y);
+
+    y += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    const addressText = [
+      address.address,
+      address.city,
+      address.state,
+      address.pincode,
+      address.landmark
+        ? `Landmark: ${address.landmark}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const addressLines = doc.splitTextToSize(
+      addressText || "Address not available",
+      pageWidth - 40
+    );
+
+    doc.text(addressLines, 20, y);
+
+    y += addressLines.length * 5 + 10;
+
+    // ------------------------------------------
+    // ITEMS TABLE HEADER
+    // ------------------------------------------
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Order Items", 20, y);
+
+    y += 8;
+
+    doc.setFillColor(245, 245, 245);
+    doc.rect(20, y - 5, pageWidth - 40, 9, "F");
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+
+    doc.text("Item", 22, y);
+    doc.text("Qty", 120, y);
+    doc.text("Price", 145, y);
+    doc.text("Total", pageWidth - 22, y, {
+      align: "right",
+    });
+
+    y += 9;
+
+    // ------------------------------------------
+    // ITEMS
+    // ------------------------------------------
+
+    doc.setFont("helvetica", "normal");
+
+    order.items?.forEach((item) => {
+      if (y > pageHeight - 45) {
+        doc.addPage();
+        y = 20;
+      }
+
+      const itemName =
+        item.food?.name ||
+        item.foodName ||
+        "Food";
+
+      const quantity = Number(item.quantity || 0);
+      const price = Number(item.price || 0);
+
+      const itemTotal =
+        item.itemTotal !== undefined
+          ? Number(item.itemTotal)
+          : quantity * price;
+
+      const itemLines = doc.splitTextToSize(
+        itemName,
+        90
+      );
+
+      doc.text(itemLines, 22, y);
+      doc.text(String(quantity), 120, y);
+      doc.text(`Rs. ${price.toFixed(2)}`, 145, y);
+
+      doc.text(
+        `Rs. ${itemTotal.toFixed(2)}`,
+        pageWidth - 22,
+        y,
+        { align: "right" }
+      );
+
+      y += Math.max(itemLines.length * 5, 6);
+
+      doc.setDrawColor(220, 220, 220);
+      doc.line(
+        20,
+        y,
+        pageWidth - 20,
+        y
+      );
+
+      y += 5;
+    });
+
+    // ------------------------------------------
+    // BILL DETAILS
+    // ------------------------------------------
+
+    if (y > pageHeight - 90) {
+      doc.addPage();
+      y = 20;
+    }
+
+    y += 5;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill Details", 20, y);
+
+    y += 9;
+
+    const subtotal = Number(order.subtotal || 0);
+    const deliveryFee = Number(order.deliveryFee || 0);
+    const discount = Number(order.discountAmount || 0);
+    const platformCharge = Number(
+      order.platformCharge || 0
+    );
+    const total = Number(order.totalAmount || 0);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    doc.text("Subtotal", 25, y);
+    doc.text(
+      `Rs. ${subtotal.toFixed(2)}`,
+      pageWidth - 22,
+      y,
+      { align: "right" }
+    );
+
+    y += 7;
+
+    doc.text("Delivery Fee", 25, y);
+    doc.text(
+      `Rs. ${deliveryFee.toFixed(2)}`,
+      pageWidth - 22,
+      y,
+      { align: "right" }
+    );
+
+    y += 7;
+
+    doc.text("Platform Charge", 25, y);
+    doc.text(
+      `Rs. ${platformCharge.toFixed(2)}`,
+      pageWidth - 22,
+      y,
+      { align: "right" }
+    );
+
+    y += 7;
+
+    doc.text("Discount", 25, y);
+    doc.text(
+      `- Rs. ${discount.toFixed(2)}`,
+      pageWidth - 22,
+      y,
+      { align: "right" }
+    );
+
+    y += 8;
+
+    doc.setLineWidth(0.5);
+    doc.line(
+      25,
+      y,
+      pageWidth - 22,
+      y
+    );
+
+    y += 10;
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+
+    doc.text("Grand Total", 25, y);
+
+    doc.text(
+      `Rs. ${total.toFixed(2)}`,
+      pageWidth - 22,
+      y,
+      { align: "right" }
+    );
+
+    y += 15;
+
+    // ------------------------------------------
+    // PAYMENT STATUS
+    // ------------------------------------------
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    doc.text(
+      `Payment Status: ${
+        order.paymentStatus || "PENDING"
+      }`,
+      20,
+      y
+    );
+
+    y += 15;
+
+    // ------------------------------------------
+    // FOOTER
+    // ------------------------------------------
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+
+    doc.text(
+      "Thank you for ordering with EnjoMeal!",
+      pageWidth / 2,
+      pageHeight - 20,
+      { align: "center" }
+    );
+
+    doc.save(
+      `EnjoMeal-Invoice-${orderNumber}.pdf`
+    );
+  } catch (error) {
+    console.error(
+      "Invoice PDF Error:",
+      error
+    );
+
+    alert(
+      "Failed to generate invoice PDF."
+    );
+  }
+};
+
+  {/* ====================================
+    DOWNLOAD INVOICE
+==================================== */}
+
+<div
+  style={{
+    padding: "20px",
+    background: "#fff",
+    border: "1px solid #ddd",
+    borderRadius: "12px",
+    marginBottom: "20px",
+  }}
+>
+  <button
+    onClick={handleDownloadInvoice}
+    style={{
+      width: "100%",
+      padding: "14px",
+      border: "none",
+      borderRadius: "8px",
+      background: "#ff7a00",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    📄 Download Invoice PDF
+  </button>
+</div>
 
   // ==========================================
   // CANCEL ORDER
