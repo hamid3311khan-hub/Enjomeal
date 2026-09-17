@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Delivery = require("../models/deliveryModel");
 const Order = require("../models/orderModel");
 const User = require("../models/user");
-
+const cloudinary = require("../config/cloudinary");
 // =====================================================
 // HELPER: VALIDATE OBJECT ID
 // =====================================================
@@ -948,6 +948,186 @@ const getMyDeliveryProfileController = async (
     });
   }
 };
+
+// =====================================================
+// UPDATE MY KYC DOCUMENTS
+// DELIVERY PARTNER ONLY
+// =====================================================
+
+const updateMyDeliveryKYCController = async (req, res) => {
+  try {
+    // =================================================
+    // FIND LOGGED-IN DELIVERY PARTNER
+    // =================================================
+
+    const delivery = await Delivery.findOne({
+      user: req.user.id,
+    });
+
+    if (!delivery) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery profile not found",
+      });
+    }
+
+    // =================================================
+    // ACTIVE ACCOUNT CHECK
+    // =================================================
+
+    if (!delivery.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Delivery partner account is inactive",
+      });
+    }
+
+    // =================================================
+    // FILES
+    // =================================================
+
+    const profilePhoto = req.files?.profilePhoto?.[0];
+    const aadhaar = req.files?.aadhaar?.[0];
+    const drivingLicence =
+      req.files?.drivingLicence?.[0];
+
+    // =================================================
+    // REQUIRED DOCUMENTS
+    // =================================================
+
+    if (!profilePhoto) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile photo is required",
+      });
+    }
+
+    if (!aadhaar) {
+      return res.status(400).json({
+        success: false,
+        message: "Aadhaar document is required",
+      });
+    }
+
+    // =================================================
+    // CLOUDINARY UPLOAD HELPER
+    // =================================================
+
+    const uploadToCloudinary = (file, folder) => {
+      return new Promise((resolve, reject) => {
+        const uploadStream =
+          cloudinary.uploader.upload_stream(
+            {
+              folder,
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) {
+                return reject(error);
+              }
+
+              resolve(result);
+            }
+          );
+
+        uploadStream.end(file.buffer);
+      });
+    };
+
+    // =================================================
+    // UPLOAD PROFILE PHOTO
+    // =================================================
+
+    const profilePhotoResult =
+      await uploadToCloudinary(
+        profilePhoto,
+        "enjomeal/delivery/profile"
+      );
+
+    // =================================================
+    // UPLOAD AADHAAR
+    // =================================================
+
+    const aadhaarResult =
+      await uploadToCloudinary(
+        aadhaar,
+        "enjomeal/delivery/aadhaar"
+      );
+
+    // =================================================
+    // UPLOAD DRIVING LICENCE
+    // OPTIONAL
+    // =================================================
+
+    let drivingLicenceResult = null;
+
+    if (drivingLicence) {
+      drivingLicenceResult =
+        await uploadToCloudinary(
+          drivingLicence,
+          "enjomeal/delivery/licence"
+        );
+    }
+
+    // =================================================
+    // SAVE DOCUMENT URLs
+    // =================================================
+
+    delivery.profilePhoto =
+      profilePhotoResult.secure_url;
+
+    delivery.aadhaarDocument =
+      aadhaarResult.secure_url;
+
+    if (drivingLicenceResult) {
+      delivery.drivingLicenceDocument =
+        drivingLicenceResult.secure_url;
+    }
+
+    // =================================================
+    // KYC STATUS
+    // =================================================
+
+    delivery.kycStatus = "PENDING";
+
+    await delivery.save();
+
+    // =================================================
+    // RESPONSE
+    // IMPORTANT:
+    // DO NOT RETURN AADHAAR / LICENCE URL
+    // =================================================
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "KYC documents uploaded successfully. Verification is pending.",
+      kyc: {
+        profilePhoto:
+          delivery.profilePhoto,
+        aadhaarUploaded:
+          !!delivery.aadhaarDocument,
+        drivingLicenceUploaded:
+          !!delivery.drivingLicenceDocument,
+        status:
+          delivery.kycStatus,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Update Delivery KYC Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error uploading KYC documents",
+      error: error.message,
+    });
+  }
+};
+
 // =====================================================
 // UPDATE MY LIVE LOCATION
 // DELIVERY PARTNER ONLY
@@ -1474,6 +1654,7 @@ const getMyDeliveryReportController = async (
 module.exports = {
   createDeliveryController,
   getMyDeliveryProfileController,
+  updateMyDeliveryKYCController,
   getMyDeliveryReportController,
   getAllDeliveryController,
   getAvailableDeliveryController,
