@@ -539,6 +539,9 @@ function App() {
   // ============================================
 
   const renderPage = () => {
+	  if (window.location.pathname.startsWith("/delivery/kyc/")) {
+  return <DeliveryKYC />;
+	  }
 
     switch (activePage) {
 
