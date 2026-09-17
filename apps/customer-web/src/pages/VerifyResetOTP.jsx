@@ -88,9 +88,9 @@ function VerifyResetOTP() {
         );
 
         sessionStorage.setItem(
-          "enjoMealResetOTP",
-          normalizedOTP
-        );
+  "enjoMealResetToken",
+  response.data.resetToken
+);
 
         // Go to reset password page
         setTimeout(() => {
