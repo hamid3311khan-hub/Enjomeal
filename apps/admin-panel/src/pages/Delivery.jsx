@@ -1,6 +1,32 @@
 import { useEffect, useState } from "react";
 
 function Delivery() {
+
+  const getAuthToken = () => {
+    const possibleKeys = [
+      "enjoMealToken",
+      "token",
+      "accessToken",
+      "jwtToken",
+    ];
+
+    for (const key of possibleKeys) {
+      const value = localStorage.getItem(key);
+
+      if (
+        value &&
+        value !== "null" &&
+        value !== "undefined" &&
+        value.trim() !== ""
+      ) {
+        return value.trim();
+      }
+    }
+
+    return null;
+  };
+
+  const [partners, setPartners] = useState([]);
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
@@ -20,30 +46,6 @@ function Delivery() {
     try {
       setLoading(true);
       setError("");
-
-      const getAuthToken = () => {
-  const possibleKeys = [
-    "enjoMealToken",
-    "token",
-    "accessToken",
-    "jwtToken",
-  ];
-
-  for (const key of possibleKeys) {
-    const value = localStorage.getItem(key);
-
-    if (
-      value &&
-      value !== "null" &&
-      value !== "undefined" &&
-      value.trim() !== ""
-    ) {
-      return value.trim();
-    }
-  }
-
-  return null;
-};
 
       const token = getAuthToken();
 
