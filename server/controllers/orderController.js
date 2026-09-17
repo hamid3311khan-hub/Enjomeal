@@ -495,7 +495,10 @@ const getUserOrdersController = async (
       })
         .populate("restaurant")
         .populate("items.food")
-        .populate("deliveryPartner")
+        .populate(
+  "deliveryPartner",
+  "name phone email vehicleType vehicleNumber profilePhoto isAvailable"
+)
         .sort({ createdAt: -1 });
 
     return res.status(200).json({
