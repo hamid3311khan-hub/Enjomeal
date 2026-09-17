@@ -677,7 +677,15 @@ function Delivery() {
 <button
   style={styles.kycButton}
   onClick={() => {
-    window.location.href = `/delivery/kyc/${partner._id}`;
+    window.history.pushState(
+      {},
+      "",
+      `/delivery/kyc/${partner._id}`
+    );
+
+    window.dispatchEvent(
+      new PopStateEvent("popstate")
+    );
   }}
 >
   📄 View KYC
