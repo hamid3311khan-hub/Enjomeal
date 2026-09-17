@@ -11,6 +11,7 @@ const {
   getAssignedOrdersController,
   updateDeliveryActiveStatusController,
   getMyDeliveryProfileController,
+  updateMyDeliveryKYCController,
   getMyDeliveryReportController,
   updateMyLiveLocationController
 } = require("../controllers/deliveryController");
@@ -19,6 +20,7 @@ const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
 const router = express.Router();
+const upload = require("../middleware/uploadMiddleware");
 
 // =====================================================
 // CREATE DELIVERY PARTNER
@@ -62,6 +64,27 @@ router.get(
   authMiddleware,
   roleMiddleware("delivery"),
   getMyDeliveryProfileController
+);
+
+router.post(
+  "/my-profile/kyc",
+  authMiddleware,
+  roleMiddleware("delivery"),
+  upload.fields([
+    {
+      name: "profilePhoto",
+      maxCount: 1,
+    },
+    {
+      name: "aadhaar",
+      maxCount: 1,
+    },
+    {
+      name: "drivingLicence",
+      maxCount: 1,
+    },
+  ]),
+  updateMyDeliveryKYCController
 );
 
 // =====================================================
