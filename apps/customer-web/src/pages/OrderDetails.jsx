@@ -1276,6 +1276,40 @@ y += 12;
                 >
                   👤 Delivery Partner
                 </h3>
+                {deliveryPartner.profilePhoto ? (
+  <img
+    src={deliveryPartner.profilePhoto}
+    alt="Delivery Partner"
+    style={{
+      width: "90px",
+      height: "90px",
+      borderRadius: "50%",
+      objectFit: "cover",
+      display: "block",
+      margin: "0 auto 15px",
+      border: "3px solid #e85d04",
+    }}
+    onError={(e) => {
+      e.currentTarget.style.display = "none";
+    }}
+  />
+) : (
+  <div
+    style={{
+      width: "90px",
+      height: "90px",
+      borderRadius: "50%",
+      background: "#eee",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      margin: "0 auto 15px",
+      fontSize: "40px",
+    }}
+  >
+    👤
+  </div>
+)}
 
                 <p>
                   <strong>Name:</strong>{" "}
