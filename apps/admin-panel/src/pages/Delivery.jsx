@@ -27,7 +27,6 @@ function Delivery() {
   };
 
   const [partners, setPartners] = useState([]);
-  const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
   const [error, setError] = useState("");
