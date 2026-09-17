@@ -1070,27 +1070,34 @@ const updateMyDeliveryKYCController = async (req, res) => {
     // OPTIONAL
     // =================================================
 
-    drivingLicenceResult =
-  await uploadToCloudinary(
-    drivingLicence,
-    "enjomeal/delivery/licence",
-    true
-  );
+    let drivingLicenceResult = null;
 
-    // =================================================
-    // SAVE DOCUMENT URLs
-    // =================================================
+if (drivingLicence) {
+  drivingLicenceResult =
+    await uploadToCloudinary(
+      drivingLicence,
+      "enjomeal/delivery/licence",
+      true
+    );
+}
 
-    delivery.profilePhoto =
-      profilePhotoResult.secure_url;
+    // =====================================================
+// SAVE DOCUMENT REFERENCES
+// =====================================================
 
-    delivery.aadhaarDocument =
-      aadhaarResult.secure_url;
+// Profile photo is customer-visible
+delivery.profilePhoto =
+  profilePhotoResult.secure_url;
 
-    if (drivingLicenceResult) {
-      delivery.drivingLicenceDocument =
-        drivingLicenceResult.secure_url;
-    }
+// Aadhaar remains private
+delivery.aadhaarDocument =
+  aadhaarResult.public_id;
+
+// Driving Licence is optional and remains private
+if (drivingLicenceResult) {
+  delivery.drivingLicenceDocument =
+    drivingLicenceResult.public_id;
+}
 
     // =================================================
     // KYC STATUS
