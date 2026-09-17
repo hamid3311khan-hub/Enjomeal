@@ -8,11 +8,14 @@ function ResetPassword() {
   const savedEmail =
     sessionStorage.getItem("enjoMealResetEmail") || "";
 
-  const savedOTP =
-    sessionStorage.getItem("enjoMealResetOTP") || "";
+  
 
   const [email, setEmail] = useState(savedEmail);
-  const [otp, setOtp] = useState(savedOTP);
+  const savedResetToken =
+  sessionStorage.getItem("enjoMealResetToken") || "";
+
+const [resetToken, setResetToken] =
+  useState(savedResetToken);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] =
     useState("");
@@ -59,10 +62,6 @@ function ResetPassword() {
       return;
     }
 
-    if (!/^\d{6}$/.test(normalizedOTP)) {
-      setError("Please enter the 6-digit OTP.");
-      return;
-    }
 
     if (!password) {
       setError("Please enter your new password.");
@@ -89,13 +88,12 @@ function ResetPassword() {
       // =================================================
 
       const response = await API.post(
-        "/auth/reset-password",
-        {
-          email: normalizedEmail,
-          otp: normalizedOTP,
-          password,
-        }
-      );
+  "/auth/reset-password",
+  {
+    resetToken,
+    newPassword: password,
+  }
+);
 
       if (response.data.success) {
         setMessage(
@@ -109,8 +107,8 @@ function ResetPassword() {
         );
 
         sessionStorage.removeItem(
-          "enjoMealResetOTP"
-        );
+  "enjoMealResetToken"
+);
 
         // Go to login
         setTimeout(() => {
