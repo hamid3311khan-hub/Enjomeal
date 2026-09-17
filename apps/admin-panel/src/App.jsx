@@ -555,7 +555,7 @@ useEffect(() => {
   // ============================================
 
   const renderPage = () => {
-	  if (window.location.pathname.startsWith("/delivery/kyc/")) {
+	  if (currentPath.startsWith("/delivery/kyc/")) {
   return <DeliveryKYC />;
 	  }
 
