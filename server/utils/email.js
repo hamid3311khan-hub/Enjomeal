@@ -1,32 +1,21 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const smtpPort = Number(process.env.SMTP_PORT) || 587;
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: smtpPort,
-  secure:
-    String(process.env.SMTP_SECURE).toLowerCase() === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const resend = new Resend(
+  process.env.RESEND_API_KEY
+);
 
 const verifyEmailConfig = async () => {
-  if (!process.env.SMTP_USER) {
-    throw new Error("SMTP_USER is not configured.");
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY is not configured."
+    );
   }
 
-  if (!process.env.SMTP_PASS) {
-    throw new Error("SMTP_PASS is not configured.");
+  if (!process.env.EMAIL_FROM) {
+    throw new Error(
+      "EMAIL_FROM is not configured."
+    );
   }
-
-  if (!process.env.SMTP_HOST) {
-    throw new Error("SMTP_HOST is not configured.");
-  }
-
-  await transporter.verify();
 
   return true;
 };
@@ -38,32 +27,56 @@ const sendEmail = async ({
   html,
 }) => {
   if (!to) {
-    throw new Error("Email recipient is required.");
+    throw new Error(
+      "Email recipient is required."
+    );
   }
 
   if (!subject) {
-    throw new Error("Email subject is required.");
+    throw new Error(
+      "Email subject is required."
+    );
   }
 
-  const mailOptions = {
-    from:
-      process.env.EMAIL_FROM ||
-      process.env.SMTP_USER,
-    to,
-    subject,
-    text:
-      text ||
-      "Please view this email in an HTML-compatible email client.",
-    ...(html ? { html } : {}),
-  };
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY is not configured."
+    );
+  }
 
-  const info = await transporter.sendMail(mailOptions);
+  if (!process.env.EMAIL_FROM) {
+    throw new Error(
+      "EMAIL_FROM is not configured."
+    );
+  }
+
+  const { data, error } =
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to,
+      subject,
+      text:
+        text ||
+        "Please view this email in an HTML-compatible email client.",
+      ...(html ? { html } : {}),
+    });
+
+  if (error) {
+    console.error(
+      "Resend Email Error:",
+      error.message || error
+    );
+
+    throw new Error(
+      "Failed to send email."
+    );
+  }
 
   console.log(
-    `Email sent successfully: ${info.messageId}`
+    `Email sent successfully: ${data?.id || "accepted"}`
   );
 
-  return info;
+  return data;
 };
 
 module.exports = {
