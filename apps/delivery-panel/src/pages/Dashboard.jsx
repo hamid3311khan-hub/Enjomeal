@@ -952,6 +952,24 @@ const retryProfile = () => {
 >
   🎁 Offers & Charges
 </button>
+ <button
+  onClick={() => {
+    window.location.href = "/delivery/profile";
+  }}
+  style={{
+    marginTop: "12px",
+    padding: "11px 18px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#6f42c1",
+    color: "#fff",
+    fontWeight: "700",
+    cursor: "pointer",
+    width: "100%",
+  }}
+>
+  👤 My Profile & KYC
+</button>
       </div>
 
       {/* =================================================
