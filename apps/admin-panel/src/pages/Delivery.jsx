@@ -673,6 +673,15 @@ function Delivery() {
                       : "Set Unavailable"}
                   </button>
                 )}
+                {/* VIEW KYC */}
+<button
+  style={styles.kycButton}
+  onClick={() => {
+    window.location.href = `/delivery/kyc/${partner._id}`;
+  }}
+>
+  📄 View KYC
+</button>
 
               </div>
 
