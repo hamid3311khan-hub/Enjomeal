@@ -1013,61 +1013,69 @@ const updateMyDeliveryKYCController = async (req, res) => {
     // CLOUDINARY UPLOAD HELPER
     // =================================================
 
-    const uploadToCloudinary = (file, folder) => {
-      return new Promise((resolve, reject) => {
-        const uploadStream =
-          cloudinary.uploader.upload_stream(
-            {
-              folder,
-              resource_type: "image",
-            },
-            (error, result) => {
-              if (error) {
-                return reject(error);
-              }
+    const uploadToCloudinary = (
+  file,
+  folder,
+  isPrivate = false
+) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream =
+      cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: "image",
 
-              resolve(result);
-            }
-          );
+          // KYC documents remain private
+          type: isPrivate
+            ? "authenticated"
+            : "upload",
+        },
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
 
-        uploadStream.end(file.buffer);
-      });
-    };
+          resolve(result);
+        }
+      );
+
+    uploadStream.end(file.buffer);
+  });
+};
 
     // =================================================
     // UPLOAD PROFILE PHOTO
     // =================================================
 
     const profilePhotoResult =
-      await uploadToCloudinary(
-        profilePhoto,
-        "enjomeal/delivery/profile"
-      );
+  await uploadToCloudinary(
+    profilePhoto,
+    "enjomeal/delivery/profile",
+    false
+  );
 
     // =================================================
     // UPLOAD AADHAAR
     // =================================================
 
     const aadhaarResult =
-      await uploadToCloudinary(
-        aadhaar,
-        "enjomeal/delivery/aadhaar"
-      );
+  await uploadToCloudinary(
+    aadhaar,
+    "enjomeal/delivery/aadhaar",
+    true
+  );
 
     // =================================================
     // UPLOAD DRIVING LICENCE
     // OPTIONAL
     // =================================================
 
-    let drivingLicenceResult = null;
-
-    if (drivingLicence) {
-      drivingLicenceResult =
-        await uploadToCloudinary(
-          drivingLicence,
-          "enjomeal/delivery/licence"
-        );
-    }
+    drivingLicenceResult =
+  await uploadToCloudinary(
+    drivingLicence,
+    "enjomeal/delivery/licence",
+    true
+  );
 
     // =================================================
     // SAVE DOCUMENT URLs
