@@ -4,6 +4,7 @@ import DeliveryRegister from "./pages/DeliveryRegister";
 import DeliveryReports from "./pages/DeliveryReports";
 import DeliveryNotifications from "./pages/DeliveryNotifications";
 import DeliveryOffers from "./pages/DeliveryOffers";
+import DeliveryProfile from "./pages/DeliveryProfile";
 import "./App.css";
 
 function App() {
@@ -14,15 +15,19 @@ function App() {
   }
 
   if (path === "/delivery/notifications") {
-  return <DeliveryNotifications />;
+    return <DeliveryNotifications />;
   }
 
   if (path === "/delivery/offers") {
-  return <DeliveryOffers />;
+    return <DeliveryOffers />;
   }
 
   if (path === "/delivery/reports") {
     return <DeliveryReports />;
+  }
+
+  if (path === "/delivery/profile") {
+    return <DeliveryProfile />;
   }
 
   if (path === "/delivery/register") {
