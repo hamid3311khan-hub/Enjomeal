@@ -12,6 +12,7 @@ const {
   updateDeliveryActiveStatusController,
   getMyDeliveryProfileController,
   updateMyDeliveryKYCController,
+  updateDeliveryKYCStatusController,
   getMyDeliveryReportController,
   updateMyLiveLocationController
 } = require("../controllers/deliveryController");
@@ -64,6 +65,17 @@ router.get(
   authMiddleware,
   roleMiddleware("delivery"),
   getMyDeliveryProfileController
+);
+
+// =====================================================
+// VERIFY / REJECT DELIVERY PARTNER KYC
+// ADMIN ONLY
+// =====================================================
+router.put(
+  "/:id/kyc-status",
+  authMiddleware,
+  roleMiddleware("admin"),
+  updateDeliveryKYCStatusController
 );
 
 router.post(
