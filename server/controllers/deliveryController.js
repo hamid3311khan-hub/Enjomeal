@@ -949,6 +949,69 @@ const getMyDeliveryProfileController = async (
   }
 };
 
+const getDeliveryKYCController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const delivery = await Delivery.findById(id).select(
+      "name phone email profilePhoto aadhaarDocument drivingLicenceDocument kycStatus kycRejectionReason kycVerifiedAt"
+    );
+
+    if (!delivery) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery partner not found",
+      });
+    }
+
+    const createSecureUrl = (publicId) => {
+      if (!publicId) return null;
+
+      return cloudinary.url(publicId, {
+        resource_type: "image",
+        type: "authenticated",
+        secure: true,
+        sign_url: true,
+      });
+    };
+
+    return res.status(200).json({
+      success: true,
+      kyc: {
+        deliveryPartnerId: delivery._id,
+        name: delivery.name,
+        phone: delivery.phone,
+        email: delivery.email,
+
+        profilePhoto: delivery.profilePhoto || null,
+
+        aadhaarUploaded: !!delivery.aadhaarDocument,
+        aadhaarUrl: createSecureUrl(
+          delivery.aadhaarDocument
+        ),
+
+        drivingLicenceUploaded:
+          !!delivery.drivingLicenceDocument,
+        drivingLicenceUrl: createSecureUrl(
+          delivery.drivingLicenceDocument
+        ),
+
+        status: delivery.kycStatus || "PENDING",
+        rejectionReason:
+          delivery.kycRejectionReason || "",
+        verifiedAt: delivery.kycVerifiedAt || null,
+      },
+    });
+  } catch (error) {
+    console.error("Get delivery KYC error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch KYC details",
+    });
+  }
+};
+
 // =====================================================
 // UPDATE MY KYC DOCUMENTS
 // DELIVERY PARTNER ONLY
@@ -1809,4 +1872,5 @@ module.exports = {
   updateDeliveryActiveStatusController,
   updateMyLiveLocationController,
   updateDeliveryKYCStatusController,
+  getDeliveryKYCController,
 };
