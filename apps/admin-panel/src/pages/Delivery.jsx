@@ -1053,6 +1053,17 @@ const styles = {
     fontWeight: "600",
   },
 
+  kycButton: {
+  border: "none",
+  background: "#7c3aed",
+  color: "#ffffff",
+  padding: "8px 11px",
+  borderRadius: "7px",
+  cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: "600",
+},
+
   // =============================================
   // FOOTER
   // =============================================
