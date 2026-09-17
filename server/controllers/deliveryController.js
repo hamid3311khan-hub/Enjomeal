@@ -1144,6 +1144,134 @@ if (drivingLicenceResult) {
 };
 
 // =====================================================
+// ADMIN VERIFY / REJECT DELIVERY PARTNER KYC
+// ADMIN ONLY
+// =====================================================
+
+const updateDeliveryKYCStatusController = async (
+  req,
+  res
+) => {
+  try {
+    const { id } = req.params;
+    const { status, rejectionReason } = req.body;
+
+    // ===================================================
+    // VALIDATE STATUS
+    // ===================================================
+
+    if (!["VERIFIED", "REJECTED"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "KYC status must be VERIFIED or REJECTED",
+      });
+    }
+
+    // ===================================================
+    // FIND DELIVERY PARTNER
+    // ===================================================
+
+    const delivery = await Delivery.findById(id);
+
+    if (!delivery) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery partner not found",
+      });
+    }
+
+    // ===================================================
+    // REQUIRED KYC CHECK
+    // ===================================================
+
+    if (status === "VERIFIED") {
+      if (
+        !delivery.profilePhoto ||
+        !delivery.aadhaarDocument
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Profile photo and Aadhaar are required before KYC verification",
+        });
+      }
+    }
+
+    // ===================================================
+    // REJECTION REASON
+    // ===================================================
+
+    if (
+      status === "REJECTED" &&
+      (!rejectionReason ||
+        !String(rejectionReason).trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Rejection reason is required",
+      });
+    }
+
+    // ===================================================
+    // UPDATE STATUS
+    // ===================================================
+
+    delivery.kycStatus = status;
+
+    if (status === "REJECTED") {
+      delivery.kycRejectionReason =
+        String(rejectionReason).trim();
+    } else {
+      delivery.kycRejectionReason = "";
+    }
+
+    delivery.kycVerifiedAt =
+      status === "VERIFIED"
+        ? new Date()
+        : null;
+
+    // ===================================================
+    // SAVE
+    // ===================================================
+
+    await delivery.save();
+
+    // ===================================================
+    // RESPONSE
+    // ===================================================
+
+    return res.status(200).json({
+      success: true,
+      message:
+        status === "VERIFIED"
+          ? "Delivery partner KYC verified successfully"
+          : "Delivery partner KYC rejected",
+      kyc: {
+        status: delivery.kycStatus,
+        rejectionReason:
+          delivery.kycRejectionReason || "",
+        verifiedAt:
+          delivery.kycVerifiedAt || null,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Update Delivery KYC Status Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Error updating delivery KYC status",
+      error: error.message,
+    });
+  }
+};
+
+// =====================================================
 // UPDATE MY LIVE LOCATION
 // DELIVERY PARTNER ONLY
 // =====================================================
@@ -1680,4 +1808,5 @@ module.exports = {
   updateDeliveryAvailabilityController,
   updateDeliveryActiveStatusController,
   updateMyLiveLocationController,
+  updateDeliveryKYCStatusController,
 };
