@@ -93,6 +93,39 @@ const deliverySchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+
+    // ===================================================
+// KYC / DOCUMENTS
+// ===================================================
+
+profilePhoto: {
+  type: String,
+  default: "",
+  trim: true,
+},
+
+aadhaarDocument: {
+  type: String,
+  default: "",
+  trim: true,
+},
+
+drivingLicenceDocument: {
+  type: String,
+  default: "",
+  trim: true,
+},
+
+kycStatus: {
+  type: String,
+  enum: {
+    values: ["PENDING", "VERIFIED", "REJECTED"],
+    message: "Invalid KYC status",
+  },
+  default: "PENDING",
+  index: true,
+},
+    
     // ===================================================
     // LIVE LOCATION
     // ===================================================
