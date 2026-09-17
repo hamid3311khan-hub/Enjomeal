@@ -115,7 +115,10 @@ const register = async (req, res) => {
       }
     }
 
-    if (!/^\d{14}$/.test(String(fssaiNumber).trim())) {
+    if (
+  role === "restaurant" &&
+  !/^\d{14}$/.test(String(fssaiNumber).trim())
+) {
   return res.status(400).json({
     success: false,
     message: "FSSAI number must be exactly 14 digits.",
