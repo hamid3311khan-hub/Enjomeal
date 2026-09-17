@@ -14,7 +14,8 @@ const {
   updateMyDeliveryKYCController,
   updateDeliveryKYCStatusController,
   getMyDeliveryReportController,
-  updateMyLiveLocationController
+  updateMyLiveLocationController,
+  getDeliveryKYCController
 } = require("../controllers/deliveryController");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -154,6 +155,13 @@ router.put(
   authMiddleware,
   roleMiddleware("admin"),
   updateDeliveryActiveStatusController
+);
+
+router.get(
+  "/:id/kyc",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getDeliveryKYCController
 );
 
 // =====================================================
