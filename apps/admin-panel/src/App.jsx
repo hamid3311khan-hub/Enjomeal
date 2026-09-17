@@ -12,6 +12,7 @@ import Coupons from "./pages/Coupons";
 import Tickets from "./pages/Tickets";
 import Updates from "./pages/Updates";
 import RestaurantReports from "./pages/RestaurantReports";
+import DeliveryKYC from "./pages/DeliveryKYC";
 
 
 // =================================================
