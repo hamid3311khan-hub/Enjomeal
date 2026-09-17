@@ -8,7 +8,7 @@ function DeliveryKYC() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("enjoMealToken");
 
   const deliveryId = window.location.pathname.split("/").pop();
 
