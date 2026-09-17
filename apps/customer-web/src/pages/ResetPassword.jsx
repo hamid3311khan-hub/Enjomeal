@@ -8,14 +8,11 @@ function ResetPassword() {
   const savedEmail =
     sessionStorage.getItem("enjoMealResetEmail") || "";
 
-  
+  const savedResetToken =
+    sessionStorage.getItem("enjoMealResetToken") || "";
 
   const [email, setEmail] = useState(savedEmail);
-  const savedResetToken =
-  sessionStorage.getItem("enjoMealResetToken") || "";
-
-const [resetToken, setResetToken] =
-  useState(savedResetToken);
+  const [resetToken] = useState(savedResetToken);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] =
     useState("");
@@ -38,11 +35,7 @@ const [resetToken, setResetToken] =
     setError("");
     setMessage("");
 
-    const normalizedEmail = email
-      .toLowerCase()
-      .trim();
-
-    const normalizedOTP = otp.trim();
+    const normalizedEmail = email.toLowerCase().trim();
 
     // ===================================================
     // VALIDATION
@@ -62,6 +55,12 @@ const [resetToken, setResetToken] =
       return;
     }
 
+    if (!resetToken) {
+      setError(
+        "Reset session expired. Please request a new OTP."
+      );
+      return;
+    }
 
     if (!password) {
       setError("Please enter your new password.");
@@ -88,12 +87,12 @@ const [resetToken, setResetToken] =
       // =================================================
 
       const response = await API.post(
-  "/auth/reset-password",
-  {
-    resetToken,
-    newPassword: password,
-  }
-);
+        "/auth/reset-password",
+        {
+          resetToken,
+          newPassword: password,
+        }
+      );
 
       if (response.data.success) {
         setMessage(
@@ -107,8 +106,8 @@ const [resetToken, setResetToken] =
         );
 
         sessionStorage.removeItem(
-  "enjoMealResetToken"
-);
+          "enjoMealResetToken"
+        );
 
         // Go to login
         setTimeout(() => {
@@ -168,9 +167,7 @@ const [resetToken, setResetToken] =
             "0 5px 20px rgba(0,0,0,0.08)",
         }}
       >
-        {/* =================================================
-            HEADER
-           ================================================= */}
+        {/* HEADER */}
 
         <h1
           style={{
@@ -200,13 +197,10 @@ const [resetToken, setResetToken] =
             marginBottom: "25px",
           }}
         >
-          Create a new password for your
-          account.
+          Create a new password for your account.
         </p>
 
-        {/* =================================================
-            SUCCESS
-           ================================================= */}
+        {/* SUCCESS */}
 
         {message && (
           <div
@@ -224,9 +218,7 @@ const [resetToken, setResetToken] =
           </div>
         )}
 
-        {/* =================================================
-            ERROR
-           ================================================= */}
+        {/* ERROR */}
 
         {error && (
           <div
@@ -244,9 +236,7 @@ const [resetToken, setResetToken] =
           </div>
         )}
 
-        {/* =================================================
-            FORM
-           ================================================= */}
+        {/* FORM */}
 
         <form onSubmit={handleResetPassword}>
           {/* EMAIL */}
@@ -277,50 +267,8 @@ const [resetToken, setResetToken] =
               boxSizing: "border-box",
               border: "1px solid #dddddd",
               borderRadius: "8px",
-              marginBottom: "15px",
+              marginBottom: "20px",
               fontSize: "15px",
-            }}
-          />
-
-          {/* OTP */}
-
-          <label
-            style={{
-              display: "block",
-              marginBottom: "7px",
-              fontWeight: "600",
-            }}
-          >
-            OTP
-          </label>
-
-          <input
-            type="text"
-            value={otp}
-            onChange={(event) => {
-              const value =
-                event.target.value
-                  .replace(/\D/g, "")
-                  .slice(0, 6);
-
-              setOtp(value);
-              setError("");
-            }}
-            placeholder="Enter 6-digit OTP"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength="6"
-            required
-            style={{
-              width: "100%",
-              padding: "12px",
-              boxSizing: "border-box",
-              border: "1px solid #dddddd",
-              borderRadius: "8px",
-              marginBottom: "15px",
-              fontSize: "18px",
-              letterSpacing: "4px",
-              textAlign: "center",
             }}
           />
 
@@ -419,15 +367,11 @@ const [resetToken, setResetToken] =
           </button>
         </form>
 
-        {/* =================================================
-            BACK TO LOGIN
-           ================================================= */}
+        {/* BACK TO LOGIN */}
 
         <button
           type="button"
-          onClick={() =>
-            navigate("/login")
-          }
+          onClick={() => navigate("/login")}
           style={{
             width: "100%",
             marginTop: "12px",
