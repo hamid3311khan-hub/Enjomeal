@@ -1156,6 +1156,191 @@ const resetUserPassword = async (
   }
 };
 
+
+// =====================================================
+// OTP LOGIN
+// CUSTOMER / RESTAURANT / DELIVERY
+// =====================================================
+
+const otpLogin = async (req, res) => {
+  try {
+    const { accessToken } = req.body;
+
+    // ===================================================
+    // VALIDATION
+    // ===================================================
+
+    if (!accessToken || typeof accessToken !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "MSG91 access token is required.",
+      });
+    }
+
+    // ===================================================
+    // MSG91 AUTHKEY CHECK
+    // ===================================================
+
+    if (!process.env.MSG91_AUTHKEY) {
+      console.error("MSG91_AUTHKEY is not configured.");
+
+      return res.status(500).json({
+        success: false,
+        message: "OTP login is not configured on server.",
+      });
+    }
+
+    // ===================================================
+    // VERIFY MSG91 ACCESS TOKEN
+    // ===================================================
+
+    const msg91Response = await axios.post(
+      "https://control.msg91.com/api/v5/widget/verifyAccessToken",
+      {
+        authkey: process.env.MSG91_AUTHKEY,
+        "access-token": accessToken,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        timeout: 10000,
+      }
+    );
+
+    console.log(
+      "MSG91 VERIFY RESPONSE:",
+      msg91Response.data
+    );
+
+    // ===================================================
+    // EXTRACT VERIFIED USER DATA
+    // ===================================================
+
+    const msg91Data = msg91Response.data;
+
+    const verifiedData =
+      msg91Data?.data ||
+      msg91Data?.user ||
+      msg91Data;
+
+    const mobile =
+      verifiedData?.mobile ||
+      verifiedData?.phone ||
+      verifiedData?.identifier;
+
+    if (!mobile) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Mobile number could not be verified from MSG91.",
+      });
+    }
+
+    // ===================================================
+    // NORMALIZE MOBILE NUMBER
+    // ===================================================
+
+    const normalizedPhone = String(mobile)
+      .replace(/\D/g, "");
+
+    if (!normalizedPhone) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid mobile number.",
+      });
+    }
+
+    // ===================================================
+    // FIND EXISTING USER
+    // ===================================================
+
+    let user = await User.findOne({
+      phone: normalizedPhone,
+    });
+
+    // ===================================================
+    // NEW CUSTOMER
+    // ===================================================
+
+    if (!user) {
+      const randomPassword = crypto
+        .randomBytes(32)
+        .toString("hex");
+
+      const customerEmail =
+        `customer_${normalizedPhone}@otp.enjomeal.local`;
+
+      user = await User.create({
+        name: "EnjoMeal Customer",
+        email: customerEmail,
+        password: randomPassword,
+        phone: normalizedPhone,
+        role: "customer",
+        approvalStatus: "APPROVED",
+        isActive: true,
+      });
+    }
+
+    // ===================================================
+    // ACTIVE CHECK
+    // ===================================================
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is inactive.",
+      });
+    }
+
+    // ===================================================
+    // APPROVAL CHECK
+    // ===================================================
+
+    if (
+      ["restaurant", "delivery"].includes(
+        user.role
+      ) &&
+      user.approvalStatus !== "APPROVED"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          `Your ${user.role} account is ${user.approvalStatus.toLowerCase()}. Please wait for admin approval.`,
+      });
+    }
+
+    // ===================================================
+    // CREATE ENJOMEAL JWT
+    // ===================================================
+
+    const token = generateToken(user);
+
+    // ===================================================
+    // RESPONSE
+    // ===================================================
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP login successful.",
+      token,
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    console.error(
+      "OTP Login Error:",
+      error.response?.data || error.message
+    );
+
+    return res.status(401).json({
+      success: false,
+      message:
+        "OTP verification failed. Please try again.",
+    });
+  }
+};
+
 // ===============================
 // ===============================
 // EXPORT
@@ -1164,6 +1349,7 @@ const resetUserPassword = async (
 module.exports = {
   register,
   login,
+  otpLogin,
   profile,
   resetUserPassword,
 
