@@ -8,6 +8,7 @@ const {
   forgotPassword,
   verifyResetOTP,
   resetPassword,
+  customerOTPLogin,
 } = require("../controllers/auth.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -40,6 +41,18 @@ router.post(
   "/login",
   authRateLimiter,
   login
+);
+
+// =====================================================
+// OTP LOGIN
+// CUSTOMER / RESTAURANT / DELIVERY
+// PUBLIC
+// =====================================================
+
+router.post(
+  "/otp-login",
+  authRateLimiter,
+  customerOTPLogin
 );
 
 // =====================================================
