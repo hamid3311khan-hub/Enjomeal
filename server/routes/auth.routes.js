@@ -8,7 +8,7 @@ const {
   forgotPassword,
   verifyResetOTP,
   resetPassword,
-  customerOTPLogin,
+  otpLogin,
 } = require("../controllers/auth.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -52,7 +52,7 @@ router.post(
 router.post(
   "/otp-login",
   authRateLimiter,
-  customerOTPLogin
+  otpLogin
 );
 
 // =====================================================
