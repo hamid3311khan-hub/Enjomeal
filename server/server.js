@@ -40,6 +40,7 @@ const httpServer = http.createServer(app);
 
 const socketOrigins = [
   "https://enjomeal-customer-web.onrender.com",
+  "https://enjomeal.in",
   ...(process.env.CLIENT_URL
     ? process.env.CLIENT_URL
         .split(",")
@@ -288,6 +289,7 @@ app.use(requestIdMiddleware);
 
 const allowedOrigins = [
   "https://enjomeal-customer-web.onrender.com",
+  "https://enjomeal.in",
   ...(process.env.CLIENT_URL
     ? process.env.CLIENT_URL
         .split(",")
