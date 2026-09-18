@@ -12,7 +12,13 @@ const userSchema = new mongoose.Schema(
 
     name: {
       type: String,
-      required: [true, "Name is required"],
+
+      // Customer OTP account ke liye name abhi required nahi
+      // Restaurant / Delivery / Admin ke liye required
+      required: function () {
+        return this.role !== "customer";
+      },
+
       trim: true,
       minlength: [2, "Name must be at least 2 characters"],
       maxlength: [100, "Name cannot exceed 100 characters"],
@@ -20,12 +26,19 @@ const userSchema = new mongoose.Schema(
 
     email: {
       type: String,
-      required: [true, "Email is required"],
+
+      // Customer OTP account ke liye email required nahi
+      // Restaurant / Delivery / Admin ke liye required
+      required: function () {
+        return this.role !== "customer";
+      },
+
       unique: true,
       lowercase: true,
       trim: true,
       index: true,
       maxlength: [150, "Email cannot exceed 150 characters"],
+
       match: [
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
         "Please provide a valid email address",
@@ -34,7 +47,13 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: [true, "Password is required"],
+
+      // Customer OTP login mein password nahi hoga
+      // Restaurant / Delivery / Admin ke liye password required
+      required: function () {
+        return this.role !== "customer";
+      },
+
       select: false,
       minlength: [6, "Password must be at least 6 characters"],
     },
@@ -44,6 +63,7 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: null,
       maxlength: [20, "Phone number is too long"],
+      index: true,
     },
 
     // ===================================================
@@ -92,22 +112,24 @@ const userSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+
     // ===================================================
-// PASSWORD RESET
-// ===================================================
+    // PASSWORD RESET
+    // ===================================================
 
-resetPasswordOTPHash: {
-  type: String,
-  default: null,
-  select: false,
-},
+    resetPasswordOTPHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
 
-resetPasswordOTPExpires: {
-  type: Date,
-  default: null,
-  select: false,
-},
+    resetPasswordOTPExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
   },
+
   {
     timestamps: true,
 
@@ -117,6 +139,7 @@ resetPasswordOTPExpires: {
     // Return virtual fields when converting to JSON
     toJSON: {
       virtuals: true,
+
       transform: (doc, ret) => {
         delete ret.password;
         delete ret.__v;
@@ -131,7 +154,7 @@ resetPasswordOTPExpires: {
 );
 
 // =====================================================
-// NORMALIZE EMAIL
+// NORMALIZE EMAIL / PHONE / NAME
 // =====================================================
 
 userSchema.pre("save", function () {
