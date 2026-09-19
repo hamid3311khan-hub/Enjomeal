@@ -126,7 +126,7 @@ function Login({ onLogin }) {
     setError("");
     setMessage("");
 
-    if (!/^\d{6}$/.test(otp)) {
+    if (!/^\d{4}$/.test(otp)) {
       setError("Please enter the 6-digit OTP.");
       return;
     }
@@ -529,10 +529,10 @@ function Login({ onLogin }) {
               type="tel"
               value={otp}
               onChange={handleOtpChange}
-              placeholder="Enter 6-digit OTP"
+              placeholder="Enter 4-digit OTP"
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
+              maxLength={4}
               disabled={loading}
               style={{
                 width: "100%",
