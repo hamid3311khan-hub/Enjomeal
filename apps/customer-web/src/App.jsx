@@ -161,28 +161,30 @@ function App() {
           element={<ResetPassword />}
         />
 
-        {/* PROTECTED CUSTOMER AREA */}
+        {/* PUBLIC RESTAURANT PAGES */}
 
-        <Route
-          element={
-            <CustomerProtectedLayout />
-          }
-        >
+<Route
+  path="/restaurants"
+  element={<RestaurantList />}
+/>
 
-          <Route
-            path="/restaurants"
-            element={<RestaurantList />}
-          />
+<Route
+  path="/restaurants/:restaurantId"
+  element={<RestaurantDetails />}
+/>
 
-          <Route
-            path="/restaurants/:restaurantId"
-            element={<RestaurantDetails />}
-          />
+{/* PROTECTED CUSTOMER AREA */}
 
-          <Route
-            path="/cart"
-            element={<Cart />}
-          />
+<Route
+  element={
+    <CustomerProtectedLayout />
+  }
+>
+
+  <Route
+    path="/cart"
+    element={<Cart />}
+  />
 
           <Route
             path="/checkout"
