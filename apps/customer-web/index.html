@@ -2,12 +2,78 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="google-site-verification" content="NGKdiXlCUvfG28n_C-wYfcQu6zmkGRr8HpJVc_VDk9w" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      name="google-site-verification"
+      content="NGKdiXlCUvfG28n_C-wYfcQu6zmkGRr8HpJVc_VDk9w"
+    />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
     <title>EnjoMeal</title>
   </head>
+
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- MSG91 OTP Widget -->
+    <script type="text/javascript">
+      var configuration = {
+        widgetId: "366972766b6f333737393832",
+
+        tokenAuth: "572775To4msmwnR6aadb97dP1",
+
+        exposeMethods: true,
+
+        success: (data) => {
+          console.log("MSG91 OTP SUCCESS:", data);
+        },
+
+        failure: (error) => {
+          console.error("MSG91 OTP FAILURE:", error);
+        },
+      };
+
+      (function loadOtpScript(urls) {
+        let i = 0;
+
+        function attempt() {
+          const script = document.createElement("script");
+
+          script.src = urls[i];
+          script.async = true;
+
+          script.onload = () => {
+            if (typeof window.initSendOTP === "function") {
+              window.initSendOTP(configuration);
+            }
+          };
+
+          script.onerror = () => {
+            i++;
+
+            if (i < urls.length) {
+              attempt();
+            }
+          };
+
+          document.head.appendChild(script);
+        }
+
+        attempt();
+      })([
+        "https://verify.msg91.com/otp-provider.js",
+        "https://verify.phone91.com/otp-provider.js",
+      ]);
+    </script>
+
+    <!-- React App -->
+    <script
+      type="module"
+      src="/src/main.jsx"
+    ></script>
   </body>
 </html>
