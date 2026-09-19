@@ -89,9 +89,14 @@ function Login({ onLogin }) {
 
       (data) => {
         console.log(
-          "MSG91 OTP SENT:",
-          data
-        );
+  "MSG91 OTP SENT:",
+  data
+);
+
+console.log(
+  "MSG91 OTP SENT JSON:",
+  JSON.stringify(data, null, 2)
+);
 
         setOtp("");
         setOtpSent(true);
