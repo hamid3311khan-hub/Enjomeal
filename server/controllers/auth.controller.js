@@ -1210,9 +1210,24 @@ const otpLogin = async (req, res) => {
     );
 
     console.log(
-      "MSG91 VERIFY RESPONSE:",
-      msg91Response.data
-    );
+  "MSG91 VERIFY STATUS:",
+  msg91Response.status
+);
+
+console.log(
+  "MSG91 VERIFY RESPONSE KEYS:",
+  Object.keys(msg91Response.data || {})
+);
+
+console.log(
+  "MSG91 VERIFY DATA KEYS:",
+  Object.keys(msg91Response.data?.data || {})
+);
+
+console.log(
+  "MSG91 VERIFY USER KEYS:",
+  Object.keys(msg91Response.data?.user || {})
+);
 
     // ===================================================
     // EXTRACT VERIFIED USER DATA
