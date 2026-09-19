@@ -1241,9 +1241,10 @@ console.log(
       msg91Data;
 
     const mobile =
-      verifiedData?.mobile ||
-      verifiedData?.phone ||
-      verifiedData?.identifier;
+  verifiedData?.mobile ||
+  verifiedData?.phone ||
+  verifiedData?.identifier ||
+  verifiedData?.message;
 
     if (!mobile) {
       return res.status(401).json({
