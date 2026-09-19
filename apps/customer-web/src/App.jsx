@@ -123,7 +123,7 @@ function App() {
               />
             ) : (
               <Navigate
-                to="/login"
+                to="/restaurants"
                 replace
               />
             )
