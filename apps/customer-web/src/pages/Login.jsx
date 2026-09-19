@@ -164,6 +164,7 @@ console.log(
           "MSG91 OTP VERIFIED:",
           data
         );
+        alert(JSON.stringify(data));
 
         try {
           // =================================================
