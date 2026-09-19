@@ -7,6 +7,7 @@ function Login({ onLogin }) {
 
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
+  const [reqId, setReqId] = useState("");
 
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ function Login({ onLogin }) {
   const handleOtpChange = (event) => {
     const value = event.target.value.replace(/\D/g, "");
 
-    if (value.length <= 6) {
+    if (value.length <= 4) {
       setOtp(value);
     }
 
@@ -57,19 +58,21 @@ function Login({ onLogin }) {
     setMessage("");
 
     if (!/^[6-9]\d{9}$/.test(mobile)) {
-      setError("Please enter a valid 10-digit mobile number.");
+      setError(
+        "Please enter a valid 10-digit mobile number."
+      );
       return;
     }
 
-    if (
-      typeof window.sendOtp !== "function"
-    ) {
+    if (typeof window.sendOtp !== "function") {
       setError(
         "OTP service is not ready. Please refresh the page and try again."
       );
+
       console.error(
         "MSG91 sendOtp method is not available."
       );
+
       return;
     }
 
@@ -91,7 +94,30 @@ function Login({ onLogin }) {
           data
         );
 
+        const receivedReqId =
+          data?.reqId ||
+          data?.req_id ||
+          data?.data?.reqId ||
+          data?.data?.req_id;
+
+        if (!receivedReqId) {
+          console.error(
+            "MSG91 reqId missing:",
+            data
+          );
+
+          setError(
+            "OTP was sent, but verification session was not received. Please try again."
+          );
+
+          setLoading(false);
+          return;
+        }
+
+        setReqId(receivedReqId);
+        setOtp("");
         setOtpSent(true);
+
         setMessage(
           "OTP sent successfully to your mobile number."
         );
@@ -127,13 +153,20 @@ function Login({ onLogin }) {
     setMessage("");
 
     if (!/^\d{4}$/.test(otp)) {
-      setError("Please enter the 6-digit OTP.");
+      setError(
+        "Please enter the 4-digit OTP."
+      );
       return;
     }
 
-    if (
-      typeof window.verifyOtp !== "function"
-    ) {
+    if (!reqId) {
+      setError(
+        "OTP session is missing. Please request a new OTP."
+      );
+      return;
+    }
+
+    if (typeof window.verifyOtp !== "function") {
       setError(
         "OTP service is not ready. Please refresh the page and try again."
       );
@@ -149,6 +182,7 @@ function Login({ onLogin }) {
 
     window.verifyOtp(
       Number(otp),
+      reqId,
 
       async (data) => {
         console.log(
@@ -157,11 +191,6 @@ function Login({ onLogin }) {
         );
 
         try {
-          /*
-           * MSG91 returns the verified access token
-           * after successful OTP verification.
-           */
-
           const accessToken =
             typeof data === "string"
               ? data
@@ -184,7 +213,7 @@ function Login({ onLogin }) {
           }
 
           // =================================================
-          // SEND MSG91 TOKEN TO ENJOMEAL BACKEND
+          // SEND MSG91 ACCESS TOKEN TO ENJOMEAL BACKEND
           // =================================================
 
           const response = await API.post(
@@ -316,11 +345,17 @@ function Login({ onLogin }) {
     setError("");
     setMessage("");
 
-    if (
-      typeof window.retryOtp !== "function"
-    ) {
+    if (typeof window.retryOtp !== "function") {
       setError(
         "Resend service is not ready. Please refresh the page."
+      );
+
+      return;
+    }
+
+    if (!reqId) {
+      setError(
+        "OTP session is missing. Please request a new OTP."
       );
 
       return;
@@ -329,13 +364,25 @@ function Login({ onLogin }) {
     setLoading(true);
 
     window.retryOtp(
-      null,
+      reqId,
 
       (data) => {
         console.log(
           "MSG91 OTP RESENT:",
           data
         );
+
+        const newReqId =
+          data?.reqId ||
+          data?.req_id ||
+          data?.data?.reqId ||
+          data?.data?.req_id;
+
+        if (newReqId) {
+          setReqId(newReqId);
+        }
+
+        setOtp("");
 
         setMessage(
           "OTP resent successfully."
@@ -364,8 +411,12 @@ function Login({ onLogin }) {
   // =====================================================
 
   const handleChangeNumber = () => {
-    setOtpSent(false);
+    setMobile("");
     setOtp("");
+    setReqId("");
+
+    setOtpSent(false);
+
     setError("");
     setMessage("");
   };
@@ -397,10 +448,6 @@ function Login({ onLogin }) {
           boxSizing: "border-box",
         }}
       >
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
         <h2
           style={{
             marginTop: 0,
@@ -420,9 +467,7 @@ function Login({ onLogin }) {
           Login with your mobile number
         </p>
 
-        {/* =================================================
-            MOBILE NUMBER
-        ================================================= */}
+        {/* MOBILE NUMBER */}
 
         <label
           htmlFor="login-mobile"
@@ -476,9 +521,7 @@ function Login({ onLogin }) {
           />
         </div>
 
-        {/* =================================================
-            SEND OTP
-        ================================================= */}
+        {/* SEND OTP */}
 
         {!otpSent && (
           <button
@@ -507,9 +550,7 @@ function Login({ onLogin }) {
           </button>
         )}
 
-        {/* =================================================
-            OTP SECTION
-        ================================================= */}
+        {/* OTP SECTION */}
 
         {otpSent && (
           <>
@@ -547,7 +588,7 @@ function Login({ onLogin }) {
               }}
             />
 
-            {/* VERIFY */}
+            {/* VERIFY OTP */}
 
             <button
               type="button"
@@ -620,9 +661,7 @@ function Login({ onLogin }) {
           </>
         )}
 
-        {/* =================================================
-            SUCCESS MESSAGE
-        ================================================= */}
+        {/* SUCCESS MESSAGE */}
 
         {message && (
           <p
@@ -638,9 +677,7 @@ function Login({ onLogin }) {
           </p>
         )}
 
-        {/* =================================================
-            ERROR MESSAGE
-        ================================================= */}
+        {/* ERROR MESSAGE */}
 
         {error && (
           <p
