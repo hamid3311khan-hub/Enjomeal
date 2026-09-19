@@ -172,14 +172,16 @@ console.log(
           // =================================================
 
           const accessToken =
-            typeof data === "string"
-              ? data
-              : data?.accessToken ||
-                data?.["access-token"] ||
-                data?.token ||
-                data?.data?.accessToken ||
-                data?.data?.["access-token"] ||
-                data?.data?.token;
+  typeof data === "string"
+    ? data
+    : data?.accessToken ||
+      data?.["access-token"] ||
+      data?.token ||
+      data?.message ||
+      data?.data?.accessToken ||
+      data?.data?.["access-token"] ||
+      data?.data?.token ||
+      data?.data?.message;
 
           if (!accessToken) {
             console.error(
