@@ -11,7 +11,58 @@
 * { box-sizing: border-box; } 
 
 html { scroll-behavior: smooth; } 
+<script type="text/javascript">
+  var configuration = {
+    widgetId: "3669727666bf333737393832",
 
+    // YAHAN MSG91 DASHBOARD KA NAYA tokenAuth VALUE
+    // APNE COMPUTER/PHONE PAR HI PASTE KARNA.
+    tokenAuth: "YOUR_MSG91_TOKEN_AUTH",
+
+    exposeMethods: true,
+
+    success: (data) => {
+      console.log("MSG91 OTP SUCCESS:", data);
+    },
+
+    failure: (error) => {
+      console.error("MSG91 OTP FAILURE:", error);
+    },
+  };
+
+  (function loadOtpScript(urls) {
+    let i = 0;
+
+    function attempt() {
+      const s = document.createElement("script");
+
+      s.src = urls[i];
+      s.async = true;
+
+      s.onload = () => {
+        if (typeof window.initSendOTP === "function") {
+          window.initSendOTP(configuration);
+        }
+      };
+
+      s.onerror = () => {
+        i++;
+
+        if (i < urls.length) {
+          attempt();
+        }
+      };
+
+      document.head.appendChild(s);
+    }
+
+    attempt();
+  })([
+    "https://verify.msg91.com/otp-provider.js",
+    "https://verify.phone91.com/otp-provider.js",
+  ]);
+</script>
+      
 body { 
   margin: 0; 
   min-width: 320px; 
