@@ -7,7 +7,6 @@ function Login({ onLogin }) {
 
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
-  const [reqId, setReqId] = useState("");
 
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -94,27 +93,6 @@ function Login({ onLogin }) {
           data
         );
 
-        const receivedReqId =
-          data?.reqId ||
-          data?.req_id ||
-          data?.data?.reqId ||
-          data?.data?.req_id;
-
-        if (!receivedReqId) {
-          console.error(
-            "MSG91 reqId missing:",
-            data
-          );
-
-          setError(
-            "OTP was sent, but verification session was not received. Please try again."
-          );
-
-          setLoading(false);
-          return;
-        }
-
-        setReqId(receivedReqId);
         setOtp("");
         setOtpSent(true);
 
@@ -159,13 +137,6 @@ function Login({ onLogin }) {
       return;
     }
 
-    if (!reqId) {
-      setError(
-        "OTP session is missing. Please request a new OTP."
-      );
-      return;
-    }
-
     if (typeof window.verifyOtp !== "function") {
       setError(
         "OTP service is not ready. Please refresh the page and try again."
@@ -182,7 +153,6 @@ function Login({ onLogin }) {
 
     window.verifyOtp(
       Number(otp),
-      reqId,
 
       async (data) => {
         console.log(
@@ -191,6 +161,10 @@ function Login({ onLogin }) {
         );
 
         try {
+          // =================================================
+          // GET MSG91 ACCESS TOKEN
+          // =================================================
+
           const accessToken =
             typeof data === "string"
               ? data
@@ -203,7 +177,7 @@ function Login({ onLogin }) {
 
           if (!accessToken) {
             console.error(
-              "MSG91 response does not contain access token:",
+              "MSG91 response:",
               data
             );
 
@@ -213,7 +187,7 @@ function Login({ onLogin }) {
           }
 
           // =================================================
-          // SEND MSG91 ACCESS TOKEN TO ENJOMEAL BACKEND
+          // ENJOMEAL BACKEND LOGIN
           // =================================================
 
           const response = await API.post(
@@ -353,34 +327,16 @@ function Login({ onLogin }) {
       return;
     }
 
-    if (!reqId) {
-      setError(
-        "OTP session is missing. Please request a new OTP."
-      );
-
-      return;
-    }
-
     setLoading(true);
 
     window.retryOtp(
-      reqId,
+      null,
 
       (data) => {
         console.log(
           "MSG91 OTP RESENT:",
           data
         );
-
-        const newReqId =
-          data?.reqId ||
-          data?.req_id ||
-          data?.data?.reqId ||
-          data?.data?.req_id;
-
-        if (newReqId) {
-          setReqId(newReqId);
-        }
 
         setOtp("");
 
@@ -413,7 +369,6 @@ function Login({ onLogin }) {
   const handleChangeNumber = () => {
     setMobile("");
     setOtp("");
-    setReqId("");
 
     setOtpSent(false);
 
