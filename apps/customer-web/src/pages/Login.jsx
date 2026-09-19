@@ -5,187 +5,369 @@ import API from "../api/api";
 function Login({ onLogin }) {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState("");
 
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   // =====================================================
-  // HANDLE INPUT CHANGE
+  // MOBILE CHANGE
   // =====================================================
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
+  const handleMobileChange = (event) => {
+    const value = event.target.value.replace(/\D/g, "");
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    if (value.length <= 10) {
+      setMobile(value);
+    }
 
     setError("");
     setMessage("");
   };
 
   // =====================================================
-  // LOGIN
+  // OTP CHANGE
   // =====================================================
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleOtpChange = (event) => {
+    const value = event.target.value.replace(/\D/g, "");
 
+    if (value.length <= 6) {
+      setOtp(value);
+    }
+
+    setError("");
+    setMessage("");
+  };
+
+  // =====================================================
+  // SEND OTP
+  // =====================================================
+
+  const handleSendOtp = () => {
     if (loading) {
       return;
     }
 
-    setLoading(true);
-    setMessage("");
     setError("");
+    setMessage("");
 
-    try {
-      const email = formData.email
-        .trim()
-        .toLowerCase();
-
-      const password = formData.password;
-
-      if (!email || !password) {
-        setError(
-          "Please enter your email and password."
-        );
-        return;
-      }
-
-      const response = await API.post(
-        "/auth/login",
-        {
-          email,
-          password,
-        }
-      );
-
-      console.log(
-        "LOGIN API RESPONSE:",
-        response.data
-      );
-
-      const { token, user } =
-        response.data;
-
-      if (!token) {
-        throw new Error(
-          "Login successful but authentication token was not received."
-        );
-      }
-
-      if (!user) {
-        throw new Error(
-          "Login successful but user information was not received."
-        );
-      }
-
-      // =================================================
-      // CUSTOMER ROLE CHECK
-      // =================================================
-
-      if (
-        user.role &&
-        user.role !== "customer"
-      ) {
-        setError(
-          "This account cannot be used in the Customer Panel."
-        );
-
-        return;
-      }
-
-      // =================================================
-      // SAVE AUTH DATA
-      // =================================================
-
-      localStorage.setItem(
-        "enjoMealToken",
-        token
-      );
-
-      localStorage.setItem(
-        "enjoMealUser",
-        JSON.stringify(user)
-      );
-
-      setMessage(
-        "Login successful!"
-      );
-
-      console.log(
-        "LOGIN SUCCESS"
-      );
-
-      console.log(
-        "Logged-in user:",
-        user
-      );
-
-      console.log(
-        "Token saved:",
-        true
-      );
-
-      // =================================================
-      // NAVIGATION
-      // =================================================
-
-      if (onLogin) {
-        onLogin();
-      } else {
-        navigate(
-          "/restaurants",
-          {
-            replace: true,
-          }
-        );
-      }
-    } catch (error) {
-      console.error(
-        "LOGIN ERROR:",
-        error
-      );
-
-      localStorage.removeItem(
-        "enjoMealToken"
-      );
-
-      localStorage.removeItem(
-        "enjoMealUser"
-      );
-
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Login failed. Please check your credentials and try again."
-      );
-    } finally {
-      setLoading(false);
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      setError("Please enter a valid 10-digit mobile number.");
+      return;
     }
+
+    if (
+      typeof window.sendOtp !== "function"
+    ) {
+      setError(
+        "OTP service is not ready. Please refresh the page and try again."
+      );
+      console.error(
+        "MSG91 sendOtp method is not available."
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    const identifier = `91${mobile}`;
+
+    console.log(
+      "Sending OTP to:",
+      `******${mobile.slice(-4)}`
+    );
+
+    window.sendOtp(
+      identifier,
+
+      (data) => {
+        console.log(
+          "MSG91 OTP SENT:",
+          data
+        );
+
+        setOtpSent(true);
+        setMessage(
+          "OTP sent successfully to your mobile number."
+        );
+
+        setLoading(false);
+      },
+
+      (error) => {
+        console.error(
+          "MSG91 SEND OTP ERROR:",
+          error
+        );
+
+        setError(
+          "OTP could not be sent. Please try again."
+        );
+
+        setLoading(false);
+      }
+    );
   };
 
   // =====================================================
-  // REGISTER
+  // VERIFY OTP
   // =====================================================
 
-  const handleRegister = () => {
-    navigate("/register");
+  const handleVerifyOtp = () => {
+    if (loading) {
+      return;
+    }
+
+    setError("");
+    setMessage("");
+
+    if (!/^\d{6}$/.test(otp)) {
+      setError("Please enter the 6-digit OTP.");
+      return;
+    }
+
+    if (
+      typeof window.verifyOtp !== "function"
+    ) {
+      setError(
+        "OTP service is not ready. Please refresh the page and try again."
+      );
+
+      console.error(
+        "MSG91 verifyOtp method is not available."
+      );
+
+      return;
+    }
+
+    setLoading(true);
+
+    window.verifyOtp(
+      Number(otp),
+
+      async (data) => {
+        console.log(
+          "MSG91 OTP VERIFIED:",
+          data
+        );
+
+        try {
+          /*
+           * MSG91 returns the verified access token
+           * after successful OTP verification.
+           */
+
+          const accessToken =
+            typeof data === "string"
+              ? data
+              : data?.accessToken ||
+                data?.["access-token"] ||
+                data?.token ||
+                data?.data?.accessToken ||
+                data?.data?.["access-token"] ||
+                data?.data?.token;
+
+          if (!accessToken) {
+            console.error(
+              "MSG91 response does not contain access token:",
+              data
+            );
+
+            throw new Error(
+              "MSG91 access token was not received."
+            );
+          }
+
+          // =================================================
+          // SEND MSG91 TOKEN TO ENJOMEAL BACKEND
+          // =================================================
+
+          const response = await API.post(
+            "/auth/otp-login",
+            {
+              accessToken,
+            }
+          );
+
+          console.log(
+            "ENJOMEAL OTP LOGIN RESPONSE:",
+            response.data
+          );
+
+          const {
+            token,
+            user,
+          } = response.data;
+
+          if (!token) {
+            throw new Error(
+              "EnjoMeal authentication token was not received."
+            );
+          }
+
+          if (!user) {
+            throw new Error(
+              "User information was not received."
+            );
+          }
+
+          // =================================================
+          // CUSTOMER ROLE CHECK
+          // =================================================
+
+          if (
+            user.role &&
+            user.role !== "customer"
+          ) {
+            throw new Error(
+              "This account cannot be used in the Customer Panel."
+            );
+          }
+
+          // =================================================
+          // SAVE AUTH DATA
+          // =================================================
+
+          localStorage.setItem(
+            "enjoMealToken",
+            token
+          );
+
+          localStorage.setItem(
+            "enjoMealUser",
+            JSON.stringify(user)
+          );
+
+          setMessage(
+            "Login successful!"
+          );
+
+          console.log(
+            "CUSTOMER OTP LOGIN SUCCESS"
+          );
+
+          // =================================================
+          // NAVIGATION
+          // =================================================
+
+          if (onLogin) {
+            onLogin();
+          } else {
+            navigate(
+              "/restaurants",
+              {
+                replace: true,
+              }
+            );
+          }
+        } catch (error) {
+          console.error(
+            "ENJOMEAL OTP LOGIN ERROR:",
+            error
+          );
+
+          localStorage.removeItem(
+            "enjoMealToken"
+          );
+
+          localStorage.removeItem(
+            "enjoMealUser"
+          );
+
+          setError(
+            error.response?.data?.message ||
+              error.message ||
+              "OTP login failed. Please try again."
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+
+      (error) => {
+        console.error(
+          "MSG91 VERIFY OTP ERROR:",
+          error
+        );
+
+        setError(
+          "Invalid OTP or OTP verification failed."
+        );
+
+        setLoading(false);
+      }
+    );
   };
 
   // =====================================================
-  // FORGOT PASSWORD
+  // RESEND OTP
   // =====================================================
 
-  const handleForgotPassword = () => {
-    navigate("/forgot-password");
+  const handleResendOtp = () => {
+    if (loading) {
+      return;
+    }
+
+    setError("");
+    setMessage("");
+
+    if (
+      typeof window.retryOtp !== "function"
+    ) {
+      setError(
+        "Resend service is not ready. Please refresh the page."
+      );
+
+      return;
+    }
+
+    setLoading(true);
+
+    window.retryOtp(
+      null,
+
+      (data) => {
+        console.log(
+          "MSG91 OTP RESENT:",
+          data
+        );
+
+        setMessage(
+          "OTP resent successfully."
+        );
+
+        setLoading(false);
+      },
+
+      (error) => {
+        console.error(
+          "MSG91 RESEND OTP ERROR:",
+          error
+        );
+
+        setError(
+          "OTP could not be resent. Please try again."
+        );
+
+        setLoading(false);
+      }
+    );
+  };
+
+  // =====================================================
+  // CHANGE NUMBER
+  // =====================================================
+
+  const handleChangeNumber = () => {
+    setOtpSent(false);
+    setOtp("");
+    setError("");
+    setMessage("");
   };
 
   // =====================================================
@@ -203,8 +385,7 @@ function Login({ onLogin }) {
         boxSizing: "border-box",
       }}
     >
-      <form
-        onSubmit={handleSubmit}
+      <div
         style={{
           width: "100%",
           maxWidth: "420px",
@@ -226,7 +407,7 @@ function Login({ onLogin }) {
             marginBottom: "8px",
           }}
         >
-          Welcome back to ENJOMEAL
+          Welcome to ENJOMEAL
         </h2>
 
         <p
@@ -236,179 +417,208 @@ function Login({ onLogin }) {
             marginBottom: "26px",
           }}
         >
-          Login to your EnjoMeal account
+          Login with your mobile number
         </p>
 
         {/* =================================================
-            EMAIL
+            MOBILE NUMBER
         ================================================= */}
 
         <label
-          htmlFor="login-email"
+          htmlFor="login-mobile"
           style={{
             display: "block",
             fontWeight: "600",
           }}
         >
-          Email
+          Mobile Number
         </label>
-
-        <input
-          id="login-email"
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="Enter your email"
-          autoComplete="email"
-          inputMode="email"
-          required
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "13px",
-            marginTop: "7px",
-            marginBottom: "18px",
-            boxSizing: "border-box",
-            border: "1px solid #ddd",
-            borderRadius: "10px",
-            outline: "none",
-          }}
-        />
-
-        {/* =================================================
-            PASSWORD
-        ================================================= */}
-
-        <label
-          htmlFor="login-password"
-          style={{
-            display: "block",
-            fontWeight: "600",
-          }}
-        >
-          Password
-        </label>
-
-        <input
-          id="login-password"
-          type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Enter your password"
-          autoComplete="current-password"
-          required
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "13px",
-            marginTop: "7px",
-            marginBottom: "8px",
-            boxSizing: "border-box",
-            border: "1px solid #ddd",
-            borderRadius: "10px",
-            outline: "none",
-          }}
-        />
-
-        {/* =================================================
-            FORGOT PASSWORD
-        ================================================= */}
 
         <div
           style={{
-            textAlign: "right",
-            marginBottom: "20px",
+            display: "flex",
+            gap: "8px",
+            marginTop: "7px",
+            marginBottom: "18px",
           }}
         >
-          <button
-            type="button"
-            onClick={
-              handleForgotPassword
-            }
-            disabled={loading}
+          <div
             style={{
-              border: "none",
-              background:
-                "transparent",
-              color: "#e85d04",
+              padding: "13px 12px",
+              border: "1px solid #ddd",
+              borderRadius: "10px",
+              background: "#f7f7f7",
               fontWeight: "600",
-              cursor: loading
-                ? "not-allowed"
-                : "pointer",
-              padding: 0,
-              fontSize: "14px",
             }}
           >
-            Forgot Password?
-          </button>
+            +91
+          </div>
+
+          <input
+            id="login-mobile"
+            type="tel"
+            value={mobile}
+            onChange={handleMobileChange}
+            placeholder="Enter 10-digit mobile number"
+            autoComplete="tel"
+            inputMode="numeric"
+            maxLength={10}
+            disabled={loading || otpSent}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: "13px",
+              boxSizing: "border-box",
+              border: "1px solid #ddd",
+              borderRadius: "10px",
+              outline: "none",
+            }}
+          />
         </div>
 
         {/* =================================================
-            LOGIN BUTTON
+            SEND OTP
         ================================================= */}
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "14px",
-            border: 0,
-            borderRadius: "10px",
-            background: loading
-              ? "#f0a77b"
-              : "#e85d04",
-            color: "#fff",
-            fontWeight: "700",
-            cursor: loading
-              ? "not-allowed"
-              : "pointer",
-            fontSize: "15px",
-          }}
-        >
-          {loading
-            ? "Logging in..."
-            : "Login"}
-        </button>
-
-        {/* =================================================
-            REGISTER
-        ================================================= */}
-
-        <p
-          style={{
-            marginTop: "18px",
-            marginBottom: 0,
-            textAlign: "center",
-            color: "#777",
-          }}
-        >
-          Don't have an account?{" "}
-
+        {!otpSent && (
           <button
             type="button"
-            onClick={
-              handleRegister
-            }
+            onClick={handleSendOtp}
             disabled={loading}
             style={{
-              border: "none",
-              background:
-                "transparent",
-              color: "#e85d04",
+              width: "100%",
+              padding: "14px",
+              border: 0,
+              borderRadius: "10px",
+              background: loading
+                ? "#f0a77b"
+                : "#e85d04",
+              color: "#fff",
               fontWeight: "700",
               cursor: loading
                 ? "not-allowed"
                 : "pointer",
-              padding: 0,
-              fontSize: "inherit",
+              fontSize: "15px",
             }}
           >
-            Register
+            {loading
+              ? "Sending OTP..."
+              : "Send OTP"}
           </button>
-        </p>
+        )}
+
+        {/* =================================================
+            OTP SECTION
+        ================================================= */}
+
+        {otpSent && (
+          <>
+            <label
+              htmlFor="login-otp"
+              style={{
+                display: "block",
+                fontWeight: "600",
+                marginBottom: "7px",
+              }}
+            >
+              Enter OTP
+            </label>
+
+            <input
+              id="login-otp"
+              type="tel"
+              value={otp}
+              onChange={handleOtpChange}
+              placeholder="Enter 6-digit OTP"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "13px",
+                boxSizing: "border-box",
+                border: "1px solid #ddd",
+                borderRadius: "10px",
+                outline: "none",
+                letterSpacing: "4px",
+                textAlign: "center",
+                fontSize: "18px",
+              }}
+            />
+
+            {/* VERIFY */}
+
+            <button
+              type="button"
+              onClick={handleVerifyOtp}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "14px",
+                marginTop: "16px",
+                border: 0,
+                borderRadius: "10px",
+                background: loading
+                  ? "#f0a77b"
+                  : "#e85d04",
+                color: "#fff",
+                fontWeight: "700",
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
+                fontSize: "15px",
+              }}
+            >
+              {loading
+                ? "Verifying..."
+                : "Verify OTP & Login"}
+            </button>
+
+            {/* RESEND */}
+
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={loading}
+              style={{
+                width: "100%",
+                marginTop: "12px",
+                padding: "10px",
+                border: "none",
+                background: "transparent",
+                color: "#e85d04",
+                fontWeight: "600",
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
+              }}
+            >
+              Resend OTP
+            </button>
+
+            {/* CHANGE NUMBER */}
+
+            <button
+              type="button"
+              onClick={handleChangeNumber}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: "none",
+                background: "transparent",
+                color: "#777",
+                fontWeight: "600",
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
+              }}
+            >
+              Change Mobile Number
+            </button>
+          </>
+        )}
 
         {/* =================================================
             SUCCESS MESSAGE
@@ -421,6 +631,7 @@ function Login({ onLogin }) {
               color: "green",
               marginTop: "18px",
               marginBottom: 0,
+              textAlign: "center",
             }}
           >
             {message}
@@ -438,12 +649,13 @@ function Login({ onLogin }) {
               color: "red",
               marginTop: "18px",
               marginBottom: 0,
+              textAlign: "center",
             }}
           >
             {error}
           </p>
         )}
-      </form>
+      </div>
     </div>
   );
 }
