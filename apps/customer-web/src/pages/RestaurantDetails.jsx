@@ -430,7 +430,7 @@ const [reviewsLoading, setReviewsLoading] =
   {restaurant.phone && (
     <p>
       <strong>📞 Phone:</strong>{" "}
-      {restaurant.phone}
+      xxx
     </p>
   )}
 
