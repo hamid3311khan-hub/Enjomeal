@@ -1164,7 +1164,7 @@ const resetUserPassword = async (
 
 const otpLogin = async (req, res) => {
   try {
-    const { accessToken } = req.body;
+    const { accessToken, name } = req.body;
 
     // ===================================================
     // VALIDATION
@@ -1289,7 +1289,7 @@ console.log(
         `customer_${normalizedPhone}@otp.enjomeal.local`;
 
       user = await User.create({
-        name: "EnjoMeal Customer",
+        name: name?.trim() || "EnjoMeal Customer",
         email: customerEmail,
         password: randomPassword,
         phone: normalizedPhone,
