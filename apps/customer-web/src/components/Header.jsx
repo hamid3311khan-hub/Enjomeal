@@ -202,9 +202,7 @@ function Header({ unreadCount = 0 }) {
                 {user?.name || "Customer"}
               </strong>
 
-              <small>
-                {user?.email || ""}
-              </small>
+           
             </div>
           </div>
 
