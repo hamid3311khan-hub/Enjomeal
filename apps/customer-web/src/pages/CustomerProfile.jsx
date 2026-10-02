@@ -94,10 +94,6 @@ function CustomerProfile() {
           <span>{user?.name || "Not available"}</span>
         </div>
 
-        <div style={profileRowStyle}>
-          <strong>Email</strong>
-          <span>{user?.email || "Not available"}</span>
-        </div>
 
         <div style={profileRowStyle}>
           <strong>Phone</strong>
