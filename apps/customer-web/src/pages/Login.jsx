@@ -5,6 +5,7 @@ import API from "../api/api";
 function Login({ onLogin }) {
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
 
@@ -13,6 +14,21 @@ function Login({ onLogin }) {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // =====================================================
+  // NAME CHANGE
+  // =====================================================
+
+  const handleNameChange = (event) => {
+    const value = event.target.value;
+
+    if (value.length <= 80) {
+      setName(value);
+    }
+
+    setError("");
+    setMessage("");
+  };
 
   // =====================================================
   // MOBILE CHANGE
@@ -56,6 +72,18 @@ function Login({ onLogin }) {
     setError("");
     setMessage("");
 
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setError("Please enter your name.");
+      return;
+    }
+
+    if (trimmedName.length < 2) {
+      setError("Please enter a valid name.");
+      return;
+    }
+
     if (!/^[6-9]\d{9}$/.test(mobile)) {
       setError(
         "Please enter a valid 10-digit mobile number."
@@ -89,14 +117,9 @@ function Login({ onLogin }) {
 
       (data) => {
         console.log(
-  "MSG91 OTP SENT:",
-  data
-);
-
-console.log(
-  "MSG91 OTP SENT JSON:",
-  JSON.stringify(data, null, 2)
-);
+          "MSG91 OTP SENT:",
+          data
+        );
 
         setOtp("");
         setOtpSent(true);
@@ -161,10 +184,8 @@ console.log(
 
       async (data) => {
         console.log(
-          "MSG91 OTP VERIFIED:",
-          data
+          "MSG91 OTP VERIFIED SUCCESSFULLY"
         );
-        alert(JSON.stringify(data));
 
         try {
           // =================================================
@@ -172,21 +193,21 @@ console.log(
           // =================================================
 
           const accessToken =
-  typeof data === "string"
-    ? data
-    : data?.accessToken ||
-      data?.["access-token"] ||
-      data?.token ||
-      data?.message ||
-      data?.data?.accessToken ||
-      data?.data?.["access-token"] ||
-      data?.data?.token ||
-      data?.data?.message;
+            typeof data === "string"
+              ? data
+              : data?.accessToken ||
+                data?.["access-token"] ||
+                data?.token ||
+                data?.message ||
+                data?.data?.accessToken ||
+                data?.data?.["access-token"] ||
+                data?.data?.token ||
+                data?.data?.message;
 
           if (!accessToken) {
             console.error(
-              "MSG91 response:",
-              data
+              "MSG91 response keys:",
+              Object.keys(data || {})
             );
 
             throw new Error(
@@ -202,12 +223,12 @@ console.log(
             "/auth/otp-login",
             {
               accessToken,
+              name: name.trim(),
             }
           );
 
           console.log(
-            "ENJOMEAL OTP LOGIN RESPONSE:",
-            response.data
+            "ENJOMEAL OTP LOGIN SUCCESS"
           );
 
           const {
@@ -342,8 +363,7 @@ console.log(
 
       (data) => {
         console.log(
-          "MSG91 OTP RESENT:",
-          data
+          "MSG91 OTP RESENT SUCCESSFULLY"
         );
 
         setOtp("");
@@ -429,6 +449,39 @@ console.log(
         >
           Login with your mobile number
         </p>
+
+        {/* NAME */}
+
+        <label
+          htmlFor="login-name"
+          style={{
+            display: "block",
+            fontWeight: "600",
+          }}
+        >
+          Your Name
+        </label>
+
+        <input
+          id="login-name"
+          type="text"
+          value={name}
+          onChange={handleNameChange}
+          placeholder="Enter your name"
+          autoComplete="name"
+          maxLength={80}
+          disabled={loading || otpSent}
+          style={{
+            width: "100%",
+            padding: "13px",
+            marginTop: "7px",
+            marginBottom: "18px",
+            boxSizing: "border-box",
+            border: "1px solid #ddd",
+            borderRadius: "10px",
+            outline: "none",
+          }}
+        />
 
         {/* MOBILE NUMBER */}
 
