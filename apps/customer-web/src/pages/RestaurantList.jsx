@@ -331,7 +331,7 @@ const fetchUpdates = async () => {
 
   <span className="hero-coupon-arrow">→</span>
 </button>
-
+			
           <div className="hero-food-icon">
             🍽️
           </div>
@@ -340,6 +340,23 @@ const fetchUpdates = async () => {
 
       </section>
 
+		      {/* =================================================
+          Temporary Login Link
+      ================================================= */}
+		<a
+  href="https://enjomeal.in/login"
+  style={{
+    display: "block",
+    marginTop: "10px",
+    textAlign: "center",
+    color: "#f26b21",
+    fontWeight: "600",
+    textDecoration: "none",
+  }}
+>
+  Login to your account →
+</a>
+		
       {/* =================================================
           SEARCH
       ================================================= */}
