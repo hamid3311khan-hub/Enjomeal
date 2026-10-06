@@ -124,6 +124,24 @@ maxDeliveryRadiusKm: {
   max: [50, "Delivery radius cannot exceed 50 KM"],
 },
 
+        // ===================================================
+    // RESTAURANT LOCATION
+    // ===================================================
+
+    latitude: {
+      type: Number,
+      min: [-90, "Invalid latitude"],
+      max: [90, "Invalid latitude"],
+      default: null,
+    },
+
+    longitude: {
+      type: Number,
+      min: [-180, "Invalid longitude"],
+      max: [180, "Invalid longitude"],
+      default: null,
+    },
+
     // ===================================================
     // RESTAURANT CATEGORY
     // ===================================================
