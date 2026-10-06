@@ -114,6 +114,17 @@ fssaiNumber: {
     },
 
     // ===================================================
+// DELIVERY RADIUS
+// ===================================================
+
+maxDeliveryRadiusKm: {
+  type: Number,
+  default: 3,
+  min: [0.5, "Delivery radius must be at least 0.5 KM"],
+  max: [50, "Delivery radius cannot exceed 50 KM"],
+},
+
+    // ===================================================
     // RESTAURANT CATEGORY
     // ===================================================
 
