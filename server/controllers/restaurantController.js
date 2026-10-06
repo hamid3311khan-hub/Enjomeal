@@ -201,19 +201,20 @@ const updateRestaurant = async (req, res) => {
     // Prevent restaurant owner from changing ownership
     // or approval fields directly.
     const allowedUpdates = [
-      "name",
-      "ownerName",
-      "email",
-      "phone",
-      "address",
-      "city",
-      "state",
-      "pincode",
-      "fssaiNumber",
-      "cuisine",
-      "image",
-      "isOpen",
-    ];
+  "name",
+  "ownerName",
+  "email",
+  "phone",
+  "address",
+  "city",
+  "state",
+  "pincode",
+  "fssaiNumber",
+  "cuisine",
+  "image",
+  "isOpen",
+  "maxDeliveryRadiusKm",
+];
 
     // Admin can additionally update approval/active status
     if (req.user.role === "admin") {
