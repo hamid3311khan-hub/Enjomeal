@@ -214,6 +214,8 @@ const updateRestaurant = async (req, res) => {
   "image",
   "isOpen",
   "maxDeliveryRadiusKm",
+  "latitude",
+  "longitude",
 ];
 
     // Admin can additionally update approval/active status
