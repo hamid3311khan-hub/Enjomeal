@@ -608,3 +608,114 @@
 .icon-button { margin-left: 8px; padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; }
 .hero-section { display: flex; justify-content: space-around; align-items: center; padding: 60px 20px; }
 .cta-button { background: #e85d04; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; }
+/* ================================
+   INFORMATION / LEGAL PAGES
+================================ */
+
+.public-info-main {
+  min-height: calc(100vh - 76px);
+  background: #fffaf6;
+  padding: 50px 20px;
+}
+
+.info-page {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  padding: 40px;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  border-radius: 20px;
+  box-shadow: 0 10px 35px rgba(40, 20, 10, 0.06);
+}
+
+.info-page h1 {
+  margin: 0 0 12px;
+  color: #171717;
+  font-size: 38px;
+  line-height: 1.15;
+  letter-spacing: -1px;
+}
+
+.info-page h2 {
+  margin: 32px 0 12px;
+  color: #222222;
+  font-size: 23px;
+}
+
+.info-page p {
+  margin: 0 0 16px;
+  color: #606060;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.info-page ul {
+  margin: 10px 0 20px;
+  padding-left: 24px;
+  color: #606060;
+}
+
+.info-page li {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.info-lead {
+  color: #e85d04 !important;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+
+.info-page strong {
+  color: #333333;
+}
+
+/* Footer enhancement */
+
+.site-footer {
+  margin-top: 0;
+}
+
+.footer-brand p {
+  max-width: 330px;
+  line-height: 1.6;
+}
+
+.footer-links {
+  max-width: 600px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: #e85d04;
+}
+
+@media (max-width: 700px) {
+  .public-info-main {
+    padding: 25px 14px;
+  }
+
+  .info-page {
+    padding: 25px 20px;
+    border-radius: 16px;
+  }
+
+  .info-page h1 {
+    font-size: 30px;
+  }
+
+  .info-page h2 {
+    font-size: 20px;
+    margin-top: 26px;
+  }
+
+  .info-page p {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+}
