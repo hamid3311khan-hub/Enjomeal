@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-
+import AboutUs from "./pages/AboutUs";
 import {
   BrowserRouter,
   Routes,
@@ -143,6 +143,7 @@ function App() {
           path="/register"
           element={<CustomerRegister />}
         />
+        <Route path="/about-us" element={<AboutUs />} />
 
         {/* PASSWORD RESET */}
 
