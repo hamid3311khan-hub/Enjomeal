@@ -36,7 +36,7 @@ import WriteReview from "./pages/WriteReview";
 import Support from "./pages/Support";
 import MyTickets from "./pages/MyTickets";
 import Updates from "./pages/Updates";
-
+import Terms from "./pages/Terms";
 // =====================================================
 // LOGIN PAGE
 // =====================================================
@@ -242,6 +242,7 @@ function App() {
           />
 
         </Route>
+        <Route path="/terms" element={<Terms />} />
 
         {/* UNKNOWN ROUTE */}
 
