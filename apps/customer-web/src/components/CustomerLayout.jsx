@@ -5,7 +5,7 @@ import {
   connectSocket,
   disconnectSocket,
 } from "../socket";
-
+import Footer from "./Footer";
 function CustomerLayout() {
   const [unreadCount, setUnreadCount] =
     useState(0);
@@ -135,6 +135,7 @@ function CustomerLayout() {
       <main className="customer-main">
         <Outlet />
       </main>
+      <Footer />
     </>
   );
 }
