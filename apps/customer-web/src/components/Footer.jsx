@@ -22,7 +22,7 @@ function Footer() {
 
           <p>
             Fresh, tasty and homely food delivered
-            to your doorstep in Patna.
+            to your doorstep .
           </p>
         </div>
 
