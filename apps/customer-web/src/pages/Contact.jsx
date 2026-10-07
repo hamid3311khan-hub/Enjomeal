@@ -13,20 +13,20 @@ function Contact() {
         <h2>EnjoMeal</h2>
 
         <p>
-          Patna, Bihar, India
+          Mumbai, Maharashtra, India
         </p>
 
         <h2>Customer Support</h2>
 
         <p>
           Email:{" "}
-          <a href="mailto:support@enjomeal.com">
-            support@enjomeal.com
+          <a href="mailto: hamid3311khan@gmail.com">
+            hamid3311khan@gmail.com
           </a>
         </p>
 
         <p>
-          Phone: [Support Phone Number]
+          Phone: []
         </p>
 
         <p>
