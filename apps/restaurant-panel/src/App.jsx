@@ -9,7 +9,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import VerifyResetOTP from "./pages/VerifyResetOTP";
 import ResetPassword from "./pages/ResetPassword";
 import RestaurantReports from "./pages/RestaurantReports";
-
+import RestaurantSettings from "./pages/RestaurantSettings";
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem(
     "enjoMealRestaurantToken"
@@ -151,6 +151,23 @@ function Dashboard() {
   >
     Business Report
   </button>
+	  {/* Delivery Settings */}
+  <button
+    onClick={() => navigate("/settings")}
+    style={{
+      width: "100%",
+      padding: "14px 12px",
+      border: "none",
+      borderRadius: "10px",
+      background: "#0d6efd",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "16px",
+      cursor: "pointer",
+    }}
+  >
+    Delivery Settings
+  </button>
 
   {/* Logout */}
   <button
@@ -254,6 +271,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Menu />
+            </ProtectedRoute>
+          }
+        />
+		          {/* Delivery Settings */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <RestaurantSettings />
             </ProtectedRoute>
           }
         />
