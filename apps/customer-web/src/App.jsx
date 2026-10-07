@@ -40,6 +40,7 @@ import Terms from "./pages/Terms";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ReturnPolicy from "./pages/ReturnPolicy";
 import DeliveryPolicy from "./pages/DeliveryPolicy";
+import CancellationPolicy from "./pages/CancellationPolicy";
 // =====================================================
 // LOGIN PAGE
 // =====================================================
@@ -247,6 +248,10 @@ function App() {
   <Route path="/terms" element={<Terms />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
   <Route path="/return-policy" element={<ReturnPolicy />} />
+  <Route
+  path="/cancellation-policy"
+  element={<CancellationPolicy />}
+/>
   <Route
   path="/delivery-policy"
   element={<DeliveryPolicy />}
