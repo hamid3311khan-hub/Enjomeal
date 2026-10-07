@@ -37,6 +37,7 @@ import Support from "./pages/Support";
 import MyTickets from "./pages/MyTickets";
 import Updates from "./pages/Updates";
 import Terms from "./pages/Terms";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 // =====================================================
 // LOGIN PAGE
 // =====================================================
@@ -241,9 +242,12 @@ function App() {
             element={<CustomerProfile />}
           />
 
-        </Route>
-        <Route path="/terms" element={<Terms />} />
+  <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+  
 
+        </Route>
+        
         {/* UNKNOWN ROUTE */}
 
         <Route
