@@ -41,6 +41,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ReturnPolicy from "./pages/ReturnPolicy";
 import DeliveryPolicy from "./pages/DeliveryPolicy";
 import CancellationPolicy from "./pages/CancellationPolicy";
+import Contact from "./pages/Contact";
 // =====================================================
 // LOGIN PAGE
 // =====================================================
@@ -252,6 +253,7 @@ function App() {
   path="/cancellation-policy"
   element={<CancellationPolicy />}
 />
+<Route path="/contact" element={<Contact />} />
   <Route
   path="/delivery-policy"
   element={<DeliveryPolicy />}
