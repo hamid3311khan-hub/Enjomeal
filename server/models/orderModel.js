@@ -100,6 +100,19 @@ const deliveryAddressSchema = new mongoose.Schema(
       default: "",
       maxlength: 20,
     },
+        latitude: {
+      type: Number,
+      required: [true, "Delivery latitude is required"],
+      min: [-90, "Invalid delivery latitude"],
+      max: [90, "Invalid delivery latitude"],
+    },
+
+    longitude: {
+      type: Number,
+      required: [true, "Delivery longitude is required"],
+      min: [-180, "Invalid delivery longitude"],
+      max: [180, "Invalid delivery longitude"],
+    },
   },
   {
     _id: false,
