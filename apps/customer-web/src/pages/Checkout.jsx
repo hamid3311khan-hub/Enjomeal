@@ -23,11 +23,13 @@ const [availableCoupons, setAvailableCoupons] = useState([]);
 const [couponsLoading, setCouponsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    address: "",
-    city: "",
-    pincode: "",
-    paymentMethod: "COD",
-  });
+  address: "",
+  city: "",
+  pincode: "",
+  latitude: "",
+  longitude: "",
+  paymentMethod: "COD",
+});
 
   // =====================================================
   // FETCH CART
