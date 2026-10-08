@@ -528,10 +528,12 @@ const finalTotal = Math.max(
     items,
 
     deliveryAddress: {
-      address,
-      city,
-      pincode,
-    },
+  address,
+  city,
+  pincode,
+  latitude: Number(formData.latitude),
+  longitude: Number(formData.longitude),
+},
 
     paymentMethod:
       formData.paymentMethod,
