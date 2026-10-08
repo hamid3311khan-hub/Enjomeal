@@ -96,6 +96,100 @@ const createOrderController = async (req, res) => {
       });
     }
 
+        // ===============================
+    // DELIVERY RADIUS VALIDATION
+    // ===============================
+
+    const restaurantLatitude = Number(
+      restaurantItem.latitude
+    );
+
+    const restaurantLongitude = Number(
+      restaurantItem.longitude
+    );
+
+    const customerLatitude = Number(
+      deliveryAddress.latitude
+    );
+
+    const customerLongitude = Number(
+      deliveryAddress.longitude
+    );
+
+    // Validate restaurant location
+    if (
+      !Number.isFinite(restaurantLatitude) ||
+      !Number.isFinite(restaurantLongitude)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Restaurant delivery location is not configured. Please ask the restaurant to update Delivery Settings.",
+      });
+    }
+
+    // Validate customer location
+    if (
+      !Number.isFinite(customerLatitude) ||
+      customerLatitude < -90 ||
+      customerLatitude > 90 ||
+      !Number.isFinite(customerLongitude) ||
+      customerLongitude < -180 ||
+      customerLongitude > 180
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Valid delivery location is required. Please use the 'Use My Current Location' option.",
+      });
+    }
+
+    // Haversine distance calculation
+    const toRadians = (degrees) =>
+      (degrees * Math.PI) / 180;
+
+    const earthRadiusKm = 6371;
+
+    const latitudeDifference = toRadians(
+      customerLatitude - restaurantLatitude
+    );
+
+    const longitudeDifference = toRadians(
+      customerLongitude - restaurantLongitude
+    );
+
+    const a =
+      Math.sin(latitudeDifference / 2) ** 2 +
+      Math.cos(
+        toRadians(restaurantLatitude)
+      ) *
+        Math.cos(
+          toRadians(customerLatitude)
+        ) *
+        Math.sin(longitudeDifference / 2) ** 2;
+
+    const distanceKm =
+      earthRadiusKm *
+      2 *
+      Math.atan2(
+        Math.sqrt(a),
+        Math.sqrt(1 - a)
+      );
+
+    const maxDeliveryRadiusKm = Number(
+      restaurantItem.maxDeliveryRadiusKm || 3
+    );
+
+    // Reject order if customer is outside restaurant radius
+    if (distanceKm > maxDeliveryRadiusKm) {
+      return res.status(400).json({
+        success: false,
+        message: `This delivery address is ${distanceKm.toFixed(
+          2
+        )} KM away. This restaurant delivers only up to ${maxDeliveryRadiusKm} KM.`,
+      });
+    }
+
     // ===============================
     // PAYMENT METHOD
     // ===============================
