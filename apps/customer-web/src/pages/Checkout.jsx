@@ -167,6 +167,49 @@ useEffect(() => {
     setError("");
   };
 
+    // =====================================================
+  // GET CUSTOMER LOCATION
+  // =====================================================
+
+  const handleGetLocation = () => {
+    setError("");
+
+    if (!navigator.geolocation) {
+      setError(
+        "Location service is not supported by this browser."
+      );
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } =
+          position.coords;
+
+        setFormData((previous) => ({
+          ...previous,
+          latitude: latitude,
+          longitude: longitude,
+        }));
+      },
+      (error) => {
+        console.error(
+          "Location Error:",
+          error
+        );
+
+        setError(
+          "Unable to get your location. Please allow location permission and try again."
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   // =====================================================
 // APPLY COUPON
 // =====================================================
