@@ -366,7 +366,6 @@ const getFoodsByRestaurantController = async (req, res) => {
 
     const foods = await Food.find({
       restaurant: restaurantId,
-      isAvailable: true,
     }).populate("restaurant");
 
     return res.status(200).json({
