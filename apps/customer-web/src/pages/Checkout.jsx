@@ -906,6 +906,44 @@ const finalTotal = Math.max(
               style={inputStyle}
             />
 
+                        {/* DELIVERY LOCATION */}
+
+            <button
+              type="button"
+              onClick={handleGetLocation}
+              style={{
+                width: "100%",
+                padding: "13px",
+                marginTop: "8px",
+                marginBottom: "18px",
+                border: "1px solid #e85d04",
+                borderRadius: "8px",
+                background: "#fff",
+                color: "#e85d04",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: "pointer",
+              }}
+            >
+              📍 Use My Current Location
+            </button>
+
+            {formData.latitude &&
+              formData.longitude && (
+                <div
+                  style={{
+                    marginBottom: "18px",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    background: "#e8f5e9",
+                    color: "#2e7d32",
+                    fontSize: "13px",
+                  }}
+                >
+                  ✓ Delivery location captured successfully.
+                </div>
+              )}
+
             {/* =================================================
     COUPON / OFFER
 ================================================= */}
