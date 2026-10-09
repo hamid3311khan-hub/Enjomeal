@@ -452,6 +452,29 @@ const finalTotal = Math.max(
       return;
     }
 
+        // ===================================================
+    // DELIVERY LOCATION VALIDATION
+    // ===================================================
+
+    const latitude = Number(formData.latitude);
+    const longitude = Number(formData.longitude);
+
+    if (
+      formData.latitude === "" ||
+      formData.longitude === "" ||
+      !Number.isFinite(latitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      !Number.isFinite(longitude) ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      setError(
+        "Please capture your delivery location using the 'Use My Current Location' button."
+      );
+      return;
+    }
+
     // ===================================================
     // PAYMENT VALIDATION
     // ===================================================
