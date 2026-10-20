@@ -81,10 +81,10 @@ export default function Categories() {
       setSaving(true);
 
       if (editingId) {
-        await API.put(`/categories/${editingId}`, payload);
+        await API.put(`/api/categories/${editingId}`, payload);
         setMessage("Category successfully update ho gayi.");
       } else {
-        await API.post("/categories", payload);
+        await API.post("/api/categories", payload);
         setMessage("Category successfully add ho gayi.");
       }
 
@@ -130,7 +130,7 @@ export default function Categories() {
     setMessage("");
 
     try {
-      await API.put(`/categories/${category._id}`, {
+      await API.put(`/api/categories/${category._id}`, {
         isActive: !category.isActive,
       });
       setMessage(
@@ -160,7 +160,7 @@ export default function Categories() {
     setMessage("");
 
     try {
-      await API.delete(`/categories/${category._id}`);
+      await API.delete(`/api/categories/${category._id}`);
       setMessage("Category delete ho gayi.");
       await loadCategories(type);
     } catch (err) {
