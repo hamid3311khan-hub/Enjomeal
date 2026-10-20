@@ -33,7 +33,7 @@ function Menu() {
   // FOOD CATEGORIES
   // =====================================================
 
-  const categories = [
+  const fallbackCategories = [
     "Biryani",
     "Pizza",
     "Burger",
@@ -61,6 +61,10 @@ function Menu() {
     "Other"
     
   ];
+
+  const [adminCategories, setAdminCategories] = useState([]);
+
+  const categories = [...new Set([...adminCategories, ...fallbackCategories])];
 
   // =====================================================
   // FETCH RESTAURANT FOODS
@@ -106,6 +110,22 @@ function Menu() {
 
   useEffect(() => {
     fetchFoods();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://enjomeal-api.onrender.com/api/categories?type=FOOD")
+      .then((response) => {
+        if (!response.ok) throw new Error("Category API failed");
+        return response.json();
+      })
+      .then((data) => {
+        if (!cancelled && data.success && Array.isArray(data.categories)) {
+          setAdminCategories(data.categories.filter((c) => c.isActive !== false).map((c) => c.name).filter(Boolean));
+        }
+      })
+      .catch((error) => console.error("Fetch food categories error:", error));
+    return () => { cancelled = true; };
   }, []);
 
   // =====================================================
