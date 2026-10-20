@@ -31,7 +31,7 @@ export default function Categories() {
       setLoading(true);
       setError("");
       const response = await API.get(
-        `/categories/admin?type=${selectedType}`
+        `/api/categories/admin?type=${selectedType}`
       );
       setCategories(response.data.categories || []);
     } catch (err) {
