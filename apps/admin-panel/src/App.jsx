@@ -13,6 +13,7 @@ import Tickets from "./pages/Tickets";
 import Updates from "./pages/Updates";
 import RestaurantReports from "./pages/RestaurantReports";
 import DeliveryKYC from "./pages/DeliveryKYC";
+import Categories from "./pages/Categories";
 
 
 // =================================================
@@ -473,6 +474,9 @@ useEffect(() => {
       case "restaurants":
         return "Restaurants";
 
+      case "categories":
+        return "Category Management";
+
       case "customers":
         return "Customers";
 
@@ -518,6 +522,9 @@ useEffect(() => {
 
       case "restaurants":
         return "Manage EnjoMeal restaurants";
+
+      case "categories":
+        return "Manage food, restaurant and grocery categories";
 
       case "customers":
         return "Manage EnjoMeal customers";
@@ -566,6 +573,9 @@ useEffect(() => {
 
       case "restaurants":
         return <Restaurants />;
+
+      case "categories":
+        return <Categories />;
 
       case "customers":
         return <Customers />;
@@ -858,6 +868,19 @@ useEffect(() => {
 </button>
 
     {/* SETTINGS */}
+    {/* CATEGORIES */}
+    <button
+      style={{
+        ...styles.menuButton,
+        ...(activePage === "categories" ? styles.activeButton : {}),
+      }}
+      onClick={() => setActivePage("categories")}
+    >
+      <span style={styles.menuIcon}>🗂️</span>
+      {!isMobile && "Categories"}
+    </button>
+
+
     <button
       style={{
         ...styles.menuButton,

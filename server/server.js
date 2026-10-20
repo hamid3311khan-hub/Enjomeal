@@ -397,6 +397,7 @@ const addressRoutes = require("./routes/address.routes");
 const couponRoutes = require("./routes/coupon.routes");
 const favoriteRoutes = require("./routes/favorite.routes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 
 // =====================================================
 // API ROUTES
@@ -422,6 +423,7 @@ app.use("/api/coupons", couponRoutes);
 
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/categories", categoryRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);
