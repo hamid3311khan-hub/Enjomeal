@@ -9,6 +9,7 @@ const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const User = require("./models/user");
 const Order = require("./models/orderModel");
+const Restaurant = require("./models/restaurant");
 const connectDB = require("./database/db");
 
 
@@ -154,7 +155,7 @@ io.use(async (socket, next) => {
     );
   }
 });
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   const userRoom = `user:${socket.user.id}`;
   const roleRoom = `role:${socket.user.role}`;
 
@@ -171,6 +172,26 @@ io.on("connection", (socket) => {
     userId: socket.user.id,
     role: socket.user.role,
   });
+
+  // Join the authenticated owner's approved restaurant room.
+  if (socket.user.role === "restaurant") {
+    try {
+      const restaurant = await Restaurant.findOne({
+        owner: socket.user.id,
+        approvalStatus: "APPROVED",
+        isActive: true,
+      }).select("_id");
+
+      if (restaurant) {
+        socket.join(`restaurant:${restaurant._id.toString()}`);
+        console.log(
+          `Restaurant socket room joined: ${restaurant._id}`
+        );
+      }
+    } catch (error) {
+      console.error("Restaurant socket room error:", error.message);
+    }
+  }
 
     // ==========================================
   // CUSTOMER JOINS OWN ORDER ROOM

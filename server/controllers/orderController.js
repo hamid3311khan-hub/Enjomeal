@@ -551,6 +551,20 @@ for (const admin of admins) {
     // RESPONSE
     // ===============================
     
+    // RESTAURANT NEW ORDER SOCKET EVENT
+if (io && order.restaurant && order.restaurant._id) {
+  io.to(`restaurant:${order.restaurant._id.toString()}`).emit(
+    "order:new",
+    {
+      success: true,
+      orderId: order._id.toString(),
+      restaurantId: order.restaurant._id.toString(),
+      orderStatus: order.orderStatus,
+      createdAt: order.createdAt,
+    }
+  );
+}
+
     return res.status(201).json({
       success: true,
       message:

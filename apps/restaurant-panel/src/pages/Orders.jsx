@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 
 function Orders() {
   const [orders, setOrders] = useState([]);
@@ -12,6 +13,7 @@ function Orders() {
 
   const [selectedDelivery, setSelectedDelivery] = useState({});
   const [error, setError] = useState("");
+  const [newOrderAlert, setNewOrderAlert] = useState("");
 
   // =====================================================
   // FETCH RESTAURANT ORDERS
@@ -124,6 +126,33 @@ function Orders() {
   useEffect(() => {
     fetchOrders();
     fetchDeliveryPartners();
+
+    const token = localStorage.getItem("enjoMealRestaurantToken");
+    if (!token) return;
+
+    const socket = io("https://enjomeal-api.onrender.com", {
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
+
+    socket.on("order:new", (payload) => {
+      const restaurantId = localStorage.getItem("enjoMealRestaurantId");
+
+      if (
+        restaurantId &&
+        payload?.restaurantId &&
+        restaurantId !== payload.restaurantId
+      ) return;
+
+      setNewOrderAlert("New order received! Order list is refreshing.");
+      fetchOrders();
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("Restaurant order socket error:", err.message);
+    });
+
+    return () => socket.disconnect();
   }, []);
 
   // =====================================================
@@ -381,6 +410,36 @@ function Orders() {
           </button>
         </div>
       </div>
+
+      {newOrderAlert && (
+        <div
+          role="status"
+          style={{
+            background: "#d1e7dd",
+            color: "#0f5132",
+            border: "1px solid #badbcc",
+            borderRadius: "8px",
+            padding: "14px 18px",
+            marginBottom: "18px",
+            fontWeight: "700",
+          }}
+        >
+          {newOrderAlert}
+          <button
+            onClick={() => setNewOrderAlert("")}
+            style={{
+              float: "right",
+              border: "none",
+              background: "transparent",
+              color: "inherit",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* ERROR */}
 
