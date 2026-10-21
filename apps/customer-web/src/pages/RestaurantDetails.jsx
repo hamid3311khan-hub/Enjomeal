@@ -8,6 +8,7 @@ function RestaurantDetails() {
 
   const [restaurant, setRestaurant] = useState(null);
   const [foods, setFoods] = useState([]);
+  const [adminCategories, setAdminCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addingFoodId, setAddingFoodId] = useState(null);
@@ -108,6 +109,31 @@ const [reviewsLoading, setReviewsLoading] =
   }
 }, [restaurantId]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    API.get("/categories?type=FOOD")
+      .then((response) => {
+        const data = response.data;
+
+        if (!cancelled && data.success && Array.isArray(data.categories)) {
+          setAdminCategories(
+            data.categories
+              .filter((category) => category.isActive !== false)
+              .map((category) => String(category.name || "").trim())
+              .filter(Boolean)
+          );
+        }
+      })
+      .catch((err) => {
+        console.error("Fetch food categories error:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // =====================================================
   // CATEGORIES
   // =====================================================
@@ -115,19 +141,21 @@ const [reviewsLoading, setReviewsLoading] =
   const categories = useMemo(() => {
     const categorySet = new Set();
 
-    foods.forEach((food) => {
-      if (food.category) {
-        categorySet.add(
-          String(food.category).trim()
-        );
-      }
-    });
+    [...adminCategories, ...foods.map((food) => food.category)]
+      .forEach((category) => {
+        const name = String(category || "").trim();
+        if (name) {
+          categorySet.add(name);
+        }
+      });
 
     return [
       "All",
-      ...Array.from(categorySet).sort(),
+      ...Array.from(categorySet).sort((a, b) =>
+        a.localeCompare(b)
+      ),
     ];
-  }, [foods]);
+  }, [adminCategories, foods]);
 
   // =====================================================
   // FILTER MENU
