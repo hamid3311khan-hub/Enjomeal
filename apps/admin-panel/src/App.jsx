@@ -14,6 +14,7 @@ import Updates from "./pages/Updates";
 import RestaurantReports from "./pages/RestaurantReports";
 import DeliveryKYC from "./pages/DeliveryKYC";
 import Categories from "./pages/Categories";
+import GroceryProducts from "./pages/GroceryProducts";
 
 
 // =================================================
@@ -477,6 +478,9 @@ useEffect(() => {
       case "categories":
         return "Category Management";
 
+      case "grocery-products":
+        return "Grocery Products";
+
       case "customers":
         return "Customers";
 
@@ -525,6 +529,9 @@ useEffect(() => {
 
       case "categories":
         return "Manage food, restaurant and grocery categories";
+
+      case "grocery-products":
+        return "Manage grocery inventory, prices and stock";
 
       case "customers":
         return "Manage EnjoMeal customers";
@@ -576,6 +583,9 @@ useEffect(() => {
 
       case "categories":
         return <Categories />;
+
+      case "grocery-products":
+        return <GroceryProducts />;
 
       case "customers":
         return <Customers />;
@@ -879,6 +889,18 @@ useEffect(() => {
       <span style={styles.menuIcon}>🗂️</span>
       {!isMobile && "Categories"}
     </button>
+
+    <button
+      style={{
+        ...styles.menuButton,
+        ...(activePage === "grocery-products" ? styles.activeButton : {}),
+      }}
+      onClick={() => setActivePage("grocery-products")}
+    >
+      <span style={styles.menuIcon}>🛒</span>
+      {!isMobile && "Grocery Products"}
+    </button>
+
 
 
     <button
