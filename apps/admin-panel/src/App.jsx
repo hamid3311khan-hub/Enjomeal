@@ -15,6 +15,7 @@ import RestaurantReports from "./pages/RestaurantReports";
 import DeliveryKYC from "./pages/DeliveryKYC";
 import Categories from "./pages/Categories";
 import GroceryProducts from "./pages/GroceryProducts";
+import GroceryOrders from "./pages/GroceryOrders";
 
 
 // =================================================
@@ -481,6 +482,9 @@ useEffect(() => {
       case "grocery-products":
         return "Grocery Products";
 
+      case "grocery-orders":
+        return "Grocery Orders";
+
       case "customers":
         return "Customers";
 
@@ -532,6 +536,9 @@ useEffect(() => {
 
       case "grocery-products":
         return "Manage grocery inventory, prices and stock";
+
+      case "grocery-orders":
+        return "View grocery orders and update order status";
 
       case "customers":
         return "Manage EnjoMeal customers";
@@ -586,6 +593,9 @@ useEffect(() => {
 
       case "grocery-products":
         return <GroceryProducts />;
+
+      case "grocery-orders":
+        return <GroceryOrders />;
 
       case "customers":
         return <Customers />;
@@ -890,7 +900,7 @@ useEffect(() => {
       {!isMobile && "Categories"}
     </button>
 
-    <button
+        <button
       style={{
         ...styles.menuButton,
         ...(activePage === "grocery-products" ? styles.activeButton : {}),
@@ -901,7 +911,16 @@ useEffect(() => {
       {!isMobile && "Grocery Products"}
     </button>
 
-
+    <button
+      style={{
+        ...styles.menuButton,
+        ...(activePage === "grocery-orders" ? styles.activeButton : {}),
+      }}
+      onClick={() => setActivePage("grocery-orders")}
+    >
+      <span style={styles.menuIcon}>📦</span>
+      {!isMobile && "Grocery Orders"}
+    </button>
 
     <button
       style={{
@@ -910,13 +929,11 @@ useEffect(() => {
       }}
       onClick={() => setActivePage("settings")}
     >
-      <span style={styles.menuIcon}>
-        ⚙️
-      </span>
+      <span style={styles.menuIcon}>⚙️</span>
       {!isMobile && "Settings"}
     </button>
-	
-	{/* COUPONS */}
+
+    {/* COUPONS */}
 <button
   style={{
     ...styles.menuButton,

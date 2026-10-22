@@ -5,12 +5,31 @@ const {
   cancelGroceryOrder,
   getMyGroceryOrders,
   getMyGroceryOrderById,
+  getAllGroceryOrdersAdmin,
+  updateGroceryOrderStatusAdmin,
 } = require("../controllers/groceryOrderController");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
 const router = express.Router();
+
+// ADMIN GROCERY ORDERS — must appear before "/:orderId"
+router.get(
+  "/admin",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllGroceryOrdersAdmin
+);
+
+router.put(
+  "/admin/:orderId/status",
+  authMiddleware,
+  roleMiddleware("admin"),
+  updateGroceryOrderStatusAdmin
+);
+
+
 
 // CREATE GROCERY ORDER
 router.post(

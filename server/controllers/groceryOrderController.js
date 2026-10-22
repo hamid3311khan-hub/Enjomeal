@@ -344,3 +344,99 @@ exports.getMyGroceryOrderById = async (req, res) => {
     return fail(res, 500, "Unable to fetch grocery order");
   }
 };
+
+
+// ADMIN: LIST GROCERY ORDERS
+exports.getAllGroceryOrdersAdmin = async (req, res) => {
+  try {
+    const orders = await GroceryOrder.find({})
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .populate("user", "name phone email")
+      .populate("deliveryPartner", "name phone");
+
+    return res.status(200).json({
+      success: true,
+      total: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error("Admin grocery orders error:", error);
+    return fail(res, 500, "Unable to fetch grocery orders");
+  }
+};
+
+// ADMIN: UPDATE GROCERY ORDER STATUS
+// Cancellation is intentionally excluded because it must restore reserved stock safely.
+exports.updateGroceryOrderStatusAdmin = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { orderStatus } = req.body || {};
+
+    if (!mongoose.isValidObjectId(orderId)) {
+      return fail(res, 400, "Invalid grocery order ID");
+    }
+
+    const allowedStatuses = [
+      "CONFIRMED",
+      "PACKING",
+      "READY_FOR_PICKUP",
+      "OUT_FOR_DELIVERY",
+      "DELIVERED",
+    ];
+
+    if (!allowedStatuses.includes(orderStatus)) {
+      return fail(res, 400, "Invalid grocery order status");
+    }
+
+    const order = await GroceryOrder.findById(orderId);
+
+    if (!order) {
+      return fail(res, 404, "Grocery order not found");
+    }
+
+    if (order.orderStatus === "CANCELLED") {
+      return fail(res, 409, "Cancelled orders cannot be updated");
+    }
+
+    if (order.orderStatus === "DELIVERED") {
+      return fail(res, 409, "Delivered orders cannot be updated");
+    }
+
+    const allowedNextStatuses = {
+      PLACED: ["CONFIRMED"],
+      CONFIRMED: ["PACKING"],
+      PACKING: ["READY_FOR_PICKUP"],
+      READY_FOR_PICKUP: ["OUT_FOR_DELIVERY"],
+      OUT_FOR_DELIVERY: ["DELIVERED"],
+    };
+
+    if (!(allowedNextStatuses[order.orderStatus] || []).includes(orderStatus)) {
+      return fail(
+        res,
+        409,
+        "Invalid status transition from " + order.orderStatus + " to " + orderStatus
+      );
+    }
+
+    order.orderStatus = orderStatus;
+
+    if (orderStatus === "DELIVERED") {
+      order.deliveredAt = new Date();
+    }
+
+    await order.save();
+
+    await order.populate("user", "name phone email");
+    await order.populate("deliveryPartner", "name phone");
+
+    return res.status(200).json({
+      success: true,
+      message: "Grocery order status updated",
+      order,
+    });
+  } catch (error) {
+    console.error("Admin grocery order status update error:", error);
+    return fail(res, 500, "Unable to update grocery order status");
+  }
+};
