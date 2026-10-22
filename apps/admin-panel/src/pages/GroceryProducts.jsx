@@ -55,7 +55,7 @@ export default function GroceryProducts() {
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await API.get("/grocery/products/admin");
+      const response = await API.get("/api/grocery/products/admin");
       const data = response.data;
       setProducts(
         Array.isArray(data) ? data :
@@ -74,7 +74,7 @@ export default function GroceryProducts() {
 
   const loadCategories = useCallback(async () => {
     try {
-      const response = await API.get("/categories?type=GROCERY");
+      const response = await API.get("/api/categories?type=GROCERY");
       const data = response.data;
       const list = Array.isArray(data)
         ? data
@@ -169,10 +169,10 @@ export default function GroceryProducts() {
     try {
       setSaving(true);
       if (editingId) {
-        await API.put(`/grocery/products/${editingId}`, payload);
+        await API.put(`/api/grocery/products/${editingId}`, payload);
         setMessage("Grocery product successfully update ho gaya.");
       } else {
-        await API.post("/grocery/products", payload);
+        await API.post("/api/grocery/products", payload);
         setMessage("Grocery product successfully add ho gaya.");
       }
       resetForm();
@@ -197,7 +197,7 @@ export default function GroceryProducts() {
     setError("");
     setMessage("");
     try {
-      await API.delete(`/grocery/products/${product._id}`);
+      await API.delete(`/api/grocery/products/${product._id}`);
       setMessage("Product safely deactivate ho gaya.");
       await loadProducts();
     } catch (err) {
