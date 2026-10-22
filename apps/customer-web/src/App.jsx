@@ -16,8 +16,14 @@ import VerifyResetOTP from "./pages/VerifyResetOTP";
 import ResetPassword from "./pages/ResetPassword";
 
 import RestaurantList from "./pages/RestaurantList";
+import GroceryList from "./pages/GroceryList";
+import GroceryProductDetails from "./pages/GroceryProductDetails";
 import RestaurantDetails from "./pages/RestaurantDetails";
 import Cart from "./pages/Cart";
+import GroceryCart from "./pages/GroceryCart";
+import GroceryCheckout from "./pages/GroceryCheckout";
+import GroceryOrderDetails from "./pages/GroceryOrderDetails";
+import GroceryMyOrders from "./pages/GroceryMyOrders";
 import Checkout from "./pages/Checkout";
 import OrderDetails from "./pages/OrderDetails";
 import MyOrders from "./pages/MyOrders";
@@ -174,6 +180,9 @@ function App() {
   element={<RestaurantList />}
 />
 
+<Route path="/grocery" element={<GroceryList />} />
+<Route path="/grocery/product/:id" element={<GroceryProductDetails />} />
+
 <Route
   path="/restaurants/:restaurantId"
   element={<RestaurantDetails />}
@@ -187,6 +196,19 @@ function App() {
   }
 >
 
+  <Route
+    path="/grocery/cart"
+    element={<GroceryCart />}
+  />
+  <Route
+    path="/grocery/checkout"
+    element={<GroceryCheckout />}
+  />
+  <Route path="/grocery/orders" element={<GroceryMyOrders />} />
+  <Route
+    path="/grocery/orders/:orderId"
+    element={<GroceryOrderDetails />}
+  />
   <Route
     path="/cart"
     element={<Cart />}

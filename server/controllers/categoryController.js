@@ -331,6 +331,18 @@ exports.deleteCategory = async (req, res) => {
       }
     }
 
+    if (category.type === "GROCERY") {
+      const GroceryProduct = require("../models/groceryProductModel");
+      const inUse = await GroceryProduct.exists({ category: category._id });
+
+      if (inUse) {
+        return res.status(409).json({
+          success: false,
+          message: "This category is used by grocery products. Deactivate it instead.",
+        });
+      }
+    }
+
     await Category.findByIdAndDelete(id);
 
     return res.status(200).json({

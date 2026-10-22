@@ -419,6 +419,9 @@ const couponRoutes = require("./routes/coupon.routes");
 const favoriteRoutes = require("./routes/favorite.routes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const groceryProductRoutes = require("./routes/groceryProductRoutes");
+const groceryCartRoutes = require("./routes/groceryCartRoutes");
+const groceryOrderRoutes = require("./routes/groceryOrderRoutes");
 
 // =====================================================
 // API ROUTES
@@ -445,6 +448,9 @@ app.use("/api/coupons", couponRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/grocery/products", groceryProductRoutes);
+app.use("/api/grocery/cart", groceryCartRoutes);
+app.use("/api/grocery/orders", groceryOrderRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);

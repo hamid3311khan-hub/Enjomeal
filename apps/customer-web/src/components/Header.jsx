@@ -59,6 +59,33 @@ function Header({ unreadCount = 0 }) {
           </NavLink>
 
           <NavLink
+            to="/grocery"
+            className={({ isActive }) =>
+              isActive
+                ? "nav-link active"
+                : "nav-link"
+            }
+          >
+            🛒 Grocery
+          </NavLink>
+
+          <NavLink
+            to="/grocery/cart"
+            className={({ isActive }) =>
+              isActive ? "nav-link active" : "nav-link"
+            }
+          >
+            🛒 Grocery Cart
+          </NavLink>
+
+          <NavLink
+            to="/grocery/orders"
+            className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+          >
+            📦 Grocery Orders
+          </NavLink>
+
+          <NavLink
             to="/my-orders"
             className={({ isActive }) =>
               isActive
@@ -228,6 +255,16 @@ function Header({ unreadCount = 0 }) {
             }
           >
             📦 My Orders
+          </NavLink>
+
+          <NavLink
+            to="/grocery/orders"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              isActive ? "mobile-nav-link active" : "mobile-nav-link"
+            }
+          >
+            📦 Grocery Orders
           </NavLink>
 
           <NavLink
