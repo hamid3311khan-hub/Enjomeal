@@ -38,7 +38,7 @@ const couponUsageSchema = new mongoose.Schema(
   }
 );
 
-couponUsageSchema.pre("validate", function (next) {
+couponUsageSchema.pre("validate", function () {
   const hasFoodOrder = Boolean(this.order);
   const hasGroceryOrder = Boolean(this.groceryOrder);
 
@@ -48,8 +48,6 @@ couponUsageSchema.pre("validate", function (next) {
       "Exactly one of order or groceryOrder must be provided"
     );
   }
-
-  next();
 });
 
 // One user can use one coupon only once across both services.
