@@ -476,6 +476,44 @@ const fetchUpdates = async () => {
     </section>
   )}
 
+        {/* EnjoMeal Food and Grocery shortcuts */}
+        <section className="enjomeal-home-service-shortcuts" aria-label="Choose a service">
+          <div className="enjomeal-home-service-heading">
+            <p className="section-label">Explore EnjoMeal</p>
+            <h2>What would you like to order?</h2>
+          </div>
+
+          <div className="enjomeal-home-service-grid">
+            <button
+              type="button"
+              className="enjomeal-home-service-card enjomeal-home-food-card"
+              onClick={() => {
+                setSelectedCuisine("All");
+                document.querySelector(".restaurants-heading")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start"
+                });
+              }}
+            >
+              <span className="enjomeal-home-service-icon" aria-hidden="true">🍽️</span>
+              <span className="enjomeal-home-service-title">Order Food</span>
+              <span className="enjomeal-home-service-description">Explore restaurants and menus</span>
+              <span className="enjomeal-home-service-action">View Restaurants →</span>
+            </button>
+
+            <button
+              type="button"
+              className="enjomeal-home-service-card enjomeal-home-grocery-card"
+              onClick={() => navigate("/grocery")}
+            >
+              <span className="enjomeal-home-service-icon" aria-hidden="true">🛒</span>
+              <span className="enjomeal-home-service-title">Grocery Shopping</span>
+              <span className="enjomeal-home-service-description">Shop everyday essentials</span>
+              <span className="enjomeal-home-service-action">Shop Grocery →</span>
+            </button>
+          </div>
+        </section>
+
         {/* =================================================
             CUISINE FILTERS
         ================================================= */}

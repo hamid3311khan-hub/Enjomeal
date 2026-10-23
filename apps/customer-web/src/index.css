@@ -2183,3 +2183,104 @@ a { color: inherit; }
     font-size: 22px;
   }
 }
+
+
+/* EnjoMeal homepage service shortcuts — isolated styles */
+.enjomeal-home-service-shortcuts {
+  margin: 24px 0;
+  width: 100%;
+}
+
+.enjomeal-home-service-heading {
+  margin-bottom: 14px;
+}
+
+.enjomeal-home-service-heading h2 {
+  margin: 4px 0 0;
+  font-size: clamp(20px, 3vw, 26px);
+  line-height: 1.3;
+}
+
+.enjomeal-home-service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.enjomeal-home-service-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.enjomeal-home-service-card:hover {
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.enjomeal-home-service-card:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.enjomeal-home-food-card {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.enjomeal-home-grocery-card {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.enjomeal-home-service-icon {
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.enjomeal-home-service-title {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.enjomeal-home-service-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.enjomeal-home-service-action {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .enjomeal-home-service-grid {
+    gap: 10px;
+  }
+
+  .enjomeal-home-service-card {
+    padding: 13px;
+    gap: 8px;
+  }
+
+  .enjomeal-home-service-title {
+    font-size: 15px;
+  }
+
+  .enjomeal-home-service-description,
+  .enjomeal-home-service-action {
+    font-size: 12px;
+  }
+}
