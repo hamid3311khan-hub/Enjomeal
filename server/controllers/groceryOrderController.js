@@ -4,6 +4,8 @@ const GroceryCart = require("../models/groceryCartModel");
 const GroceryProduct = require("../models/groceryProductModel");
 const Address = require("../models/addressModel");
 const Settings = require("../models/settingsModel");
+const Coupon = require("../models/couponModel");
+const CouponUsage = require("../models/couponUsageModel");
 
 const roundMoney = (value) =>
   Math.round((Number(value) + Number.EPSILON) * 100) / 100;
@@ -23,11 +25,13 @@ const checkoutError = (status, message) => {
 
 exports.createGroceryOrder = async (req, res) => {
   let session;
+  let checkoutKey = "";
 
   try {
     const userId = req.user.id;
     const { addressId, paymentMethod = "COD" } = req.body || {};
-    const checkoutKey = String(req.get("Idempotency-Key") || "").trim();
+    const couponCode = String(req.body?.couponCode || "").trim().toUpperCase();
+    checkoutKey = String(req.get("Idempotency-Key") || "").trim();
 
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(checkoutKey)) {
       return fail(res, 400, "A valid checkout idempotency key is required");
@@ -143,6 +147,110 @@ exports.createGroceryOrder = async (req, res) => {
         });
       }
 
+      let coupon = null;
+      let discountAmount = 0;
+      let eligibleSubtotal = 0;
+
+      if (couponCode) {
+        if (couponCode.length > 50) {
+          throw checkoutError(400, "Invalid coupon code");
+        }
+
+        coupon = await Coupon.findOne({
+          code: couponCode,
+        }).session(session);
+
+        if (!coupon || !coupon.isActive) {
+          throw checkoutError(400, "Coupon is invalid or inactive");
+        }
+
+        const now = new Date();
+        if (new Date(coupon.expiryDate) < now) {
+          throw checkoutError(400, "Coupon has expired");
+        }
+
+        if (coupon.scope === "FOOD") {
+          throw checkoutError(400, "This coupon is not valid for Grocery");
+        }
+
+        const hasFoodRestrictions =
+          (Array.isArray(coupon.restaurantIds) && coupon.restaurantIds.length > 0) ||
+          (Array.isArray(coupon.foodIds) && coupon.foodIds.length > 0);
+        const hasGroceryRestrictions =
+          Array.isArray(coupon.groceryProductIds) &&
+          coupon.groceryProductIds.length > 0;
+
+        if (coupon.scope === "BOTH" && hasFoodRestrictions && !hasGroceryRestrictions) {
+          throw checkoutError(400, "This coupon is restricted to selected food items or restaurants");
+        }
+
+        if (
+          coupon.usageLimit != null &&
+          Number(coupon.usedCount || 0) >= Number(coupon.usageLimit)
+        ) {
+          throw checkoutError(400, "Coupon usage limit has been reached");
+        }
+
+        const priorUsage = await CouponUsage.findOne({
+          user: userId,
+          coupon: coupon._id,
+        }).session(session);
+
+        if (priorUsage) {
+          throw checkoutError(400, "You have already used this coupon");
+        }
+
+        const eligibleProductIds = Array.isArray(coupon.groceryProductIds)
+          ? coupon.groceryProductIds.map((id) => String(id))
+          : [];
+
+        for (const item of orderItems) {
+          if (
+            eligibleProductIds.length === 0 ||
+            eligibleProductIds.includes(String(item.product))
+          ) {
+            eligibleSubtotal = roundMoney(
+              eligibleSubtotal + Number(item.itemTotal || 0)
+            );
+          }
+        }
+
+        if (eligibleSubtotal <= 0) {
+          throw checkoutError(
+            400,
+            "This coupon is not applicable to the products in your cart"
+          );
+        }
+
+        if (eligibleSubtotal < Number(coupon.minimumOrderAmount || 0)) {
+          throw checkoutError(
+            400,
+            "Eligible grocery items do not meet the coupon minimum order amount"
+          );
+        }
+
+        if (coupon.discountType === "PERCENTAGE") {
+          discountAmount = roundMoney(
+            eligibleSubtotal * Number(coupon.discountValue || 0) / 100
+          );
+        } else if (coupon.discountType === "FIXED") {
+          discountAmount = roundMoney(Number(coupon.discountValue || 0));
+        } else {
+          throw checkoutError(400, "Coupon discount type is invalid");
+        }
+
+        if (coupon.maximumDiscount != null) {
+          discountAmount = Math.min(
+            discountAmount,
+            Number(coupon.maximumDiscount)
+          );
+        }
+
+        discountAmount = roundMoney(
+          Math.max(0, Math.min(discountAmount, eligibleSubtotal))
+        );
+      }
+
       const settings = await Settings.findOne().session(session);
       const deliveryFee =
         settings && settings.freeDelivery
@@ -154,7 +262,6 @@ exports.createGroceryOrder = async (req, res) => {
 
       // No GST rate is configured. Do not assume a rate.
       const gstAmount = 0;
-      const discountAmount = 0;
       const totalAmount = roundMoney(
         Math.max(
           0,
@@ -173,6 +280,7 @@ exports.createGroceryOrder = async (req, res) => {
           platformCharge,
           gstAmount,
           discountAmount,
+          ...(coupon ? { couponCode: coupon.code } : {}),
           totalAmount,
           deliveryAddress: {
             addressId: address._id,
@@ -193,8 +301,35 @@ exports.createGroceryOrder = async (req, res) => {
         { session }
       );
 
-      // Cart clear is part of the same transaction as stock reservation
-      // and order creation. A transaction failure rolls all three back.
+      if (coupon) {
+        await CouponUsage.create(
+          [{
+            coupon: coupon._id,
+            user: userId,
+            groceryOrder: order._id,
+          }],
+          { session }
+        );
+
+        const updatedCoupon = await Coupon.findOneAndUpdate(
+          {
+            _id: coupon._id,
+            isActive: true,
+            ...(coupon.usageLimit != null
+              ? { usedCount: { $lt: Number(coupon.usageLimit) } }
+              : {}),
+          },
+          { $inc: { usedCount: 1 } },
+          { new: true, session }
+        );
+
+        if (!updatedCoupon) {
+          throw checkoutError(409, "Coupon usage limit has just been reached. Please retry without this coupon");
+        }
+      }
+
+      // Cart clear is part of the same transaction as stock reservation,
+      // coupon usage and order creation. Any failure rolls all changes back.
       cart.items = [];
       cart.totalAmount = 0;
       await cart.save({ session });

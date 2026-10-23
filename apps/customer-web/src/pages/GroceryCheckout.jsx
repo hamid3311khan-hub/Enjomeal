@@ -29,6 +29,13 @@ export default function GroceryCheckout() {
   const [newAddress, setNewAddress] = useState(emptyAddress);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [coupon, setCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
 
   const loadCheckout = async () => {
     const [addressResponse, cartResponse] = await Promise.all([
@@ -92,6 +99,35 @@ export default function GroceryCheckout() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setCouponsLoading(true);
+    API.get("/coupons/active").then((r) => {
+      if (active && r.data.success) setAvailableCoupons(r.data.coupons || []);
+    }).catch(() => {}).finally(() => {
+      if (active) setCouponsLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  const applyCoupon = async (codeToApply = couponCode) => {
+    const code = String(codeToApply || "").trim().toUpperCase();
+    if (!code) { setCouponError("Coupon code enter karein."); return; }
+    try {
+      setCouponLoading(true); setCouponError(""); setCouponSuccess("");
+      const token = localStorage.getItem("enjoMealToken");
+      if (!token) { navigate("/login", { replace: true }); return; }
+      const response = await API.post("/coupons/apply", { code, service: "GROCERY" }, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.data.success) throw new Error(response.data.message || "Coupon apply nahi hua.");
+      setCoupon(response.data); setCouponCode(code);
+      setCouponSuccess(response.data.message || "Coupon successfully apply ho gaya.");
+    } catch (err) {
+      setCoupon(null); setCouponError(err.response?.data?.message || err.message || "Coupon apply nahi hua.");
+    } finally { setCouponLoading(false); }
+  };
+
+  const removeCoupon = () => { setCoupon(null); setCouponCode(""); setCouponError(""); setCouponSuccess(""); };
 
   const updateAddressField = (event) => {
     const { name, value, type, checked } = event.target;
@@ -194,7 +230,7 @@ export default function GroceryCheckout() {
 
       const { data } = await API.post(
         "/grocery/orders/create",
-        { addressId, paymentMethod },
+        { addressId, paymentMethod, ...(coupon?.coupon?.code ? { couponCode: coupon.coupon.code } : {}) },
         { headers: { "Idempotency-Key": checkoutKey } }
       );
 
@@ -484,6 +520,33 @@ export default function GroceryCheckout() {
       </section>
 
       <section style={{ borderTop: "1px solid #ddd", paddingTop: 16 }}>
+        <h2>Grocery Coupon</h2>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+          <input
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+            placeholder="Coupon code"
+            disabled={couponLoading || !!coupon}
+          />
+          <button type="button" onClick={() => applyCoupon()} disabled={couponLoading || !!coupon}>
+            {couponLoading ? "Applying..." : "Apply Coupon"}
+          </button>
+          {coupon && <button type="button" onClick={removeCoupon}>Remove</button>}
+        </div>
+        {couponsLoading && <p>Coupons load ho rahe hain...</p>}
+        {availableCoupons.filter((c) => c.isActive !== false).map((c) => (
+          <p key={c._id || c.code}>
+            <strong>{c.code}</strong>
+            {c.discountType === "PERCENTAGE" ? ` — ${c.discountValue}% off` : c.discountType === "FIXED" ? ` — ₹${c.discountValue} off` : ""}
+            {" "}
+            <button type="button" onClick={() => { setCouponCode(c.code); applyCoupon(c.code); }} disabled={couponLoading || !!coupon}>
+              Use
+            </button>
+          </p>
+        ))}
+        {couponError && <p style={{ color: "red" }}>{couponError}</p>}
+        {couponSuccess && <p style={{ color: "green" }}>{couponSuccess}</p>}
+
         <h2>Order Summary</h2>
 
         {cart?.items?.map((item) => {
@@ -502,6 +565,11 @@ export default function GroceryCheckout() {
         <p>
           Cart subtotal: ₹{Number(cart?.totalAmount || 0).toFixed(2)}
         </p>
+        {coupon && (
+          <p style={{ color: "green" }}>
+            Coupon discount: −₹{Number(coupon.discountAmount ?? coupon.coupon?.discountAmount ?? 0).toFixed(2)}
+          </p>
+        )}
         <p>
           Final delivery fee, platform charge aur total backend calculate
           karega.

@@ -66,6 +66,32 @@ const couponSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Coupon scope: existing coupons remain available to both services
+    scope: {
+      type: String,
+      enum: ["FOOD", "GROCERY", "BOTH"],
+      default: "BOTH",
+      index: true,
+    },
+
+    // Eligible restaurants for Food coupons
+    restaurantIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Restaurant",
+    }],
+
+    // Eligible Food items
+    foodIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Food",
+    }],
+
+    // Eligible Grocery products
+    groceryProductIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "GroceryProduct",
+    }],
+
     // Coupon Active / Inactive
     isActive: {
       type: Boolean,

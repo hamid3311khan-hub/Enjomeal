@@ -136,6 +136,14 @@ const orderSchema = new mongoose.Schema(
       index: true,
     },
 
+    // Idempotency key prevents duplicate food orders on retries.
+    checkoutKey: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: undefined,
+    },
+
     // ===================================================
     // RESTAURANT
     // ===================================================
@@ -484,6 +492,17 @@ orderSchema.pre("save", function () {
 // =====================================================
 // INDEXES
 // =====================================================
+
+// One checkout key can create at most one order per customer.
+orderSchema.index(
+  { user: 1, checkoutKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      checkoutKey: { $type: "string" },
+    },
+  }
+);
 
 // Customer order history
 orderSchema.index({

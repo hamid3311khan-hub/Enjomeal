@@ -360,6 +360,7 @@ app.use(
       "Content-Type",
       "Authorization",
       "X-Request-ID",
+      "Idempotency-Key",
     ],
   })
 );

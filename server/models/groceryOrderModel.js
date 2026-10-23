@@ -97,6 +97,7 @@ const groceryOrderSchema = new mongoose.Schema(
     platformCharge: { type: Number, default: 0, min: 0 },
     gstAmount: { type: Number, default: 0, min: 0 },
     discountAmount: { type: Number, default: 0, min: 0 },
+    couponCode: { type: String, trim: true, uppercase: true, default: undefined },
     totalAmount: { type: Number, required: true, min: 0 },
     deliveryAddress: {
       type: groceryDeliveryAddressSchema,

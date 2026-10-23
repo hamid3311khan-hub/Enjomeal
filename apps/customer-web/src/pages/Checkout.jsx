@@ -16,6 +16,7 @@ function Checkout() {
 
 const [couponCode, setCouponCode] = useState("");
 const [coupon, setCoupon] = useState(null);
+const [couponDiscount, setCouponDiscount] = useState(null);
 const [couponLoading, setCouponLoading] = useState(false);
 const [couponError, setCouponError] = useState("");
 const [couponSuccess, setCouponSuccess] = useState("");
@@ -235,6 +236,8 @@ const applyCoupon = async (codeFromPage = null) => {
     setCouponLoading(true);
     setCouponError("");
     setCouponSuccess("");
+    setCoupon(null);
+    setCouponDiscount(null);
 
     const token = localStorage.getItem(
       "enjoMealToken"
@@ -273,7 +276,7 @@ const applyCoupon = async (codeFromPage = null) => {
       setCoupon(
         response.data.coupon || response.data
       );
-
+      setCouponDiscount(Number(response.data.discountAmount ?? 0));
       setCouponCode(code);
 
       setCouponSuccess(
@@ -282,6 +285,8 @@ const applyCoupon = async (codeFromPage = null) => {
       );
     } else {
       setCoupon(null);
+      setCouponDiscount(null);
+      setCouponCode("");
 
       setCouponError(
         response.data.message ||
@@ -295,6 +300,8 @@ const applyCoupon = async (codeFromPage = null) => {
     );
 
     setCoupon(null);
+    setCouponDiscount(null);
+    setCouponCode("");
 
     setCouponError(
       err.response?.data?.message ||
@@ -319,55 +326,12 @@ const subtotal =
   ) || 0;
 
 const calculateDiscount = () => {
-  if (!coupon) {
+  if (!coupon || couponDiscount === null || !Number.isFinite(couponDiscount)) {
     return 0;
-  }
-
-  const type =
-    coupon.discountType ||
-    coupon.type;
-
-  const value =
-    Number(
-      coupon.discountValue ??
-        coupon.value ??
-        0
-    );
-
-  if (value <= 0) {
-    return 0;
-  }
-
-  let discount = 0;
-
-  if (
-    type === "PERCENTAGE" ||
-    type === "percentage"
-  ) {
-    discount =
-      (subtotal * value) / 100;
-  } else if (
-    type === "FIXED" ||
-    type === "fixed"
-  ) {
-    discount = value;
-  }
-
-  const maximumDiscount = Number(
-    coupon.maxDiscount ??
-      coupon.maximumDiscount ??
-      0
-  );
-
-  if (
-    maximumDiscount > 0 &&
-    discount > maximumDiscount
-  ) {
-    discount = maximumDiscount;
   }
 
   return Math.min(
-    Math.max(discount, 0),
+    Math.max(couponDiscount, 0),
     subtotal
   );
 };
@@ -543,33 +507,44 @@ const finalTotal = Math.max(
         "enjoMealToken"
       );
 
+      // Reuse the key only when the checkout payload is unchanged.
+      const checkoutPayload = {
+        restaurant: cart.restaurant._id,
+        items,
+        deliveryAddress: {
+          address,
+          city,
+          pincode,
+          latitude: Number(formData.latitude),
+          longitude: Number(formData.longitude),
+        },
+        paymentMethod: formData.paymentMethod,
+        couponCode: coupon?.code || couponCode || null,
+      };
+
+      const checkoutFingerprint = JSON.stringify(checkoutPayload);
+      const storageKey = "enjoMealFoodCheckoutKey";
+      const fingerprintKey = "enjoMealFoodCheckoutFingerprint";
+      let checkoutKey = sessionStorage.getItem(storageKey);
+      const previousFingerprint = sessionStorage.getItem(fingerprintKey);
+
+      if (!checkoutKey || previousFingerprint !== checkoutFingerprint) {
+        checkoutKey =
+          (globalThis.crypto && globalThis.crypto.randomUUID)
+            ? globalThis.crypto.randomUUID()
+            : "food_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+
+        sessionStorage.setItem(storageKey, checkoutKey);
+        sessionStorage.setItem(fingerprintKey, checkoutFingerprint);
+      }
+
       const response = await API.post(
   "/orders/create",
-  {
-    restaurant: cart.restaurant._id,
-
-    items,
-
-    deliveryAddress: {
-  address,
-  city,
-  pincode,
-  latitude: Number(formData.latitude),
-  longitude: Number(formData.longitude),
-},
-
-    paymentMethod:
-      formData.paymentMethod,
-
-    // Coupon code — backend will validate again
-    couponCode:
-      coupon?.code ||
-      couponCode ||
-      null,
-  },
+  checkoutPayload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Idempotency-Key": checkoutKey,
           },
         }
       );
@@ -588,6 +563,9 @@ const finalTotal = Math.max(
           );
           return;
         }
+
+        sessionStorage.removeItem(storageKey);
+        sessionStorage.removeItem(fingerprintKey);
 
         navigate(
           `/orders/${orderId}`,
@@ -1110,6 +1088,7 @@ const finalTotal = Math.max(
         type="button"
         onClick={() => {
           setCoupon(null);
+          setCouponDiscount(null);
           setCouponCode("");
           setCouponError("");
           setCouponSuccess("");

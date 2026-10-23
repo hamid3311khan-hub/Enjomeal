@@ -24,7 +24,16 @@ function Coupons() {
     expiryDate: "",
     usageLimit: "",
     isActive: true,
+    scope: "BOTH",
+    restaurantIds: [],
+    foodIds: [],
+    groceryProductIds: [],
   });
+
+  const [restaurants, setRestaurants] = useState([]);
+  const [foods, setFoods] = useState([]);
+  const [groceryProducts, setGroceryProducts] = useState([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
 
   const getToken = () =>
     localStorage.getItem("enjoMealToken") ||
@@ -104,9 +113,44 @@ function Coupons() {
     }
   };
 
+  const loadCouponOptions = async () => {
+    setOptionsLoading(true);
+
+    try {
+      const responses = await Promise.all([
+        fetch("https://enjomeal-api.onrender.com/api/restaurants"),
+        fetch("https://enjomeal-api.onrender.com/api/v1/foods/all"),
+        fetch("https://enjomeal-api.onrender.com/api/grocery/products/admin", {
+          headers: headers(),
+        }),
+      ]);
+
+      const data = await Promise.all(
+        responses.map(async (response) => {
+          const body = await response.json();
+
+          if (!response.ok || body.success === false) {
+            throw new Error(body.message || "Failed to load coupon options");
+          }
+
+          return body;
+        })
+      );
+
+      setRestaurants(data[0].restaurants || []);
+      setFoods(data[1].foods || []);
+      setGroceryProducts(data[2].products || []);
+    } catch (e) {
+      setError(e.message || "Failed to load coupon options");
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadCoupons();
     loadCouponHistory();
+    loadCouponOptions();
   }, []);
 
   // ==================================
@@ -121,6 +165,19 @@ function Coupons() {
       checked,
     } = e.target;
 
+    if (name === "scope") {
+      setForm((prev) => ({
+        ...prev,
+        scope: value,
+        ...(value === "FOOD"
+          ? { groceryProductIds: [] }
+          : value === "GROCERY"
+            ? { restaurantIds: [], foodIds: [] }
+            : {}),
+      }));
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]:
@@ -128,6 +185,19 @@ function Coupons() {
           ? checked
           : value,
     }));
+  };
+
+  const toggleCouponSelection = (field, id) => {
+    setForm(prev => {
+      const selected = prev[field] || [];
+      const exists = selected.some(value => String(value) === String(id));
+      return {
+        ...prev,
+        [field]: exists
+          ? selected.filter(value => String(value) !== String(id))
+          : [...selected, id]
+      };
+    });
   };
 
   // ==================================
@@ -180,6 +250,11 @@ function Coupons() {
 
         isActive:
           form.isActive,
+
+        scope: form.scope,
+        restaurantIds: form.restaurantIds,
+        foodIds: form.foodIds,
+        groceryProductIds: form.groceryProductIds,
       };
 
       const response = await fetch(
@@ -221,6 +296,10 @@ function Coupons() {
         expiryDate: "",
         usageLimit: "",
         isActive: true,
+        scope: "BOTH",
+        restaurantIds: [],
+        foodIds: [],
+        groceryProductIds: [],
       });
 
       loadCoupons();
@@ -333,6 +412,54 @@ function Coupons() {
         <form onSubmit={handleSubmit}>
 
           <div style={styles.grid}>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Service Scope</label>
+              <select name="scope" value={form.scope} onChange={handleChange} style={styles.input}>
+                <option value="BOTH">Food + Grocery</option>
+                <option value="FOOD">Food only</option>
+                <option value="GROCERY">Grocery only</option>
+              </select>
+            </div>
+
+            {(form.scope === "FOOD" || form.scope === "BOTH") && (
+              <div style={{...styles.field, gridColumn:"1 / -1"}}>
+                <label style={styles.label}>Restaurants (optional)</label>
+                {optionsLoading ? <p>Loading restaurants...</p> : restaurants.map(r => (
+                  <label key={r._id} style={{display:"block",padding:"6px 0"}}>
+                    <input type="checkbox" checked={form.restaurantIds.some(id=>String(id)===String(r._id))} onChange={()=>toggleCouponSelection("restaurantIds",r._id)} />
+                    {" "}{r.name}
+                  </label>
+                ))}
+                <small>Leave all unchecked for any restaurant.</small>
+              </div>
+            )}
+
+            {(form.scope === "FOOD" || form.scope === "BOTH") && (
+              <div style={{...styles.field, gridColumn:"1 / -1"}}>
+                <label style={styles.label}>Food Items (optional)</label>
+                {optionsLoading ? <p>Loading food items...</p> : foods.map(f => (
+                  <label key={f._id} style={{display:"block",padding:"6px 0"}}>
+                    <input type="checkbox" checked={form.foodIds.some(id=>String(id)===String(f._id))} onChange={()=>toggleCouponSelection("foodIds",f._id)} />
+                    {" "}{f.name}{f.restaurant?.name ? " — "+f.restaurant.name : ""}
+                  </label>
+                ))}
+                <small>Leave all unchecked for any food item.</small>
+              </div>
+            )}
+
+            {(form.scope === "GROCERY" || form.scope === "BOTH") && (
+              <div style={{...styles.field, gridColumn:"1 / -1"}}>
+                <label style={styles.label}>Grocery Products (optional)</label>
+                {optionsLoading ? <p>Loading grocery products...</p> : groceryProducts.map(g => (
+                  <label key={g._id} style={{display:"block",padding:"6px 0"}}>
+                    <input type="checkbox" checked={form.groceryProductIds.some(id=>String(id)===String(g._id))} onChange={()=>toggleCouponSelection("groceryProductIds",g._id)} />
+                    {" "}{g.name}
+                  </label>
+                ))}
+                <small>Leave all unchecked for any grocery product.</small>
+              </div>
+            )}
 
             <Field
               label="Coupon Code"

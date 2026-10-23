@@ -16,6 +16,30 @@ const CouponUsage = require("../models/couponUsageModel");
 const createOrderController = async (req, res) => {
   try {
     const userId = req.user.id;
+    const checkoutKey = String(
+      req.get("Idempotency-Key") || ""
+    ).trim();
+
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(checkoutKey)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or missing checkout key. Please retry checkout.",
+      });
+    }
+
+    // Return the already-created order when the same checkout is retried.
+    const existingOrder = await Order.findOne({
+      user: userId,
+      checkoutKey,
+    });
+
+    if (existingOrder) {
+      return res.status(200).json({
+        success: true,
+        message: "Order already created for this checkout.",
+        order: existingOrder,
+      });
+    }
 
     const {
       restaurant,
@@ -321,86 +345,115 @@ let  discountAmount = 0;
 
 if (couponCode) {
   const coupon = await Coupon.findOne({
-    code: couponCode.trim().toUpperCase(),
+    code: String(couponCode).trim().toUpperCase(),
   });
 
   if (!coupon) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid coupon code",
-    });
+    return res.status(400).json({ success: false, message: "Invalid coupon code" });
   }
 
-  // CHECK IF CUSTOMER ALREADY USED THIS COUPON
-const existingCouponUsage = await CouponUsage.findOne({
-  coupon: coupon._id,
-  user: userId,
-});
-
-if (existingCouponUsage) {
-  return res.status(400).json({
-    success: false,
-    message: "You have already used this coupon",
-  });
-}
-
   if (!coupon.isActive) {
-    return res.status(400).json({
-      success: false,
-      message: "Coupon is inactive",
-    });
+    return res.status(400).json({ success: false, message: "Coupon is inactive" });
   }
 
   if (new Date(coupon.expiryDate) < new Date()) {
-    return res.status(400).json({
-      success: false,
-      message: "Coupon has expired",
-    });
-  }
-
-  if (
-    subtotal <
-    (coupon.minimumOrderAmount || 0)
-  ) {
-    return res.status(400).json({
-      success: false,
-      message:
-        `Minimum order amount is ₹${coupon.minimumOrderAmount}`,
-    });
+    return res.status(400).json({ success: false, message: "Coupon has expired" });
   }
 
   if (
     coupon.usageLimit !== null &&
+    coupon.usageLimit !== undefined &&
     coupon.usedCount >= coupon.usageLimit
   ) {
+    return res.status(400).json({ success: false, message: "Coupon usage limit reached" });
+  }
+
+  if (coupon.scope === "GROCERY") {
     return res.status(400).json({
       success: false,
-      message: "Coupon usage limit reached",
+      message: "This coupon is only valid for grocery orders",
+    });
+  }
+
+  const hasFoodRestrictions =
+    (Array.isArray(coupon.restaurantIds) && coupon.restaurantIds.length > 0) ||
+    (Array.isArray(coupon.foodIds) && coupon.foodIds.length > 0);
+  const hasGroceryRestrictions =
+    Array.isArray(coupon.groceryProductIds) &&
+    coupon.groceryProductIds.length > 0;
+
+  if (coupon.scope === "BOTH" && !hasFoodRestrictions && hasGroceryRestrictions) {
+    return res.status(400).json({
+      success: false,
+      message: "This coupon is restricted to selected grocery products",
+    });
+  }
+
+  const existingCouponUsage = await CouponUsage.findOne({
+    coupon: coupon._id,
+    user: userId,
+  });
+
+  if (existingCouponUsage) {
+    return res.status(400).json({
+      success: false,
+      message: "You have already used this coupon",
+    });
+  }
+
+  const selectedRestaurantId = String(restaurant);
+  const restaurantEligible =
+    !coupon.restaurantIds?.length ||
+    coupon.restaurantIds.some((id) => String(id) === selectedRestaurantId);
+
+  if (!restaurantEligible) {
+    return res.status(400).json({
+      success: false,
+      message: "This coupon is not valid for the selected restaurant",
+    });
+  }
+
+  let eligibleSubtotal = 0;
+
+  for (const item of orderItems) {
+    const foodId = String(item.food);
+    const foodEligible =
+      !coupon.foodIds?.length ||
+      coupon.foodIds.some((id) => String(id) === foodId);
+
+    if (restaurantEligible && foodEligible) {
+      eligibleSubtotal += Number(item.price) * Number(item.quantity);
+    }
+  }
+
+  eligibleSubtotal = Math.round(eligibleSubtotal * 100) / 100;
+
+  if (eligibleSubtotal <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "No items in this order are eligible for the coupon",
+    });
+  }
+
+  if (eligibleSubtotal < Number(coupon.minimumOrderAmount || 0)) {
+    return res.status(400).json({
+      success: false,
+      message: `Eligible items must total at least ₹${coupon.minimumOrderAmount}`,
     });
   }
 
   if (coupon.discountType === "PERCENTAGE") {
-    discountAmount =
-      (subtotal * coupon.discountValue) / 100;
+    discountAmount = (eligibleSubtotal * coupon.discountValue) / 100;
   } else {
     discountAmount = coupon.discountValue;
   }
 
-  if (
-    coupon.maximumDiscount !== null &&
-    coupon.maximumDiscount > 0
-  ) {
-    discountAmount = Math.min(
-      discountAmount,
-      coupon.maximumDiscount
-    );
+  if (coupon.maximumDiscount != null) {
+    discountAmount = Math.min(discountAmount, coupon.maximumDiscount);
   }
 
-  // Discount can never exceed subtotal
-  discountAmount = Math.min(
-    discountAmount,
-    subtotal
-  );
+  discountAmount =
+    Math.round(Math.min(discountAmount, eligibleSubtotal) * 100) / 100;
 }
 
     // ===============================
@@ -419,151 +472,279 @@ const totalAmount = Math.max(
 // CREATE ORDER
 // ===============================
 
-const order =
-  await Order.create({
-    user: userId,
-    restaurant,
-    items: orderItems,
 
-    subtotal,
+let order;
+const session = await mongoose.startSession();
 
-    deliveryFee,
+try {
+  await session.withTransaction(async () => {
+    let transactionCoupon = null;
 
-    discountAmount,
+    if (couponCode) {
+      transactionCoupon = await Coupon.findOne({
+        code: String(couponCode).trim().toUpperCase(),
+      }).session(session);
 
-    platformCharge,
+      if (
+        !transactionCoupon ||
+        !transactionCoupon.isActive ||
+        !transactionCoupon.expiryDate ||
+        new Date(transactionCoupon.expiryDate) < new Date()
+      ) {
+        throw new Error("Coupon is no longer valid. Please try again.");
+      }
 
-    totalAmount,
+      if (transactionCoupon.scope === "GROCERY") {
+        throw new Error("This coupon is only valid for grocery orders.");
+      }
 
-    deliveryAddress,
+      const hasFoodRestrictions =
+        (Array.isArray(transactionCoupon.restaurantIds) &&
+          transactionCoupon.restaurantIds.length > 0) ||
+        (Array.isArray(transactionCoupon.foodIds) &&
+          transactionCoupon.foodIds.length > 0);
 
-    paymentMethod:
-      selectedPaymentMethod,
+      const hasGroceryRestrictions =
+        Array.isArray(transactionCoupon.groceryProductIds) &&
+        transactionCoupon.groceryProductIds.length > 0;
 
-    paymentStatus: "PENDING",
+      if (
+        transactionCoupon.scope === "BOTH" &&
+        !hasFoodRestrictions &&
+        hasGroceryRestrictions
+      ) {
+        throw new Error("This coupon is restricted to selected grocery products.");
+      }
 
-    orderStatus: "PLACED",
-  });
+      const selectedRestaurantId = String(restaurant);
+      const restaurantEligible =
+        !transactionCoupon.restaurantIds?.length ||
+        transactionCoupon.restaurantIds.some(
+          (id) => String(id) === selectedRestaurantId
+        );
 
-    // ===============================
-// SAVE COUPON USAGE
-// ===============================
+      if (!restaurantEligible) {
+        throw new Error("This coupon is not valid for the selected restaurant.");
+      }
 
-if (couponCode) {
-  const coupon = await Coupon.findOne({
-    code: couponCode.trim().toUpperCase(),
-  });
+      let eligibleSubtotal = 0;
 
-  if (coupon) {
-    await CouponUsage.create({
-      coupon: coupon._id,
+      for (const item of orderItems) {
+        const foodId = String(item.food);
+        const foodEligible =
+          !transactionCoupon.foodIds?.length ||
+          transactionCoupon.foodIds.some((id) => String(id) === foodId);
+
+        if (foodEligible) {
+          eligibleSubtotal += Number(item.price) * Number(item.quantity);
+        }
+      }
+
+      eligibleSubtotal = Math.round(eligibleSubtotal * 100) / 100;
+
+      if (eligibleSubtotal <= 0) {
+        throw new Error("No items in this order are eligible for the coupon.");
+      }
+
+      if (
+        eligibleSubtotal <
+        Number(transactionCoupon.minimumOrderAmount || 0)
+      ) {
+        throw new Error(
+          `Eligible items must total at least ₹${transactionCoupon.minimumOrderAmount}`
+        );
+      }
+
+      if (transactionCoupon.discountType === "PERCENTAGE") {
+        discountAmount =
+          (eligibleSubtotal * Number(transactionCoupon.discountValue || 0)) / 100;
+      } else if (transactionCoupon.discountType === "FIXED") {
+        discountAmount = Number(transactionCoupon.discountValue || 0);
+      } else {
+        throw new Error("Coupon discount type is invalid.");
+      }
+
+      if (transactionCoupon.maximumDiscount != null) {
+        discountAmount = Math.min(
+          discountAmount,
+          Number(transactionCoupon.maximumDiscount)
+        );
+      }
+
+      discountAmount =
+        Math.round(
+          Math.min(Math.max(0, discountAmount), eligibleSubtotal) * 100
+        ) / 100;
+
+      const priorUsage = await CouponUsage.findOne({
+        coupon: transactionCoupon._id,
+        user: userId,
+      }).session(session);
+
+      if (priorUsage) {
+        throw new Error("You have already used this coupon.");
+      }
+
+      const couponFilter = {
+        _id: transactionCoupon._id,
+        isActive: true,
+        expiryDate: { $gte: new Date() },
+      };
+
+      if (transactionCoupon.usageLimit != null) {
+        couponFilter.usedCount = { $lt: transactionCoupon.usageLimit };
+      }
+
+      const couponUpdate = await Coupon.updateOne(
+        couponFilter,
+        { $inc: { usedCount: 1 } },
+        { session }
+      );
+
+      if (couponUpdate.matchedCount !== 1) {
+        throw new Error("Coupon usage limit reached. Please try another coupon.");
+      }
+    }
+
+    const transactionTotalAmount = Math.round(
+      Math.max(
+        0,
+        subtotal + deliveryFee + platformCharge - discountAmount
+      ) * 100
+    ) / 100;
+
+    order = new Order({
       user: userId,
-      order: order._id,
+      checkoutKey,
+      restaurant,
+      items: orderItems,
+      subtotal,
+      deliveryFee,
+      discountAmount,
+      platformCharge,
+      totalAmount: transactionTotalAmount,
+      deliveryAddress,
+      paymentMethod: selectedPaymentMethod,
+      paymentStatus: "PENDING",
+      orderStatus: "PLACED",
     });
 
-    coupon.usedCount += 1;
-    await coupon.save();
-  }
-}
+    await order.save({ session });
 
-    // ===============================
-    // CLEAR CART
-    // ===============================
+    if (transactionCoupon) {
+      await CouponUsage.create(
+        [{
+          coupon: transactionCoupon._id,
+          user: userId,
+          order: order._id,
+        }],
+        { session }
+      );
+    }
 
     await Cart.findOneAndUpdate(
       { user: userId },
-      {
-        $set: {
-          items: [],
-          totalAmount: 0,
-          restaurant: null,
-        },
-      }
+      { $set: { items: [], totalAmount: 0, restaurant: null } },
+      { session }
     );
-
-    // ===============================
-    // POPULATE
-    // ===============================
-
-    await order.populate(
-      "user",
-      "name email phone"
-    );
-
-    await order.populate(
-      "restaurant"
-    );
-
-    await order.populate(
-      "items.food"
-    );
-
-    // ===============================
-// CREATE ORDER NOTIFICATION
-// ===============================
-
-await Notification.create({
-  user: userId,
-  title: "Order Placed",
-  message: "Your order has been placed successfully.",
-  type: "ORDER_PLACED",
-  order: order._id,
-  isRead: false,
-});
+  });
+} finally {
+  await session.endSession();
+}
 
 
-    // ===============================
-// ADMIN NEW ORDER NOTIFICATION
-// ===============================
 
-const User = mongoose.model("User");
+    // A committed order must not be reported as failed if response population fails.
+    try {
+      await order.populate(
+        "user",
+        "name email phone"
+      );
 
-const admins = await User.find({
-  role: "admin",
-  isActive: true,
-}).select("_id");
+      await order.populate(
+        "restaurant"
+      );
 
-const io = req.app.get("io");
+      await order.populate(
+        "items.food"
+      );
+    } catch (populateError) {
+      console.error("Order created, but response population failed:", populateError);
+    }
 
-for (const admin of admins) {
-  const adminNotification =
-    await Notification.create({
-      user: admin._id,
-      title: "New Order Received",
-      message: `A new order has been placed. Order ID: ${order._id}`,
-      type: "ORDER_PLACED",
-      order: order._id,
-      isRead: false,
-    });
+    // Notifications and socket alerts must not turn a committed order into a failed checkout.
+    try {
+      // ===============================
+  // CREATE ORDER NOTIFICATION
+  // ===============================
 
-  if (io) {
-    io.to(`user:${admin._id.toString()}`).emit(
-      "notification:new",
+  await Notification.create({
+    user: userId,
+    title: "Order Placed",
+    message: "Your order has been placed successfully.",
+    type: "ORDER_PLACED",
+    order: order._id,
+    isRead: false,
+  });
+
+
+      // ===============================
+  // ADMIN NEW ORDER NOTIFICATION
+  // ===============================
+
+  const User = mongoose.model("User");
+
+  const admins = await User.find({
+    role: "admin",
+    isActive: true,
+  }).select("_id");
+
+  const io = req.app.get("io");
+
+  for (const admin of admins) {
+    const adminNotification =
+      await Notification.create({
+        user: admin._id,
+        title: "New Order Received",
+        message: `A new order has been placed. Order ID: ${order._id}`,
+        type: "ORDER_PLACED",
+        order: order._id,
+        isRead: false,
+      });
+
+    if (io) {
+      io.to(`user:${admin._id.toString()}`).emit(
+        "notification:new",
+        {
+          success: true,
+          notification: adminNotification,
+        }
+      );
+    }
+  }
+
+      // ===============================
+      // RESPONSE
+      // ===============================
+
+      // RESTAURANT NEW ORDER SOCKET EVENT
+  if (io && order.restaurant && order.restaurant._id) {
+    io.to(`restaurant:${order.restaurant._id.toString()}`).emit(
+      "order:new",
       {
         success: true,
-        notification: adminNotification,
+        orderId: order._id.toString(),
+        restaurantId: order.restaurant._id.toString(),
+        orderStatus: order.orderStatus,
+        createdAt: order.createdAt,
       }
     );
   }
-}
 
-    // ===============================
-    // RESPONSE
-    // ===============================
-    
-    // RESTAURANT NEW ORDER SOCKET EVENT
-if (io && order.restaurant && order.restaurant._id) {
-  io.to(`restaurant:${order.restaurant._id.toString()}`).emit(
-    "order:new",
-    {
-      success: true,
-      orderId: order._id.toString(),
-      restaurantId: order.restaurant._id.toString(),
-      orderStatus: order.orderStatus,
-      createdAt: order.createdAt,
+
+    } catch (notificationError) {
+      console.error("Order created, but post-commit notification failed:", notificationError);
     }
-  );
-}
 
     return res.status(201).json({
       success: true,
@@ -577,10 +758,56 @@ if (io && order.restaurant && order.restaurant._id) {
       error
     );
 
-    return res.status(500).json({
+    // Recover safely if another request created the same checkout first.
+    if (error && error.code === 11000) {
+      try {
+        const checkoutKey = String(
+          req.get("Idempotency-Key") || ""
+        ).trim();
+
+        if (/^[a-zA-Z0-9_-]{8,100}$/.test(checkoutKey)) {
+          const existingOrder = await Order.findOne({
+            user: req.user.id,
+            checkoutKey,
+          });
+
+          if (existingOrder) {
+            return res.status(200).json({
+              success: true,
+              message: "Order already created for this checkout.",
+              order: existingOrder,
+            });
+          }
+        }
+      } catch (lookupError) {
+        console.error(
+          "Could not recover duplicate checkout:",
+          lookupError.message
+        );
+      }
+    }
+
+    const clientErrors = [
+      "Coupon is no longer valid. Please try again.",
+      "You have already used this coupon.",
+      "Coupon usage limit reached. Please try another coupon.",
+      "This coupon is only valid for grocery orders.",
+      "This coupon is restricted to selected grocery products.",
+      "This coupon is not valid for the selected restaurant.",
+      "No items in this order are eligible for the coupon.",
+      "Coupon discount type is invalid.",
+    ];
+
+    const isClientError =
+      clientErrors.includes(error.message) ||
+      error.message.startsWith("Eligible items must total at least ₹");
+
+    const statusCode = isClientError ? 400 : 500;
+
+    return res.status(statusCode).json({
       success: false,
       message:
-        "Error in Create Order API",
+        statusCode === 400 ? error.message : "Error in Create Order API",
       error: error.message,
     });
   }
