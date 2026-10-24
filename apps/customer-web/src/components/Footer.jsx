@@ -38,6 +38,8 @@ function Footer() {
           <Link to="/delivery-policy" style={{ color: '#ddd', textDecoration: 'none' }}>Delivery Policy</Link>
           <span style={{ color: '#555' }}>|</span>
           <Link to="/cancellation-policy" style={{ color: '#ddd', textDecoration: 'none' }}>Cancellation Policy</Link>
+          <span style={{ color: '#555' }}>|</span>
+          <a href="https://www.instagram.com/enjomeal_571/" target="_blank" rel="noopener noreferrer" style={{ color: '#ddd', textDecoration: 'none' }}>Instagram</a>
         </div>
 
       </div>
