@@ -51,6 +51,7 @@ export default function GroceryProducts() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -105,6 +106,57 @@ export default function GroceryProducts() {
       ...previous,
       [name]: type === "checkbox" ? checked : value,
     }));
+  };
+
+  const handleGroceryImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setError("");
+      setMessage("");
+
+      const token = localStorage.getItem("enjoMealToken");
+      if (!token) throw new Error("Admin login required.");
+
+      const uploadData = new FormData();
+      uploadData.append("image", file);
+
+      const response = await fetch(
+        "https://enjomeal-api.onrender.com/api/uploads/food-image",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: uploadData,
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok || !data.success || !data.image) {
+        throw new Error(data.message || "Image upload failed.");
+      }
+
+      setForm((previous) => ({ ...previous, image: data.image }));
+      setMessage("Grocery product image uploaded successfully.");
+    } catch (err) {
+      setError(err.message || "Image upload failed.");
+    } finally {
+      setUploadingImage(false);
+      event.target.value = "";
+    }
   };
 
   const startEdit = (product) => {
@@ -370,12 +422,38 @@ export default function GroceryProducts() {
                 style={{ ...inputStyle, marginTop: "6px" }} />
             </label>
 
-            <label style={{ fontSize: "13px", fontWeight: 600, gridColumn: "1 / -1" }}>
-              Image URL
-              <input name="image" type="url" value={form.image} onChange={changeField}
-                placeholder="https://example.com/product.jpg"
-                style={{ ...inputStyle, marginTop: "6px" }} />
-            </label>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ fontSize: "13px", fontWeight: 600 }}>
+                Grocery Product Image
+                <input name="image" type="url" value={form.image} onChange={changeField}
+                  placeholder="Cloudinary image URL (or paste URL)"
+                  style={{ ...inputStyle, marginTop: "6px" }} />
+              </label>
+
+              <label htmlFor="grocery-product-image-upload" style={{
+                display: "inline-block", marginTop: "8px", padding: "10px 14px",
+                borderRadius: "8px", background: uploadingImage ? "#9ca3af" : "#2563eb",
+                color: "#fff", cursor: uploadingImage ? "not-allowed" : "pointer",
+                fontWeight: 600, fontSize: "13px",
+                opacity: uploadingImage ? 0.7 : 1,
+              }}>
+                {uploadingImage ? "Uploading..." : "Upload Image to Cloudinary"}
+              </label>
+              <input id="grocery-product-image-upload" type="file" accept="image/*"
+                disabled={uploadingImage} onChange={handleGroceryImageUpload}
+                style={{ display: "none" }} />
+
+              {form.image && (
+                <div style={{ marginTop: "12px" }}>
+                  <img src={form.image} alt="Grocery product preview"
+                    style={{ width: "110px", height: "110px", objectFit: "cover",
+                      borderRadius: "10px", border: "1px solid #e5e7eb" }} />
+                </div>
+              )}
+              <p style={{ color: "#6b7280", fontSize: "12px", marginTop: "8px" }}>
+                Image file 5 MB se chhoti honi chahiye.
+              </p>
+            </div>
 
             <label style={{ fontSize: "13px", fontWeight: 600, gridColumn: "1 / -1" }}>
               Description
@@ -402,7 +480,7 @@ export default function GroceryProducts() {
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            <button disabled={saving} type="submit" style={{
+            <button disabled={saving || uploadingImage} type="submit" style={{
               ...buttonStyle, background: "#15803d", color: "#fff",
               opacity: saving ? 0.65 : 1,
             }}>
