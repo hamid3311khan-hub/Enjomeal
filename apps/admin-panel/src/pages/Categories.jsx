@@ -25,6 +25,7 @@ export default function Categories() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const loadCategories = async (selectedType = type) => {
     try {
@@ -61,6 +62,58 @@ export default function Categories() {
       ...previous,
       [name]: inputType === "checkbox" ? checked : value,
     }));
+  };
+
+  const handleCategoryImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setError("");
+      setMessage("");
+
+      const token = localStorage.getItem("enjoMealToken");
+      if (!token) throw new Error("Admin login required.");
+
+      const uploadData = new FormData();
+      uploadData.append("image", file);
+
+      const response = await fetch(
+        "https://enjomeal-api.onrender.com/api/uploads/food-image",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: uploadData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.image) {
+        throw new Error(data.message || "Image upload failed.");
+      }
+
+      setForm((previous) => ({ ...previous, image: data.image }));
+      setMessage("Image uploaded successfully.");
+    } catch (err) {
+      setError(err.message || "Image upload failed.");
+    } finally {
+      setUploadingImage(false);
+      event.target.value = "";
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -378,18 +431,64 @@ export default function Categories() {
             />
           </label>
 
-          <label style={styles.label}>
-            Image URL (optional)
+          <div style={{ marginBottom: 16 }}>
+            <label style={styles.label}>
+              Category Image
+              <input
+                style={styles.field}
+                name="image"
+                type="url"
+                value={form.image}
+                onChange={handleChange}
+                maxLength={2000}
+                placeholder="Cloudinary image URL (or paste URL)"
+              />
+            </label>
+
+            <label
+              htmlFor="category-image-upload"
+              style={{
+                display: "inline-block",
+                marginTop: 8,
+                padding: "10px 14px",
+                borderRadius: 8,
+                background: uploadingImage ? "#9ca3af" : "#2563eb",
+                color: "#fff",
+                cursor: uploadingImage ? "not-allowed" : "pointer",
+                fontWeight: 600,
+                opacity: uploadingImage ? 0.7 : 1,
+              }}
+            >
+              {uploadingImage ? "Uploading..." : "Upload Image to Cloudinary"}
+            </label>
             <input
-              style={styles.field}
-              name="image"
-              type="url"
-              value={form.image}
-              onChange={handleChange}
-              maxLength={2000}
-              placeholder="https://..."
+              id="category-image-upload"
+              type="file"
+              accept="image/*"
+              disabled={uploadingImage}
+              onChange={handleCategoryImageUpload}
+              style={{ display: "none" }}
             />
-          </label>
+
+            {form.image && (
+              <div style={{ marginTop: 12 }}>
+                <img
+                  src={form.image}
+                  alt="Category preview"
+                  style={{
+                    width: 110,
+                    height: 110,
+                    objectFit: "cover",
+                    borderRadius: 10,
+                    border: "1px solid #e5e7eb",
+                  }}
+                />
+              </div>
+            )}
+            <p style={{ color: "#6b7280", fontSize: 12, marginTop: 8 }}>
+              Image file 5 MB se chhoti honi chahiye.
+            </p>
+          </div>
 
           <label style={styles.label}>
             Sort Order
@@ -425,7 +524,7 @@ export default function Categories() {
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="submit" style={styles.primary} disabled={saving}>
+            <button type="submit" style={styles.primary} disabled={saving || uploadingImage}>
               {saving
                 ? "Saving..."
                 : editingId
