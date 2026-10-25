@@ -13,7 +13,7 @@ function Contact() {
         <h2>EnjoMeal</h2>
 
         <p>
-          Mumbai, Maharashtra, India
+          Patna, Bihar, India
         </p>
 
         <h2>Customer Support</h2>
