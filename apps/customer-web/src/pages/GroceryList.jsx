@@ -6,8 +6,22 @@ export default function GroceryList() {
 const navigate = useNavigate();
 const [products, setProducts] = useState([]);
 const [search, setSearch] = useState("");
+const [categories, setCategories] = useState([]);
+const [selectedCategory, setSelectedCategory] = useState("All");
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState("");
+
+useEffect(() => {
+  let active = true;
+  API.get("/categories?type=GROCERY")
+    .then(({ data }) => {
+      if (active) setCategories(data.categories || []);
+    })
+    .catch(() => {
+      if (active) setCategories([]);
+    });
+  return () => { active = false; };
+}, []);
 
 useEffect(() => {
 let active = true;
@@ -27,20 +41,18 @@ return () => { active = false; };
 
 }, []);
 
-const filtered = products.filter((p) =>
-p.name?.toLowerCase().includes(search.toLowerCase())
-);
+const filtered = products.filter((p) => {
+  const matchesSearch = p.name?.toLowerCase().includes(search.toLowerCase());
+  const categoryId =
+    typeof p.category === "object" && p.category
+      ? String(p.category._id)
+      : String(p.category || "");
+  const matchesCategory =
+    selectedCategory === "All" || categoryId === selectedCategory;
+  return matchesSearch && matchesCategory;
+});
 
-const groupedProducts = filtered.reduce((groups, product) => {
-  const categoryName =
-    typeof product.category === "object" && product.category
-      ? product.category.name
-      : "Other Grocery Products";
 
-  if (!groups[categoryName]) groups[categoryName] = [];
-  groups[categoryName].push(product);
-  return groups;
-}, {});
 
 return (
 <main style={{ maxWidth: 1200, margin: "auto", padding: 20 }}>
@@ -58,19 +70,66 @@ return (
   {loading && <p>Products load ho rahe hain...</p>}
   {error && <p role="alert">{error}</p>}
 
+
+
+  <div
+    style={{
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      paddingBottom: 12,
+      marginBottom: 16,
+      WebkitOverflowScrolling: "touch"
+    }}
+    aria-label="Grocery categories"
+  >
+    <button
+      type="button"
+      onClick={() => setSelectedCategory("All")}
+      aria-pressed={selectedCategory === "All"}
+      style={{
+        flex: "0 0 auto",
+        padding: "9px 16px",
+        borderRadius: 22,
+        border: "1px solid #166534",
+        background: selectedCategory === "All" ? "#166534" : "#fff",
+        color: selectedCategory === "All" ? "#fff" : "#166534",
+        cursor: "pointer"
+      }}
+    >
+      All
+    </button>
+    {categories.map((category) => (
+      <button
+        key={category._id}
+        type="button"
+        onClick={() => setSelectedCategory(String(category._id))}
+        aria-pressed={selectedCategory === String(category._id)}
+        style={{
+          flex: "0 0 auto",
+          padding: "9px 16px",
+          borderRadius: 22,
+          border: "1px solid #166534",
+          background: selectedCategory === String(category._id) ? "#166534" : "#fff",
+          color: selectedCategory === String(category._id) ? "#fff" : "#166534",
+          cursor: "pointer"
+        }}
+      >
+        {category.name}
+      </button>
+    ))}
+  </div>
+
   {!loading && !error && filtered.length === 0 && (
-    <p>Abhi koi grocery product available nahi hai.</p>
+    <p>Is category mein abhi koi product available nahi hai.</p>
   )}
 
-  {Object.entries(groupedProducts).map(([categoryName, categoryProducts]) => (
-    <section key={categoryName} style={{ marginBottom: 28 }}>
-      <h2 style={{ marginBottom: 12 }}>{categoryName}</h2>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(145px, 1fr))",
-        gap: 10
-      }}>
-    {categoryProducts.map((p) => (
+  <div style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(145px, 1fr))",
+    gap: 10
+  }}>
+    {filtered.map((p) => (
       <article key={p._id} style={{
         border: "1px solid #ddd",
         borderRadius: 12,
@@ -96,10 +155,8 @@ return (
           View product
         </button>
       </article>
-      ))}
-      </div>
-    </section>
-  ))}
+    ))}
+  </div>
 </main>
 
 );
