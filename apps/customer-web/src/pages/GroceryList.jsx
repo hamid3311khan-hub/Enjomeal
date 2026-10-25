@@ -53,21 +53,21 @@ return (
 
   <div style={{
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
-    gap: 16
+    gridTemplateColumns: "repeat(auto-fill, minmax(145px, 1fr))",
+    gap: 10
   }}>
     {filtered.map((p) => (
       <article key={p._id} style={{
         border: "1px solid #ddd",
         borderRadius: 12,
-        padding: 14
+        padding: 9
       }}>
         {p.image && (
           <img
             src={p.image}
             alt={p.name}
             loading="lazy"
-            style={{ width: "100%", height: 140, objectFit: "contain" }}
+            style={{ width: "100%", height: 100, objectFit: "contain" }}
           />
         )}
         <h3>{p.name}</h3>
