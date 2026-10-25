@@ -31,6 +31,17 @@ const filtered = products.filter((p) =>
 p.name?.toLowerCase().includes(search.toLowerCase())
 );
 
+const groupedProducts = filtered.reduce((groups, product) => {
+  const categoryName =
+    typeof product.category === "object" && product.category
+      ? product.category.name
+      : "Other Grocery Products";
+
+  if (!groups[categoryName]) groups[categoryName] = [];
+  groups[categoryName].push(product);
+  return groups;
+}, {});
+
 return (
 <main style={{ maxWidth: 1200, margin: "auto", padding: 20 }}>
 <h1>🛒 Grocery Store</h1>
@@ -51,12 +62,15 @@ return (
     <p>Abhi koi grocery product available nahi hai.</p>
   )}
 
-  <div style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(145px, 1fr))",
-    gap: 10
-  }}>
-    {filtered.map((p) => (
+  {Object.entries(groupedProducts).map(([categoryName, categoryProducts]) => (
+    <section key={categoryName} style={{ marginBottom: 28 }}>
+      <h2 style={{ marginBottom: 12 }}>{categoryName}</h2>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(145px, 1fr))",
+        gap: 10
+      }}>
+    {categoryProducts.map((p) => (
       <article key={p._id} style={{
         border: "1px solid #ddd",
         borderRadius: 12,
@@ -82,8 +96,10 @@ return (
           View product
         </button>
       </article>
-    ))}
-  </div>
+      ))}
+      </div>
+    </section>
+  ))}
 </main>
 
 );
