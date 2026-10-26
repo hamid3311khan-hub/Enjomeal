@@ -29,7 +29,8 @@ function Notifications() {
         context.resume().catch(() => {});
       }
 
-      [0, 0.22, 0.44].forEach((delay) => {
+      for (let i = 0; i < 16; i++) {
+        const delay = i * 0.5;
         const oscillator = context.createOscillator();
         const gain = context.createGain();
         oscillator.type = "sine";
@@ -41,13 +42,13 @@ function Notifications() {
         );
         gain.gain.exponentialRampToValueAtTime(
           0.001,
-          context.currentTime + delay + 0.13
+          context.currentTime + delay + 0.18
         );
         oscillator.connect(gain);
         gain.connect(context.destination);
         oscillator.start(context.currentTime + delay);
-        oscillator.stop(context.currentTime + delay + 0.14);
-      });
+        oscillator.stop(context.currentTime + delay + 0.19);
+      }
     } catch (soundError) {
       console.error("Grocery alert sound error:", soundError);
     }
