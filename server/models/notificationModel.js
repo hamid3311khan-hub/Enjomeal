@@ -24,6 +24,7 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       enum: [
         "ORDER_PLACED",
+        "GROCERY_ORDER_PLACED",
         "ORDER_CONFIRMED",
         "ORDER_PREPARING",
         "ORDER_READY",
@@ -39,6 +40,12 @@ const notificationSchema = new mongoose.Schema(
     order: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
+      default: null,
+    },
+
+    groceryOrder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "GroceryOrder",
       default: null,
     },
 

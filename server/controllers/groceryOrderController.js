@@ -341,6 +341,47 @@ exports.createGroceryOrder = async (req, res) => {
       return fail(res, 500, "Unable to confirm grocery order");
     }
 
+    // Notify admins after the grocery order transaction commits.
+    // Notification failures must not turn a successful checkout into a failure.
+    try {
+      const User = mongoose.model("User");
+      const Notification = mongoose.model("Notification");
+      const admins = await User.find({
+        role: "admin",
+        isActive: true,
+      }).select("_id");
+
+      const io = req.app.get("io");
+
+      for (const admin of admins) {
+        const notification = await Notification.create({
+          user: admin._id,
+          title: "New Grocery Order Received",
+          message: `A new grocery order has been placed. Order ID: ${placedOrder.orderNumber}`,
+          type: "GROCERY_ORDER_PLACED",
+          groceryOrder: placedOrder._id,
+          isRead: false,
+        });
+
+        if (io) {
+          io.to(`user:${admin._id.toString()}`).emit("notification:new", {
+            success: true,
+            notification,
+          });
+
+          io.to(`user:${admin._id.toString()}`).emit("grocery:order:new", {
+            success: true,
+            orderId: placedOrder._id.toString(),
+            orderNumber: placedOrder.orderNumber,
+            orderStatus: placedOrder.orderStatus,
+            createdAt: placedOrder.createdAt,
+          });
+        }
+      }
+    } catch (notificationError) {
+      console.error("Grocery admin notification error:", notificationError.message);
+    }
+
     return res.status(201).json({
       success: true,
       message: "Grocery order placed successfully",

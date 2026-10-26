@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
 
 function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -7,6 +8,71 @@ function Notifications() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
+  const [groceryAlert, setGroceryAlert] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const soundEnabledRef = useRef(false);
+  const audioContextRef = useRef(null);
+
+  const playGroceryAlert = () => {
+    if (!soundEnabledRef.current) return;
+
+    try {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+
+      const context =
+        audioContextRef.current || new AudioContextClass();
+      audioContextRef.current = context;
+
+      if (context.state === "suspended") {
+        context.resume().catch(() => {});
+      }
+
+      [0, 0.22, 0.44].forEach((delay) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = 880;
+        gain.gain.setValueAtTime(0.001, context.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(
+          0.18,
+          context.currentTime + delay + 0.025
+        );
+        gain.gain.exponentialRampToValueAtTime(
+          0.001,
+          context.currentTime + delay + 0.13
+        );
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(context.currentTime + delay);
+        oscillator.stop(context.currentTime + delay + 0.14);
+      });
+    } catch (soundError) {
+      console.error("Grocery alert sound error:", soundError);
+    }
+  };
+
+  const enableGrocerySound = async () => {
+    try {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        setError("Is browser mein alert sound supported nahi hai.");
+        return;
+      }
+
+      const context =
+        audioContextRef.current || new AudioContextClass();
+      audioContextRef.current = context;
+      await context.resume();
+      soundEnabledRef.current = true;
+      setSoundEnabled(true);
+      setGroceryAlert("Grocery order alert sound enabled.");
+    } catch (soundError) {
+      setError("Sound enable nahi hua. Button dobara tap karein.");
+    }
+  };
 
   // =====================================================
   // API BASE URL
@@ -307,6 +373,39 @@ function Notifications() {
     // Initial notification load
     fetchNotifications(true);
 
+    const token =
+      localStorage.getItem("enjoMealAdminToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("enjoMealToken");
+
+    let socket;
+
+    if (token) {
+      socket = io("https://enjomeal-api.onrender.com", {
+        auth: { token },
+        transports: ["websocket", "polling"],
+      });
+
+      socket.on("grocery:order:new", (payload) => {
+        setGroceryAlert(
+          "New grocery order received! Order ID: " +
+            (payload?.orderNumber || payload?.orderId || "New order")
+        );
+        playGroceryAlert();
+        fetchNotifications(false);
+      });
+
+      socket.on("notification:new", (payload) => {
+        if (payload?.notification?.type === "GROCERY_ORDER_PLACED") {
+          fetchNotifications(false);
+        }
+      });
+
+      socket.on("connect_error", (err) => {
+        console.error("Admin notification socket error:", err.message);
+      });
+    }
+
     // Automatically check for new notifications
     const notificationInterval = setInterval(() => {
       fetchNotifications(false);
@@ -315,6 +414,7 @@ function Notifications() {
     // Cleanup when page is closed/unmounted
     return () => {
       clearInterval(notificationInterval);
+      if (socket) socket.disconnect();
     };
   }, []);
 
@@ -397,6 +497,41 @@ function Notifications() {
           }}
         >
           🔄 Refresh
+        </button>
+      </div>
+
+      {groceryAlert && (
+        <div
+          role="status"
+          style={{
+            background: "#fff3cd",
+            color: "#664d03",
+            padding: "15px",
+            borderRadius: "10px",
+            marginBottom: "20px",
+            border: "1px solid #ffecb5",
+            fontWeight: "700",
+          }}
+        >
+          🛒 {groceryAlert}
+        </div>
+      )}
+
+      <div style={{ marginBottom: "20px" }}>
+        <button
+          type="button"
+          onClick={enableGrocerySound}
+          style={{
+            padding: "10px 14px",
+            border: "none",
+            borderRadius: "8px",
+            background: soundEnabled ? "#198754" : "#6c757d",
+            color: "#fff",
+            fontWeight: "700",
+            cursor: "pointer",
+          }}
+        >
+          {soundEnabled ? "🔔 Grocery Sound Enabled" : "🔔 Enable Grocery Alert Sound"}
         </button>
       </div>
 
