@@ -2282,21 +2282,38 @@ a { color: inherit; }
 
 @media (max-width: 480px) {
   .enjomeal-home-service-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .enjomeal-home-service-card {
-    padding: 11px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 7px;
   }
 
-  .enjomeal-home-service-title {
-    font-size: 16px;
+  .enjomeal-home-service-card {
+    min-height: 92px;
+    padding: 8px 5px;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
-  .enjomeal-home-service-description,
+  .enjomeal-home-service-icon {
+    font-size: 21px;
+  }
+
+  .enjomeal-home-service-title {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .enjomeal-home-service-description {
+    display: none;
+  }
+
   .enjomeal-home-service-action {
-    font-size: 13px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .enjomeal-home-custom-card .enjomeal-home-service-title {
+    font-size: 12px;
   }
 }
