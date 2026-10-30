@@ -84,6 +84,12 @@ function Header({ unreadCount = 0 }) {
           >
             📦 Grocery Orders
           </NavLink>
+          <NavLink
+            to="/ration-requests"
+            className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+          >
+            🧺 Custom Ration List
+          </NavLink>
 
           <NavLink
             to="/my-orders"
@@ -265,6 +271,15 @@ function Header({ unreadCount = 0 }) {
             }
           >
             📦 Grocery Orders
+          </NavLink>
+          <NavLink
+            to="/ration-requests"
+            onClick={closeMenu}
+            className={({ isActive }) =>
+              isActive ? "mobile-nav-link active" : "mobile-nav-link"
+            }
+          >
+            🧺 Custom Ration List
           </NavLink>
 
           <NavLink

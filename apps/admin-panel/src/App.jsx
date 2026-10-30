@@ -16,6 +16,7 @@ import DeliveryKYC from "./pages/DeliveryKYC";
 import Categories from "./pages/Categories";
 import GroceryProducts from "./pages/GroceryProducts";
 import GroceryOrders from "./pages/GroceryOrders";
+import RationRequests from "./pages/RationRequests";
 
 
 // =================================================
@@ -485,6 +486,9 @@ useEffect(() => {
       case "grocery-orders":
         return "Grocery Orders";
 
+      case "ration-requests":
+        return "Ration Requests";
+
       case "customers":
         return "Customers";
 
@@ -539,6 +543,9 @@ useEffect(() => {
 
       case "grocery-orders":
         return "View grocery orders and update order status";
+
+      case "ration-requests":
+        return "Review custom ration lists and prepare customer quotations";
 
       case "customers":
         return "Manage EnjoMeal customers";
@@ -596,6 +603,9 @@ useEffect(() => {
 
       case "grocery-orders":
         return <GroceryOrders />;
+
+      case "ration-requests":
+        return <RationRequests />;
 
       case "customers":
         return <Customers />;
@@ -923,6 +933,17 @@ useEffect(() => {
     </button>
 
     <button
+      style={{
+        ...styles.menuButton,
+        ...(activePage === "ration-requests" ? styles.activeButton : {}),
+      }}
+      onClick={() => setActivePage("ration-requests")}
+    >
+      <span style={styles.menuIcon}>🧾</span>
+      {!isMobile && "Ration Requests"}
+    </button>
+
+<button
       style={{
         ...styles.menuButton,
         ...(activePage === "settings" ? styles.activeButton : {}),

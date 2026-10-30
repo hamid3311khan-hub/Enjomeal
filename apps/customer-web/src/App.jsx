@@ -24,6 +24,8 @@ import GroceryCart from "./pages/GroceryCart";
 import GroceryCheckout from "./pages/GroceryCheckout";
 import GroceryOrderDetails from "./pages/GroceryOrderDetails";
 import GroceryMyOrders from "./pages/GroceryMyOrders";
+import CustomRationList from "./pages/CustomRationList";
+import RationRequestDetails from "./pages/RationRequestDetails";
 import Checkout from "./pages/Checkout";
 import OrderDetails from "./pages/OrderDetails";
 import MyOrders from "./pages/MyOrders";
@@ -205,6 +207,8 @@ function App() {
     element={<GroceryCheckout />}
   />
   <Route path="/grocery/orders" element={<GroceryMyOrders />} />
+  <Route path="/ration-requests" element={<CustomRationList />} />
+  <Route path="/ration-requests/:requestId" element={<RationRequestDetails />} />
   <Route
     path="/grocery/orders/:orderId"
     element={<GroceryOrderDetails />}

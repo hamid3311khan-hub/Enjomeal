@@ -2,10 +2,18 @@ const mongoose = require("mongoose");
 
 const groceryOrderItemSchema = new mongoose.Schema(
   {
+    source: {
+      type: String,
+      enum: ["CATALOGUE", "RATION"],
+      default: "CATALOGUE",
+      required: true,
+    },
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "GroceryProduct",
-      required: true,
+      required: function () {
+        return this.source !== "RATION";
+      },
     },
     productName: {
       type: String,
@@ -26,8 +34,15 @@ const groceryOrderItemSchema = new mongoose.Schema(
     quantity: {
       type: Number,
       required: true,
-      min: 1,
-      max: 100,
+      validate: {
+        validator(value) {
+          if (this.source === "RATION") {
+            return Number.isFinite(value) && value >= 0.001 && value <= 100000;
+          }
+          return Number.isInteger(value) && value >= 1 && value <= 100;
+        },
+        message: "Quantity is outside the allowed range for this item source",
+      },
     },
     price: {
       type: Number,
@@ -81,6 +96,18 @@ const groceryOrderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
       index: true,
+    },
+    orderType: {
+      type: String,
+      enum: ["CATALOGUE", "RATION"],
+      default: "CATALOGUE",
+      required: true,
+      index: true,
+    },
+    rationRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RationRequest",
+      default: null,
     },
     items: {
       type: [groceryOrderItemSchema],
@@ -174,12 +201,51 @@ const groceryOrderSchema = new mongoose.Schema(
   }
 );
 
+groceryOrderSchema.pre("validate", function () {
+  const isRationOrder = this.orderType === "RATION";
+  const hasRationRequest = this.rationRequest != null;
+
+  if (isRationOrder && !hasRationRequest) {
+    this.invalidate(
+      "rationRequest",
+      "Ration orders must reference an approved ration request"
+    );
+  }
+
+  if (!isRationOrder && hasRationRequest) {
+    this.invalidate(
+      "rationRequest",
+      "Catalogue orders cannot reference a ration request"
+    );
+  }
+
+  for (const item of this.items || []) {
+    if (item.source !== this.orderType) {
+      this.invalidate(
+        "items",
+        "Order type must match every item's source"
+      );
+      break;
+    }
+  }
+});
+
 groceryOrderSchema.index(
   { user: 1, checkoutKey: 1 },
   {
     unique: true,
     partialFilterExpression: {
       checkoutKey: { $type: "string" },
+    },
+  }
+);
+
+groceryOrderSchema.index(
+  { rationRequest: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      rationRequest: { $type: "objectId" },
     },
   }
 );

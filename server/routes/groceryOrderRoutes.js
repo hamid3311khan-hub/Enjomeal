@@ -9,6 +9,10 @@ const {
   updateGroceryOrderStatusAdmin,
 } = require("../controllers/groceryOrderController");
 
+const {
+  checkoutApprovedRationRequest,
+} = require("../controllers/rationCheckoutController");
+
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
@@ -30,6 +34,14 @@ router.put(
 );
 
 
+
+// CHECKOUT AN APPROVED CUSTOM RATION REQUEST
+router.post(
+  "/ration/:requestId/checkout",
+  authMiddleware,
+  roleMiddleware("customer"),
+  checkoutApprovedRationRequest
+);
 
 // CREATE GROCERY ORDER
 router.post(

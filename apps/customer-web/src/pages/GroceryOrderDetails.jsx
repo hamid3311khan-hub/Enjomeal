@@ -193,7 +193,7 @@ export default function GroceryOrderDetails() {
       <button onClick={() => window.location.reload()}>
         Refresh Order Status
       </button>
-      {order.orderStatus === "PLACED" && (
+      {order.orderType !== "RATION" && order.orderStatus === "PLACED" && (
         <button
           onClick={cancelOrder}
           disabled={cancelling}

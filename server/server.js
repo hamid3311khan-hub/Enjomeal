@@ -423,6 +423,9 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const groceryProductRoutes = require("./routes/groceryProductRoutes");
 const groceryCartRoutes = require("./routes/groceryCartRoutes");
 const groceryOrderRoutes = require("./routes/groceryOrderRoutes");
+const rationRequestRoutes = require("./routes/rationRequestRoutes");
+const rationAdminRoutes = require("./routes/rationAdminRoutes");
+const rationUploadRoutes = require("./routes/rationUploadRoutes");
 
 // =====================================================
 // API ROUTES
@@ -452,6 +455,9 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/grocery/products", groceryProductRoutes);
 app.use("/api/grocery/cart", groceryCartRoutes);
 app.use("/api/grocery/orders", groceryOrderRoutes);
+app.use("/api/ration-requests", rationRequestRoutes);
+app.use("/api/admin/ration-requests", rationAdminRoutes);
+app.use("/api/uploads", rationUploadRoutes);
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);
