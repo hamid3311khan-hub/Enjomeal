@@ -88,7 +88,7 @@ function Header({ unreadCount = 0 }) {
             to="/ration-requests"
             className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
           >
-            🧺 Custom Ration List
+            🧺 Custom Product List
           </NavLink>
 
           <NavLink
@@ -279,7 +279,7 @@ function Header({ unreadCount = 0 }) {
               isActive ? "mobile-nav-link active" : "mobile-nav-link"
             }
           >
-            🧺 Custom Ration List
+            🧺 Custom Product List
           </NavLink>
 
           <NavLink

@@ -545,7 +545,7 @@ useEffect(() => {
         return "View grocery orders and update order status";
 
       case "ration-requests":
-        return "Review custom ration lists and prepare customer quotations";
+        return "Review custom product lists and prepare customer quotations";
 
       case "customers":
         return "Manage EnjoMeal customers";

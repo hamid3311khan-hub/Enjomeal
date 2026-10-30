@@ -300,7 +300,7 @@ export default function RationRequestDetails() {
 
       {status === "CANCELLED" && <p>This ration request has been cancelled.</p>}
 
-      <p style={{ marginTop: 24 }}><Link to="/ration-requests">Back to Custom Ration List</Link></p>
+      <p style={{ marginTop: 24 }}><Link to="/ration-requests">Back to Custom Product List</Link></p>
     </main>
   );
 }

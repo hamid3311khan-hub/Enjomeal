@@ -129,7 +129,7 @@ export default function CustomRationList() {
 
   return (
     <main style={{ maxWidth: 850, margin: "auto", padding: 16 }}>
-      <h1>🧺 Custom Ration List</h1>
+      <h1>🧺 Custom Product List</h1>
       <p>
         Apne ghar ka ration list karein. Admin availability aur price
         batayega. Aapki approval ke bina order confirm nahi hoga.

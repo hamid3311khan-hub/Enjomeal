@@ -511,6 +511,17 @@ const fetchUpdates = async () => {
               <span className="enjomeal-home-service-description">Shop everyday essentials</span>
               <span className="enjomeal-home-service-action">Shop Grocery →</span>
             </button>
+
+            <button
+              type="button"
+              className="enjomeal-home-service-card enjomeal-home-custom-card"
+              onClick={() => navigate("/ration-requests")}
+            >
+              <span className="enjomeal-home-service-icon" aria-hidden="true">🧺</span>
+              <span className="enjomeal-home-service-title">Custom Product List</span>
+              <span className="enjomeal-home-service-description">Jo chahiye, uski request bhejiye</span>
+              <span className="enjomeal-home-service-action">Request Product →</span>
+            </button>
           </div>
         </section>
 

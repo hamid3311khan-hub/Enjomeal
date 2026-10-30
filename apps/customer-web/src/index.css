@@ -2203,8 +2203,8 @@ a { color: inherit; }
 
 .enjomeal-home-service-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .enjomeal-home-service-card {
@@ -2212,10 +2212,10 @@ a { color: inherit; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 9px;
-  padding: 18px;
+  gap: 7px;
+  padding: 14px;
   border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  border-radius: 14px;
   text-align: left;
   font: inherit;
   color: inherit;
@@ -2243,18 +2243,33 @@ a { color: inherit; }
   border-color: #bbf7d0;
 }
 
+.enjomeal-home-custom-card {
+  background: linear-gradient(135deg, #fff7cc, #ffedaa);
+  border: 2px solid #eab308;
+  box-shadow: 0 3px 12px rgba(202, 138, 4, 0.16);
+}
+
+.enjomeal-home-custom-card .enjomeal-home-service-title {
+  color: #854d0e;
+  font-size: 18px;
+}
+
+.enjomeal-home-custom-card .enjomeal-home-service-action {
+  color: #92400e;
+}
+
 .enjomeal-home-service-icon {
-  font-size: 30px;
+  font-size: 28px;
   line-height: 1.2;
 }
 
 .enjomeal-home-service-title {
-  font-weight: 700;
-  font-size: 17px;
+  font-weight: 800;
+  font-size: 18px;
 }
 
 .enjomeal-home-service-description {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: #4b5563;
 }
@@ -2267,20 +2282,21 @@ a { color: inherit; }
 
 @media (max-width: 480px) {
   .enjomeal-home-service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
   .enjomeal-home-service-card {
-    padding: 13px;
-    gap: 8px;
+    padding: 11px;
+    gap: 7px;
   }
 
   .enjomeal-home-service-title {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .enjomeal-home-service-description,
   .enjomeal-home-service-action {
-    font-size: 12px;
+    font-size: 13px;
   }
 }
