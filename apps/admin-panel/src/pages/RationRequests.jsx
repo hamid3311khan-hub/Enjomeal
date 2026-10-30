@@ -232,8 +232,8 @@ export default function RationRequests() {
         <section>
           {visibleRequests.map((request) => (
             <button key={request._id} style={{ ...styles.card, ...styles.button, display: "block", width: "100%", textAlign: "left", border: request._id === selectedId ? "2px solid #2563eb" : "1px solid #e2e8f0" }} onClick={() => { setSelectedId(request._id); setError(""); setNotice(""); }}>
-              <strong>{request.customerName || request.customer?.name || "Customer"}</strong>
-              <p>{request.customerPhone || request.customer?.phone || "Phone unavailable"}</p>
+              <strong>{request.customerName || request.user?.name || "Customer"}</strong>
+              <p>{request.customerPhone || request.user?.phone || "Phone unavailable"}</p>
               <p>Status: {request.requestStatus}</p>
               <small>{dateTime(request.createdAt)}</small>
             </button>
@@ -245,10 +245,12 @@ export default function RationRequests() {
           {!selectedRequest ? <p>Request select karein.</p> : (
             <div style={styles.card}>
               <h3>Customer Details</h3>
-              <p>Name: {selectedRequest.customerName || selectedRequest.customer?.name || "—"}</p>
-              <p>Phone: {selectedRequest.customerPhone || selectedRequest.customer?.phone || "—"}</p>
-              <p>Email: {selectedRequest.customerEmail || selectedRequest.customer?.email || "—"}</p>
-              <p>Address: {selectedRequest.address || "—"}</p>
+              <p>Name: {selectedRequest.customerName || selectedRequest.user?.name || "—"}</p>
+              <p>Phone: {selectedRequest.customerPhone || selectedRequest.user?.phone || "—"}</p>
+              <p>Email: {selectedRequest.customerEmail || selectedRequest.user?.email || "—"}</p>
+              <p>Address: {typeof selectedRequest.address === "object" && selectedRequest.address
+                ? [selectedRequest.address.address, selectedRequest.address.city, selectedRequest.address.state, selectedRequest.address.pincode].filter(Boolean).join(", ") || "—"
+                : selectedRequest.address || "—"}</p>
               <p>Customer note: {selectedRequest.customerNote || "—"}</p>
               <p>Quotation version: {selectedRequest.quotationVersion || 0}</p>
 
